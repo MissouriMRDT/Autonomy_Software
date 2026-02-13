@@ -40,12 +40,12 @@ jobs:
         if: always()
         run: |
           cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+          if [ ! -d "Autonomy_Software" ]; then git clone -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -57,15 +57,29 @@ jobs:
 
       - name: Update Branch
         run: |
+          set -euo pipefail
           cd /opt/Autonomy_Software/
-          git fetch --force --recurse-submodules
+
           branch=${{ steps.extract_branch.outputs.branch }}
-          echo $branch
-          git reset --hard origin/$branch
-          git checkout $branch
-          git pull --ff-only
-          git submodule update --force --recursive --init
+          echo "Using branch: $branch"
+
+          git fetch --force origin "$branch"
+          git checkout -B "$branch" "origin/$branch"
+          git reset --hard "origin/$branch"
+
+          # Only allow these two submodules to ever be touched
+          git config --local --unset-all submodule.active || true
+          git config --local --add submodule.active external/threadpool
+          git config --local --add submodule.active external/rovecomm
+
+          # Extra safety: make LiDAR a no-op if anything tries to update all submodules
+          git config --local submodule.data/LiDAR.update none
+
+          git submodule sync --recursive
+          git submodule update --init --recursive external/threadpool external/rovecomm
+
           git config --global --add safe.directory /opt/Autonomy_Software/external
+
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

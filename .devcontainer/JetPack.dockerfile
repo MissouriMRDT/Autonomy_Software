@@ -185,14 +185,8 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm
 # Set Fish as Default Shell
 RUN chsh -s /usr/bin/fish && mkdir -p ~/.config/fish/ && echo 'set fish_greeting' >> ~/.config/fish/config.fish
 
-# Clone Autonomy Software Repository
-RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git /opt/Autonomy_Software
-
 # Disable the VSCode server requirements check, this fixes the cross architecture issues and potentially fixes mismatching VSCode server versions. Can be unstable.
 RUN touch /tmp/vscode-skip-server-requirements-check
-
-# Set Working Directory
-WORKDIR /opt/Autonomy_Software/
 
 # Set Labels
 LABEL authors="Missouri S&T Mars Rover Design Team"

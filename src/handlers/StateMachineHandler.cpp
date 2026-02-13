@@ -40,7 +40,8 @@ StateMachineHandler::StateMachineHandler()
     network::g_pRoveCommUDPNode->AddUDPCallback<float>(PMSCellVoltageCallback, manifest::PMS::TELEMETRY.find("CELLVOLTAGE")->second.DATA_ID);
 
     // Initialize member variables.
-    m_pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    m_pMainCam          = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    m_dZEDHeadingOffset = 0.0;
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
@@ -252,76 +253,16 @@ void StateMachineHandler::ThreadedContinuousCode()
         m_pCurrentState->Run();
     }
 
-    // Create instance variable.
-    static geoops::GPSCoordinate stNewGPSLocation;
-    // Check if GPS data is recent and updated.
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(globals::g_pNavigationBoard->GetGPSLastUpdateTime()).count() <= 100 ||
-        (stNewGPSLocation.dLatitude == 0.0 && stNewGPSLocation.dLongitude == 0.0))
+    // Realign the camera's relative position to current GPS position when in Idle. This does not affect fusion, but makes sure we can fallback to the camera pose for
+    // positioning.
+    if (m_pCurrentState->GetState() == statemachine::States::eIdle && m_pMainCam->GetPositionalTrackingEnabled())
     {
-        // Get the current NavBoard GPS data.
-        stNewGPSLocation = globals::g_pNavigationBoard->GetGPSData();
-    }
-
-    // Create static boolean value for toggling DiffGPS warning log print.
-    static bool bAlreadyPrintedDiffGPSWarning = false;
-    // Check if the current GPS data is different from the old.
-    if (stNewGPSLocation.dLatitude != m_stCurrentGPSLocation.dLatitude && stNewGPSLocation.dLongitude != m_stCurrentGPSLocation.dLongitude &&
-        stNewGPSLocation.dAltitude != m_stCurrentGPSLocation.dAltitude)
-    {
-        // Check if GNSS fusion is enabled.
-        if (constants::FUSION_ENABLE_GNSS_FUSION)
+        // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
+        if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
+            globals::g_pNavigationBoard->GetAngularVelocity() <= constants::STUCK_CHECK_ROT_THRESH)
         {
-            // Check if our GPS coordinate from NavBoard is differential.
-            if (stNewGPSLocation.bIsDifferential)
-            {
-                // Check if main ZED camera is setup to use GPS fusion.
-                if (m_pMainCam->GetIsFusionMaster() && m_pMainCam->GetPositionalTrackingEnabled())
-                {
-                    // Update current GPS position.
-                    m_stCurrentGPSLocation = stNewGPSLocation;
-                    // Feed current GPS location to main ZED camera.
-                    m_pMainCam->IngestGPSDataToFusion(m_stCurrentGPSLocation);
-                }
-
-                // Reset DiffGPS warning print toggle.
-                if (bAlreadyPrintedDiffGPSWarning)
-                {
-                    // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger,
-                               "Incoming GPS position to NavBoard now has differential accuracy! Autonomy will switch to using GPS Fusion for high accuracy navigation!");
-
-                    // Rest toggle.
-                    bAlreadyPrintedDiffGPSWarning = false;
-                }
-            }
-            // Check if GPS coordinate from NavBoard is not differential and print warning log.
-            else if (!bAlreadyPrintedDiffGPSWarning)
-            {
-                // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger,
-                           "Incoming GPS position to NavBoard does not have differential accuracy! Autonomy will not use GPS Fusion but instead fallback to aligning "
-                           "the ZED pose while the rover is in Idle state and not moving. Autonomous navigation performance of the rover will be degraded...");
-
-                // Set already printed toggle.
-                bAlreadyPrintedDiffGPSWarning = true;
-            }
-        }
-
-        // Realign the camera's relative position to current GPS position when in Idle. This does not affect fusion, but makes sure we can fallback to the camera pose for
-        // positioning.
-        if (m_pCurrentState->GetState() == statemachine::States::eIdle && m_pMainCam->GetPositionalTrackingEnabled())
-        {
-            // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
-            if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
-                globals::g_pNavigationBoard->GetAngularVelocity() <= constants::STUCK_CHECK_ROT_THRESH)
-            {
-                // Update current GPS position.
-                m_stCurrentGPSLocation = stNewGPSLocation;
-                // Get current compass heading.
-                double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();
-                // Realign the main ZED cameras pose with current GPS-based position and heading.
-                this->RealignZEDPosition(CameraHandler::ZEDCamName::eHeadMainCam, geoops::ConvertGPSToUTM(m_stCurrentGPSLocation), dCurrentCompassHeading);
-            }
+            // Realign the main ZED cameras pose with current GPS-based heading.
+            this->RealignZEDHeading(globals::g_pNavigationBoard->GetHeading());
         }
     }
 }
@@ -430,173 +371,66 @@ statemachine::States StateMachineHandler::GetPreviousState() const
 }
 
 /******************************************************************************
- * @brief Retrieve the rover's current position and heading. Automatically picks between
- *      getting the position/heading from the NavBoard, ZEDSDK Fusion module, or ZED positional tracking.
- *      In most cases, this will be the method that should be called over getting the data directly
- *      from NavBoard.
+ * @brief This method is used to retrieve the rover's current position and heading. It uses the GPS data from the NavBoard and if enabled, it can also fuse the ZEDCam's
+ * IMU heading data for a more accurate heading estimation. The method returns a RoverPose struct that contains the current GPS coordinate and the fused heading of the
+ * rover.
  *
- * @param bVIOHeading - Whether to use ZED Heading Fusion.
- * @param bVIOTracking - Whether to use ZED Positional Tracking.
+ * @param bIMUHeading - Whether to use IMU Heading.
  * @return geoops::RoverPose - The current position and heading (pose) of the rover stored in a RoverPose struct.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-04-06
  ******************************************************************************/
-geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bVIOHeading, bool bVIOTracking)
+geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
 {
     // Get and store the normal GPS position and heading from NavBoard.
     geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
     double dCurrentGPSHeading                  = globals::g_pNavigationBoard->GetHeading();
 
     // Create instance variables.
-    std::shared_ptr<ZEDCamera> pMainCam        = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-    geoops::GPSCoordinate stCurrentVIOPosition = stCurrentGPSPosition;
-    double dCurrentHeading                     = dCurrentGPSHeading;
-    bool bVIOGPSFused                          = false;
-    static bool bAlreadyPrinted                = false;
+    double dFusedHeading = dCurrentGPSHeading;
 
-    if ((bVIOHeading || bVIOTracking) && !constants::MODE_SIM)
+    if ((bIMUHeading) && !constants::MODE_SIM)
     {
         // Check if the main ZED camera is opened and the fusion module is initialized.
-        if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
+        if (m_pMainCam->GetCameraIsOpen())
         {
-            // Get the fused positional tracking state of the main camera.
-            sl::GNSS_FUSION_STATUS slGNSSFusionStatus = pMainCam->GetFusedPositionalTrackingState().gnss_fusion_status;
+            // Create instance variables.
+            sl::SensorsData slCurrentCameraVIOPose;
 
-            // Check if GNSS fusion is enabled and current GPS data from has differential accuracy and GNSS fusion is calibrated.
-            if (constants::FUSION_ENABLE_GNSS_FUSION && pMainCam->GetIsFusionMaster() && stCurrentGPSPosition.bIsDifferential &&
-                (slGNSSFusionStatus == sl::GNSS_FUSION_STATUS::OK || slGNSSFusionStatus == sl::GNSS_FUSION_STATUS::RECALIBRATION_IN_PROGRESS))
+            // Get the current camera pose from the ZEDCam.
+            std::future<bool> fuResultStatus = m_pMainCam->RequestSensorsCopy(slCurrentCameraVIOPose);
+            // Wait for future to be fulfilled.
+            if (fuResultStatus.get())
             {
-                // Create instance variables.
-                sl::GeoPose slCurrentCameraGeoPose;
-                ZEDCam::Pose stCurrentCameraVIOPose;
-
-                // Check if position VIO tracking should be used.
-                if (bVIOTracking)
-                {
-                    // Get the current camera pose from the ZEDCam.
-                    std::future<bool> fuResultStatus = pMainCam->RequestFusionGeoPoseCopy(slCurrentCameraGeoPose);
-                    if (fuResultStatus.get())
-                    {
-                        // Repack the camera pose into a GPSCoordinate.
-                        stCurrentVIOPosition.dLatitude  = slCurrentCameraGeoPose.latlng_coordinates.getLatitude(false);
-                        stCurrentVIOPosition.dLongitude = slCurrentCameraGeoPose.latlng_coordinates.getLongitude(false);
-                        stCurrentVIOPosition.dAltitude  = slCurrentCameraGeoPose.latlng_coordinates.getAltitude();
-
-                        // Set fused toggle.
-                        bVIOGPSFused = true;
-                    }
-                }
-
                 // Check if heading VIO tracking should be used.
-                if (bVIOHeading)
+                if (bIMUHeading)
                 {
-                    // Get the current camera pose from the ZEDCam.
-                    std::future<bool> fuResultStatus2 = pMainCam->RequestPositionalPoseCopy(stCurrentCameraVIOPose);
-                    if (fuResultStatus2.get())
-                    {
-                        // Repack the camera pose into a UTMCoordinate.
-                        dCurrentHeading = stCurrentCameraVIOPose.stEulerAngles.dYO;
-
-                        // Set fused toggle.
-                        bVIOGPSFused = true;
-                    }
-                }
-
-                // Check toggle so we only print once.
-                if (bAlreadyPrinted)
-                {
-                    // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "GNSS Fusion has now converged! Using GNSS Fusion for rover pose...");
-                    // Set toggle.
-                    bAlreadyPrinted = false;
+                    // Get compass heading based off of the ZED's aligned accelerometer.
+                    double dRawZEDHeading = slCurrentCameraVIOPose.imu.pose.getEulerAngles(false).y;
+                    // Convert -180/180 to 0/360 purely for modulus math (keeps 0 at 0)
+                    if (dRawZEDHeading < 0)
+                        dRawZEDHeading += 360.0;
+                    // Apply the offset
+                    dFusedHeading = dRawZEDHeading + m_dZEDHeadingOffset;
+                    // Wrap final result
+                    dFusedHeading = numops::InputAngleModulus(dFusedHeading, 0.0, 360.0);
                 }
             }
-            else
-            {
-                // Create instance variables.
-                ZEDCam::Pose stCurrentCameraVIOPose;
-
-                // Get the current camera pose from the ZEDCam.
-                std::future<bool> fuResultStatus = pMainCam->RequestPositionalPoseCopy(stCurrentCameraVIOPose);
-                // Wait for future to be fulfilled.
-                if (fuResultStatus.get())
-                {
-                    // Check if position VIO tracking should be used.
-                    if (bVIOTracking)
-                    {
-                        // Camera is using UTM. Modify current GPS position to be camera's position.
-                        geoops::UTMCoordinate stCameraUTMLocation = geoops::ConvertGPSToUTM(stCurrentGPSPosition);
-                        // Repack the camera pose into a GPSCoordinate.
-                        stCameraUTMLocation.dEasting  = stCurrentCameraVIOPose.stTranslation.dX;
-                        stCameraUTMLocation.dNorthing = stCurrentCameraVIOPose.stTranslation.dZ;
-                        stCameraUTMLocation.dAltitude = stCurrentCameraVIOPose.stTranslation.dY;
-                        // Convert back to GPS coordinate and store.
-                        stCurrentVIOPosition = geoops::ConvertUTMToGPS(stCameraUTMLocation);
-                    }
-
-                    // Check if heading VIO tracking should be used.
-                    if (bVIOHeading)
-                    {
-                        // Get compass heading based off of the ZED's aligned accelerometer.
-                        dCurrentHeading = stCurrentCameraVIOPose.stEulerAngles.dYO;
-                    }
-
-                    // Set fused toggle.
-                    bVIOGPSFused = false;
-                }
-
-                // Check toggle so we only print once.
-                if (!bAlreadyPrinted && constants::FUSION_ENABLE_GNSS_FUSION)
-                {
-                    // Submit logger message.
-                    LOG_NOTICE(logging::g_qSharedLogger, "GNSS Fusion is still calibrating. Using VIO tracking for rover pose...");
-                    // Set toggle.
-                    bAlreadyPrinted = true;
-                }
-            }
-        }
-        else
-        {
-            LOG_WARNING_LIMIT(std::chrono::seconds(5),
-                              logging::g_qSharedLogger,
-                              "Positional tracking is NOT ENABLED, NOT STABLE, or camera is NOT OPEN! Using NavBoard GPS data for rover pose...");
         }
     }
 
     // Submit a debug print for the current rover pose.
-    geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(stCurrentVIOPosition);
+    geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(dCurrentGPSHeading);
     LOG_DEBUG(logging::g_qSharedLogger,
-              "Rover Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees), GNSS/VIO FUSED? = {}, VIOPosition = {}, VIOHeading = {}",
+              "Rover Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees), IMUHeading = {}",
               stCurrentUTMPosition.dEasting,
               stCurrentUTMPosition.dNorthing,
               stCurrentUTMPosition.dAltitude,
-              dCurrentHeading,
-              bVIOGPSFused ? "true" : "false",
-              bVIOTracking ? "true" : "false",
-              bVIOHeading ? "true" : "false");
+              dFusedHeading,
+              bIMUHeading ? "true" : "false");
 
-    // Check if VIO tracking or heading is being used.
-    if (bVIOHeading || bVIOTracking)
-    {
-        // Submit a debug print for some error metrics pertaining to the ZED camera and NavBoard locations and headings.
-        double dHeadingError  = dCurrentHeading - dCurrentGPSHeading;
-        double dEastingError  = ConvertGPSToUTM(stCurrentGPSPosition).dEasting - stCurrentUTMPosition.dEasting;
-        double dNorthingError = ConvertGPSToUTM(stCurrentGPSPosition).dNorthing - stCurrentUTMPosition.dNorthing;
-        // Assemble the error metrics into a single string. We are going to include the original GPS positions of the NavBoard and the Camera and then include the error.
-        // Same thing for the heading data.
-        std::string szErrorMetrics = "--------[ Pose Tracking Error ]--------\nGPS/VIO Position Error (UTM for easy reading):\n" +
-                                     std::to_string(ConvertGPSToUTM(stCurrentGPSPosition).dEasting) + " (NavBoard) vs. " + std::to_string(stCurrentUTMPosition.dEasting) +
-                                     " (Camera) = " + std::to_string(dEastingError) + " (error)\n" + std::to_string(ConvertGPSToUTM(stCurrentGPSPosition).dNorthing) +
-                                     " (NavBoard) vs. " + std::to_string(stCurrentUTMPosition.dNorthing) + " (Camera) = " + std::to_string(dNorthingError) +
-                                     " (error)\n" + "Heading Error:\n" + std::to_string(dCurrentGPSHeading) + " (NavBoard) vs. " + std::to_string(dCurrentHeading) +
-                                     " (Camera) = " + std::to_string(dHeadingError) + " (error)\n GNSS/VIO FUSED? = " + (bVIOGPSFused ? "true" : "false") +
-                                     ", VIOPosition = " + (bVIOTracking ? "true" : "false") + ", VIOHeading = " + (bVIOHeading ? "true" : "false");
-        // Submit the error metrics to the logger.
-        LOG_DEBUG(logging::g_qSharedLogger, "{}", szErrorMetrics);
-    }
-
-    return geoops::RoverPose(stCurrentVIOPosition, dCurrentHeading);
+    return geoops::RoverPose(stCurrentGPSPosition, dFusedHeading);
 }
 
 /******************************************************************************
@@ -632,68 +466,43 @@ double StateMachineHandler::SmartRetrieveAngularVelocity()
 }
 
 /******************************************************************************
- * @brief This is used to realign the ZEDs forward direction with the rover's
- *      current compass heading. Realigning GPS latlon is not necessary since
- *      we're using the ZEDSDK's Fusion module. The heading of the camera's
- *      GeoPose is actually automatically realigned too depending on what direction
- *      We are headed, but this is just to be safe.
+ * @brief This method is used to realign the ZED camera's heading with the actual heading of the rover.
+ * This method calculates the difference between the ZED's heading and the actual heading of the rover
+ * and applies that difference as an offset to the ZED's heading.
  *
- * @param eCameraName - The camera name represented as an enum from the CameraHandler class.
- * @param stNewCameraPosition - The new UTM position of the ZED camera.
- * @param dNewCameraHeading - The new compass heading of the ZED camera.
+ * @param dNewActualHeading - The new actual heading of the rover that the ZED's heading should be aligned to.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-04-17
  ******************************************************************************/
-void StateMachineHandler::RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading)
+void StateMachineHandler::RealignZEDHeading(const double dNewActualHeading)
 {
-    // Get main ZEDCam.
-    std::shared_ptr<ZEDCamera> pMainCam = globals::g_pCameraHandler->GetZED(eCameraName);
-
-    // Check if main ZEDCam is opened and positional tracking is enabled.
-    if (pMainCam->GetCameraIsOpen() && pMainCam->GetPositionalTrackingEnabled())
+    // Request the current heading from the ZED camera.
+    sl::SensorsData slCurrentCameraSensorData;
+    std::future<bool> fuResultStatus = m_pMainCam->RequestSensorsCopy(slCurrentCameraSensorData);
+    // Wait for future to be fulfilled.
+    if (fuResultStatus.get())
     {
-        // Request for the cameras current pose.
-        ZEDCam::Pose stCurrentCameraPose;
-        std::future<bool> fuPoseReturnStatus = pMainCam->RequestPositionalPoseCopy(stCurrentCameraPose);
-        // Wait for pose to be copied.
-        if (fuPoseReturnStatus.get())
-        {
-            // Pack the current camera pose into UTM coordinate.
-            geoops::UTMCoordinate stCurrentCameraUTM = geoops::UTMCoordinate(stCurrentCameraPose.stTranslation.dX,
-                                                                             stCurrentCameraPose.stTranslation.dZ,
-                                                                             stNewCameraPosition.nZone,
-                                                                             stNewCameraPosition.bWithinNorthernHemisphere,
-                                                                             stCurrentCameraPose.stTranslation.dY);
-            // Calculate the distance between the current and new camera position.
-            geoops::GeoMeasurement stError = geoops::CalculateGeoMeasurement(stCurrentCameraUTM, stNewCameraPosition);
+        // Get DEGREES
+        double dCurrentZEDHeading = slCurrentCameraSensorData.imu.pose.getEulerAngles(false).y;
 
-            // Check if the camera's current pose is close to the new position.
-            if (stError.dDistanceMeters >= constants::STATEMACHINE_ZED_REALIGN_THRESHOLD)
-            {
-                // Update camera Y heading with GPSs current heading.
-                pMainCam->SetPositionalPose(stNewCameraPosition.dEasting,
-                                            stNewCameraPosition.dAltitude,
-                                            stNewCameraPosition.dNorthing,
-                                            stCurrentCameraPose.stEulerAngles.dXO,
-                                            dNewCameraHeading,
-                                            stCurrentCameraPose.stEulerAngles.dZO);
+        // Convert -180/180 to 0/360 Standard (Keep 0 as 0)
+        // If ZED is -90 (West), this makes it 270.
+        if (dCurrentZEDHeading < 0)
+            dCurrentZEDHeading += 360.0;
 
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "Realigned ZED stereo camera to current GPS position. Error was: {} meters.", stError.dDistanceMeters);
-            }
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Failed to realign the ZEDCam's pose with the given UTM position and compass heading.");
-        }
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger,
-                  "Failed to realign the ZEDCam's pose with the given UTM position and compass heading. The camera is not open yet or positional tracking status is "
-                  "suboptimal!");
+        // Calculate the difference required to turn Raw ZED into Actual Heading.
+        // Logic: Actual = Raw + Offset  =>  Offset = Actual - Raw
+        double dOffset = dNewActualHeading - dCurrentZEDHeading;
+
+        // Wrap the offset to 0-360 positive range
+        m_dZEDHeadingOffset = numops::InputAngleModulus(dOffset, 0.0, 360.0);
+
+        // Submit logger message with the new offset and the current ZED and actual headings.
+        LOG_NOTICE(logging::g_qSharedLogger,
+                   "Realigning ZED Heading. Raw ZED: {} deg, Target GPS: {} deg, New Offset: {} deg",
+                   dCurrentZEDHeading,
+                   dNewActualHeading,
+                   m_dZEDHeadingOffset);
     }
 }

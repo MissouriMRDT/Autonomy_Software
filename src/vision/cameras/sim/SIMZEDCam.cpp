@@ -57,7 +57,6 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
               bEnableRecordingFlag,
               false,
               false,
-              false,
               nNumFrameRetrievalThreads,
               unCameraSerialNumber)
 {
@@ -308,10 +307,10 @@ void SIMZEDCam::ThreadedContinuousCode()
     // Acquire a shared_lock on the frame copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the frame copy queue is empty.
-    if (!m_qFrameCopySchedule.empty() || !m_qPoseCopySchedule.empty() || !m_qGeoPoseCopySchedule.empty() || !m_qSensorsCopySchedule.empty())
+    if (!m_qFrameCopySchedule.empty() || !m_qPoseCopySchedule.empty() || !m_qSensorsCopySchedule.empty())
     {
         // Add the length of all queues together to determine the number of tasks to create.
-        size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qPoseCopySchedule.size() + m_qGeoPoseCopySchedule.size() + m_qSensorsCopySchedule.size();
+        size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qPoseCopySchedule.size() + m_qSensorsCopySchedule.size();
 
         // Acquire shared lock on the WebRTC mutex, so that the WebRTC connection doesn't try to write to the Mats while they are being copied in the thread pool.
         std::shared_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
@@ -329,7 +328,6 @@ void SIMZEDCam::ThreadedContinuousCode()
         {
             // Reset queue counters.
             m_bPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-            m_bGeoPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bSensorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
 
             // Set reset toggle.
@@ -448,47 +446,6 @@ void SIMZEDCam::PooledLinearCode()
     {
         // Release lock.
         lkPoseQueue.unlock();
-    }
-
-    /////////////////////////////
-    //  GeoPose queue.
-    /////////////////////////////
-    // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::shared_mutex> lkGeoPoseQueue(m_muGeoPoseCopyMutex);
-    // Check if the queue is empty.
-    if (!m_qGeoPoseCopySchedule.empty())
-    {
-        // Get pose container out of queue.
-        containers::DataFetchContainer<sl::GeoPose> stContainer = m_qGeoPoseCopySchedule.front();
-        // Pop out of queue.
-        m_qGeoPoseCopySchedule.pop();
-        // Release lock.
-        lkGeoPoseQueue.unlock();
-
-        // Get rover's current UTM position.
-        geoops::UTMCoordinate stCurrentUTM = m_stCurrentRoverPose.GetUTMCoordinate();
-        // Add offsets to the current UTM position.
-        stCurrentUTM.dEasting += m_dPoseOffsetX;
-        stCurrentUTM.dAltitude += m_dPoseOffsetY;
-        stCurrentUTM.dNorthing += m_dPoseOffsetZ;
-        // Create a GPS coordinate from the UTM position.
-        geoops::GPSCoordinate stCurrentGPS = geoops::ConvertUTMToGPS(stCurrentUTM);
-
-        // Create new GeoPose.
-        sl::GeoPose slGeoPose;
-        slGeoPose.heading = numops::InputAngleModulus<double>(m_stCurrentRoverPose.GetCompassHeading() + m_dPoseOffsetYO, 0.0, 360.0);
-        slGeoPose.latlng_coordinates.setCoordinates(stCurrentGPS.dLatitude, stCurrentGPS.dLongitude, stCurrentGPS.dAltitude, false);
-
-        // Copy pose.
-        *(stContainer.pData) = slGeoPose;
-
-        // Signal future that the data has been successfully retrieved.
-        stContainer.pCopiedDataStatus->set_value(true);
-    }
-    else
-    {
-        // Release lock.
-        lkGeoPoseQueue.unlock();
     }
 
     /////////////////////////////
@@ -664,57 +621,6 @@ std::future<bool> SIMZEDCam::RequestPositionalPoseCopy(ZEDCamera::Pose& stPose)
 }
 
 /******************************************************************************
- * @brief Puts a sl::GeoPose pointer into a queue so a copy of a GeoPose from the camera can be written to it.
- *
- * @param slGeoPose - A reference to the sl::GeoPose to store the GeoPose in.
- * @return std::future<bool> - A future that should be waited on before the passed in GeoPose is used.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-12-26
- ******************************************************************************/
-std::future<bool> SIMZEDCam::RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose)
-{
-    // Check if positional tracking has been enabled.
-    if (m_bCameraIsFusionMaster && m_bCameraPositionalTrackingEnabled)
-    {
-        // Assemble the data container.
-        containers::DataFetchContainer<sl::GeoPose> stContainer(slGeoPose);
-
-        // Acquire lock on frame copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append frame fetch container to the schedule queue.
-        m_qGeoPoseCopySchedule.push(stContainer);
-        // Release lock on the frame schedule queue.
-        lkSchedulers.unlock();
-
-        // Check if pose queue toggle has already been set.
-        if (!m_bGeoPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-        {
-            // Signify that the pose queue is not empty.
-            m_bGeoPosesQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
-        }
-
-        // Return the future from the promise stored in the container.
-        return stContainer.pCopiedDataStatus->get_future();
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger,
-                    "Attempted to get ZED FUSION geo pose but positional tracking is not enabled and/or this camera was not initialized as a Fusion Master!");
-
-        // Create dummy promise to return the future.
-        std::promise<bool> pmDummyPromise;
-        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
-        // Set future value.
-        pmDummyPromise.set_value(false);
-
-        // Return unsuccessful.
-        return fuDummyFuture;
-    }
-}
-
-/******************************************************************************
  * @brief Requests a copy of the sensors data from the camera.
  *
  * @param slSensorsData - A reference to the sl::SensorsData to store the sensors data in.
@@ -802,39 +708,6 @@ sl::ERROR_CODE SIMZEDCam::RebootCamera()
     this->Start();
 
     return sl::ERROR_CODE::SUCCESS;
-}
-
-/******************************************************************************
- * @brief This method is used to subscribe the sl::Fusion object to the camera with the given UUID.
- *      Given that this is a simulation camera, and the ZED SDK is not available, this method will
- *      do nothing.
- *
- * @param slCameraUUID - The UUID of the camera to subscribe to.
- * @return sl::FUSION_ERROR_CODE - The error code returned by the ZED SDK. In this case, it will always be SUCCESS.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-12-26
- ******************************************************************************/
-sl::FUSION_ERROR_CODE SIMZEDCam::SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID)
-{
-    // Unused parameter.
-    (void) slCameraUUID;
-
-    return sl::FUSION_ERROR_CODE::SUCCESS;
-}
-
-/******************************************************************************
- * @brief This method is used to publish the camera to the sl::Fusion object.
- *      Since this is a simulation camera this will do nothing.
- *
- * @return sl::CameraIdentifier - The identifier of the camera.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-12-26
- ******************************************************************************/
-sl::CameraIdentifier SIMZEDCam::PublishCameraToFusion()
-{
-    return sl::CameraIdentifier(m_unCameraSerialNumber);
 }
 
 /******************************************************************************
