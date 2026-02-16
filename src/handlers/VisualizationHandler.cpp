@@ -1527,7 +1527,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             const pathGeo = new THREE.BufferGeometry();
             pathGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             pathGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 3 });
+            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 5 });
             pathLine = new THREE.Line(pathGeo, mat); 
             scene.add(pathLine);
         }
@@ -1570,7 +1570,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 4 }));
+            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 6 }));
             scene.add(plannedPathLine);
         }
     }
@@ -2207,7 +2207,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 3 });
+            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 5 });
             pathLine = new THREE.Line(geo, mat); 
             scene.add(pathLine);
         }
@@ -2221,7 +2221,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         if(vertices.length > 0) {
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 4 }));
+            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 5 }));
             scene.add(plannedPathLine);
         }
     }

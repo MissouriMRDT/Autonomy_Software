@@ -75,7 +75,7 @@ namespace constants
     // NOTE: NEVER CHANGE THESE VALUES UNLESS DRIVE BOARD HARDWARE IS CHANGED.
     const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
     const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
-    const float DRIVE_MAX_SAFE_POWER = 0.4;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
+    const float DRIVE_MAX_SAFE_POWER = 1.0;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL      = 0.01;      // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -126,7 +126,7 @@ namespace constants
     const sl::RESOLUTION ZED_BASE_RESOLUTION     = sl::RESOLUTION::HD720;                      // The base resolution to open the all cameras with.
     const sl::UNIT ZED_MEASURE_UNITS             = sl::UNIT::METER;                            // The base measurement unit to use for depth.
     const sl::COORDINATE_SYSTEM ZED_COORD_SYSTEM = sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP;    // Coordinate system to use for measurements.
-    const sl::DEPTH_MODE ZED_DEPTH_MODE          = sl::DEPTH_MODE::NEURAL_PLUS;                // The measurement accuracy for depth. NEURAL is by far the best.
+    const sl::DEPTH_MODE ZED_DEPTH_MODE          = sl::DEPTH_MODE::NEURAL_LIGHT;               // The measurement accuracy for depth. NEURAL is by far the best.
     const sl::VIEW ZED_RETRIEVE_VIEW             = sl::VIEW::LEFT;                             // The eye to retrieve regular and depth images from.
     const bool ZED_SDK_VERBOSE                   = false;                                      // Enable verbose output from the internal Camera library in the ZEDSDK.
     const bool ZED_SENSING_FILL                  = false;    // True provides a depth map with a Z value for every pixel (X, Y) in the left image. Slower and worse.
@@ -262,7 +262,7 @@ namespace constants
 
     // Models to use for detection.
     const std::string OBJECTDETECT_TORCH_MODEL =
-        "../data/models/yolo_models/bottle_mallet_new/v8n_x640_200epochs/best.torchscript";    // The model path to use for object detection.
+        "../data/models/yolo_models/bmp_v4/v8n_x640_200epochs/best.torchscript";    // The model path to use for object detection.
 
     // Main ZED Camera.
     const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing data copies to other threads.

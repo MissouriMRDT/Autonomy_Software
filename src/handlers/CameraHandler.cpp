@@ -126,10 +126,6 @@ void CameraHandler::StartAllCameras()
     // Start ZED cams.
     m_pMainCam->Start();
     m_pRearCam->Start();
-
-    // Start basic cams.
-    // m_pBasicCam->Start();
-    // m_pBasicCam->Start();
 }
 
 /******************************************************************************

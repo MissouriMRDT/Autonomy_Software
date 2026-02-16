@@ -211,18 +211,14 @@ int main()
         }
 
         // Initialize handlers.
-        globals::g_pWaypointHandler                 = new WaypointHandler();
-        globals::g_pLiDARHandler                    = new LiDARHandler();
-        globals::g_pCameraHandler                   = new CameraHandler();
-        globals::g_pTagDetectionHandler             = new TagDetectionHandler();
-        globals::g_pObjectDetectionHandler          = new ObjectDetectionHandler();
-        globals::g_pStateMachineHandler             = new StateMachineHandler();
-        VisualizationHandler* pVisualizationHandler = new VisualizationHandler(constants::VISUALIZER_WEBSERVER_PORT);
+        globals::g_pWaypointHandler        = new WaypointHandler();
+        globals::g_pLiDARHandler           = new LiDARHandler();
+        globals::g_pCameraHandler          = new CameraHandler();
+        globals::g_pTagDetectionHandler    = new TagDetectionHandler();
+        globals::g_pObjectDetectionHandler = new ObjectDetectionHandler();
+        globals::g_pStateMachineHandler    = new StateMachineHandler();
 
-        // Initialize GeoPlanner.
-        globals::g_pGeoPlanner = new pathplanners::GeoPlanner(constants::GEOPLANNER_TILE_SIZE);
-
-        // Open the LiDAR database.
+        // // Open the LiDAR database.
         if (!globals::g_pLiDARHandler->OpenDB(constants::LIDAR_HANDLER_DB_PATH))
         {
             // Submit logger message.
@@ -230,6 +226,10 @@ int main()
             // Stop main loop.
             bMainStop = true;
         }
+
+        // Initialize GeoPlanner and VizHandler
+        globals::g_pGeoPlanner                      = new pathplanners::GeoPlanner(constants::GEOPLANNER_TILE_SIZE);
+        VisualizationHandler* pVisualizationHandler = new VisualizationHandler(constants::VISUALIZER_WEBSERVER_PORT);
 
         // Start camera and detection handlers.
         globals::g_pCameraHandler->StartAllCameras();
@@ -252,11 +252,10 @@ int main()
         std::shared_ptr<TagDetector> pMainTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam);
         std::shared_ptr<ObjectDetector> pMainObjectDetector =
             globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam);
-        std::shared_ptr<ZEDCamera> pRearCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
-        std::shared_ptr<TagDetector> pRearTagDetector = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam);
-        std::shared_ptr<ObjectDetector> pRearObjectDetector =
-            globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam);
-        IPS IterPerSecond = IPS();
+        std::shared_ptr<ZEDCamera> pRearCam                 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
+        std::shared_ptr<TagDetector> pRearTagDetector       = globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam);
+        std::shared_ptr<ObjectDetector> pRearObjectDetector = globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam);
+        IPS IterPerSecond                                   = IPS();
 
         // Create a vector of ints to store the FPS values for each thread.
         std::vector<uint32_t> vThreadFPSValues;
@@ -557,10 +556,9 @@ int main()
         // Close the LiDAR database.
         globals::g_pLiDARHandler->CloseDB();
 
-        // Cleanup GeoPlanner.
-        delete globals::g_pGeoPlanner;
         // Cleanup handlers.
         delete pVisualizationHandler;
+        delete globals::g_pGeoPlanner;
         delete globals::g_pStateMachineHandler;
         delete globals::g_pObjectDetectionHandler;
         delete globals::g_pTagDetectionHandler;
@@ -568,8 +566,8 @@ int main()
         delete globals::g_pWaypointHandler;
         delete globals::g_pLiDARHandler;
         // Set all pointers to nullptr to prevent dangling pointers.
-        globals::g_pGeoPlanner             = nullptr;
         pVisualizationHandler              = nullptr;
+        globals::g_pGeoPlanner             = nullptr;
         globals::g_pStateMachineHandler    = nullptr;
         globals::g_pObjectDetectionHandler = nullptr;
         globals::g_pTagDetectionHandler    = nullptr;
@@ -581,7 +579,6 @@ int main()
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
     network::g_bRoveCommUDPStatus = false;
     network::g_bRoveCommTCPStatus = false;
-
     // Cleanup driver objects.
     delete globals::g_pDriveBoard;
     delete globals::g_pMultimediaBoard;

@@ -256,7 +256,7 @@ void StateMachineHandler::ThreadedContinuousCode()
 
     // Realign the camera's relative position to current GPS position when in Idle. This does not affect fusion, but makes sure we can fallback to the camera pose for
     // positioning.
-    if (m_pCurrentState->GetState() == statemachine::States::eIdle)
+    if (m_pCurrentState->GetState() == statemachine::States::eIdle && m_pMainCam->GetCameraIsOpen())
     {
         // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
         if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
@@ -424,7 +424,7 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
     }
 
     // Submit a debug print for the current rover pose.
-    geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(dCurrentGPSHeading);
+    geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(stCurrentGPSPosition);
     LOG_DEBUG(logging::g_qSharedLogger,
               "Rover Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees), IMUHeading = {}",
               stCurrentUTMPosition.dEasting,
@@ -502,10 +502,10 @@ void StateMachineHandler::RealignZEDHeading(const double dNewActualHeading)
         m_dZEDHeadingOffset = numops::InputAngleModulus(dOffset, 0.0, 360.0);
 
         // Submit logger message with the new offset and the current ZED and actual headings.
-        LOG_NOTICE(logging::g_qSharedLogger,
-                   "Realigning ZED Heading. Raw ZED: {} deg, Target GPS: {} deg, New Offset: {} deg",
-                   dCurrentZEDHeading,
-                   dNewActualHeading,
-                   m_dZEDHeadingOffset);
+        LOG_DEBUG(logging::g_qSharedLogger,
+                  "Realigning ZED Heading. Raw ZED: {} deg, Target GPS: {} deg, New Offset: {} deg",
+                  dCurrentZEDHeading,
+                  dNewActualHeading,
+                  m_dZEDHeadingOffset);
     }
 }
