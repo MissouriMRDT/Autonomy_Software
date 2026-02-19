@@ -55,6 +55,9 @@ BasicCam::BasicCam(const std::string szCameraPath,
     m_cvCamera.set(cv::CAP_PROP_FRAME_HEIGHT, nPropResolutionY);
     m_cvCamera.set(cv::CAP_PROP_FPS, nPropFramesPerSecond);
 
+    // Initialize other member variables.
+    m_bCameraReopenAlreadyChecked = false;
+
     // Attempt to open camera with OpenCV's VideoCapture and print if successfully opened or not.
     if (m_cvCamera.open(szCameraPath))
     {
@@ -114,6 +117,9 @@ BasicCam::BasicCam(const int nCameraIndex,
     m_cvCamera.set(cv::CAP_PROP_FRAME_WIDTH, nPropResolutionX);
     m_cvCamera.set(cv::CAP_PROP_FRAME_HEIGHT, nPropResolutionY);
     m_cvCamera.set(cv::CAP_PROP_FPS, nPropFramesPerSecond);
+
+    // Initialize other member variables.
+    m_bCameraReopenAlreadyChecked = false;
 
     // Attempt to open camera with OpenCV's VideoCapture.
     m_cvCamera.open(m_nCameraIndex);
@@ -192,13 +198,12 @@ void BasicCam::ThreadedContinuousCode()
         {
             // Create instance variables.
             bool bCameraReopened                  = false;
-            static bool bReopenAlreadyChecked     = false;
             std::chrono::time_point tmCurrentTime = std::chrono::system_clock::now();
             // Convert time point to seconds since epoch
             int nTimeSinceEpoch = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime.time_since_epoch()).count();
 
             // Only try to reopen camera every 5 seconds.
-            if (nTimeSinceEpoch % 5 == 0 && !bReopenAlreadyChecked)
+            if (nTimeSinceEpoch % 5 == 0 && !m_bCameraReopenAlreadyChecked)
             {
                 // Check if camera was opened with an index or path.
                 if (m_nCameraIndex == -1)
@@ -226,12 +231,12 @@ void BasicCam::ThreadedContinuousCode()
                 }
 
                 // Set toggle.
-                bReopenAlreadyChecked = true;
+                m_bCameraReopenAlreadyChecked = true;
             }
             else if (nTimeSinceEpoch % 5 != 0)
             {
                 // Reset toggle.
-                bReopenAlreadyChecked = false;
+                m_bCameraReopenAlreadyChecked = false;
             }
         }
     }
