@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "LiDARHandler.h"
+#include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 
 /******************************************************************************
@@ -386,42 +387,6 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
         return false;
     }
 
-    // NOTE: TEST. Logging total amt of points with trav_score 0.01
-
-    // Prepare the SQL statements for inserting data.
-    const char* pSQL3      = R"(
-        SELECT *
-        FROM ProcessedLiDARPoints
-        WHERE trav_score BETWEEN 0.009999 AND 0.010001
-    )";
-
-    sqlite3_stmt* sqlSTMT3 = nullptr;
-    int nRC3               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL3, -1, &sqlSTMT3, nullptr);
-    if (nRC3 != SQLITE_OK)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
-        return false;
-    }
-
-    int numZeros = 0;
-    while ((nRC3 = sqlite3_step(sqlSTMT3)) == SQLITE_ROW)
-    {
-        ++numZeros;
-    }
-    LOG_INFO(logging::g_qSharedLogger, "There are {} nodes with trav_score = 0.01", numZeros);
-
-    if (nRC3 != SQLITE_DONE)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to modify traversal scores: {}", sqlite3_errmsg(m_pSQLDatabase));
-        sqlite3_finalize(sqlSTMT3);
-        return false;
-    }
-
-    // Finalize the statement.
-    sqlite3_finalize(sqlSTMT3);
-
-    // NOTE: Actual modification statement
-
     // Prepare the SQL statements for inserting data.
     const char* pSQL      = R"(
         UPDATE ProcessedLiDARPoints
@@ -470,94 +435,14 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
     // Finalize the statement.
     sqlite3_finalize(sqlSTMT);
 
-    // NOTE: Just check for the pointsdadawadkjaw
-
+    // Log LiDAR changes
     int rowsUpdated = sqlite3_changes(m_pSQLDatabase);
-    LOG_INFO(logging::g_qSharedLogger, "Updated {} rows", rowsUpdated);
-
-    // Prepare the SQL statements for inserting data.
-    const char* pSQL5      = R"(
-        SELECT *
-        FROM ProcessedLiDARPoints_idx AS idx
-        JOIN ProcessedLiDARPoints AS p ON p.id = idx.id
-        WHERE
-            idx.min_x BETWEEN ? AND ?
-            AND idx.min_y BETWEEN ? AND ?
-            AND (p.easting - ?) * (p.easting - ?) + (p.northing - ?) * (p.northing - ?) <= ? * ?
-    )";
-
-    sqlite3_stmt* sqlSTMT5 = nullptr;
-    int nRC5               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL5, -1, &sqlSTMT5, nullptr);
-    if (nRC5 != SQLITE_OK)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
-        return false;
-    }
-
-    // NOTE: dRadius multiplied by 100 to pretend like this sql could actually find something (nothing happened)
-    // for rtree
-    sqlite3_bind_double(sqlSTMT5, 1, stPoint.dEasting - dRadius * 100);
-    sqlite3_bind_double(sqlSTMT5, 2, stPoint.dEasting + dRadius * 100);
-    sqlite3_bind_double(sqlSTMT5, 3, stPoint.dNorthing - dRadius * 100);
-    sqlite3_bind_double(sqlSTMT5, 4, stPoint.dNorthing + dRadius * 100);
-    // for distance check
-    sqlite3_bind_double(sqlSTMT5, 5, stPoint.dEasting);
-    sqlite3_bind_double(sqlSTMT5, 6, stPoint.dEasting);
-    sqlite3_bind_double(sqlSTMT5, 7, stPoint.dNorthing);
-    sqlite3_bind_double(sqlSTMT5, 8, stPoint.dNorthing);
-    sqlite3_bind_double(sqlSTMT5, 9, dRadius * 100);
-    sqlite3_bind_double(sqlSTMT5, 10, dRadius * 100);
-
-    // Execute the statement.
-    numZeros = 0;
-    while ((nRC5 = sqlite3_step(sqlSTMT5)) == SQLITE_ROW)
-    {
-        ++numZeros;
-    }
-    LOG_INFO(logging::g_qSharedLogger, "There are {} nodes in area (x - {})^2 + (y - {})^2 = {}^2", numZeros, stPoint.dEasting, stPoint.dNorthing, dRadius * 100);
-    if (nRC != SQLITE_DONE)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
-        sqlite3_finalize(sqlSTMT);
-        return false;
-    }
-
-    // Finalize the statement.
-    sqlite3_finalize(sqlSTMT);
-
-    // NOTE: TEST. Logging amt of points with trav_score 0.01 after area has been modified
-
-    // Prepare the SQL statements for inserting data.
-    const char* pSQL2      = R"(
-        SELECT *
-        FROM ProcessedLiDARPoints
-        WHERE trav_score BETWEEN 0.009999 AND 0.010001
-    )";
-
-    sqlite3_stmt* sqlSTMT2 = nullptr;
-    int nRC2               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL2, -1, &sqlSTMT2, nullptr);
-    if (nRC2 != SQLITE_OK)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
-        return false;
-    }
-
-    numZeros = 0;
-    while ((nRC2 = sqlite3_step(sqlSTMT2)) == SQLITE_ROW)
-    {
-        ++numZeros;
-    }
-    LOG_INFO(logging::g_qSharedLogger, "There are {} nodes with trav_score = 0.01", numZeros);
-
-    if (nRC2 != SQLITE_DONE)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
-        sqlite3_finalize(sqlSTMT2);
-        return false;
-    }
-
-    // Finalize the statement.
-    sqlite3_finalize(sqlSTMT2);
+    LOG_INFO(logging::g_qSharedLogger,
+             "Created new obstacle at ({}, {}), radius: {}. Updated {} points",
+             (int) stPoint.dEasting,
+             (int) stPoint.dNorthing,
+             (int) dRadius,
+             rowsUpdated);
 
     return true;
 }
