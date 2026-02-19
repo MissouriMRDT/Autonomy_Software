@@ -92,14 +92,40 @@ namespace controllers
 
         // Check if we are at the end of the path. Normally stanley would continue driving in the last direction of the calculated path
         // headings, but we want to make sure we get to the end point, so we'll just drive straight to it once at the end of the path.
-        if (m_nCurrentReferencePathTargetIndex >= static_cast<int>(m_vReferencePath.size()) - 1)
+        // We check if we are on the last segment (size - 2).
+        if (m_nCurrentReferencePathTargetIndex >= static_cast<int>(m_vReferencePath.size()) - 2)
         {
-            // Get the last point in the path.
-            geoops::Waypoint stLastWaypoint = m_vReferencePath.back();
-            // Calculate the heading to the last point.
-            double dHeadingToLastWaypoint = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), stLastWaypoint.GetUTMCoordinate()).dStartRelativeBearing;
+            // Get the start and end points of the last segment.
+            geoops::UTMCoordinate stLastPoint         = m_vReferencePath.back().GetUTMCoordinate();
+            geoops::UTMCoordinate stSecondToLastPoint = m_vReferencePath[m_vReferencePath.size() - 2].GetUTMCoordinate();
+            geoops::UTMCoordinate stRoverPos          = stCurrentPose.GetUTMCoordinate();
 
-            return DriveVector{dHeadingToLastWaypoint, 1.0};
+            // Calculate vector of the last segment (Start -> End).
+            double dSegmentX     = stLastPoint.dEasting - stSecondToLastPoint.dEasting;
+            double dSegmentY     = stLastPoint.dNorthing - stSecondToLastPoint.dNorthing;
+            double dSegmentLenSq = dSegmentX * dSegmentX + dSegmentY * dSegmentY;
+
+            // Calculate vector from Segment Start -> Rover.
+            double dRoverVectorX = stRoverPos.dEasting - stSecondToLastPoint.dEasting;
+            double dRoverVectorY = stRoverPos.dNorthing - stSecondToLastPoint.dNorthing;
+
+            // Project rover onto the segment vector with a dot product.
+            // t represents the normalized distance along the segment (0.0 = start, 1.0 = end).
+            double dNormalDistance = 0.0;
+            if (dSegmentLenSq > 1e-6)
+            {
+                dNormalDistance = (dRoverVectorX * dSegmentX + dRoverVectorY * dSegmentY) / dSegmentLenSq;
+            }
+
+            // Check if we have passed the end (t >= 1.0) or are very close to it.
+            // We add a small tolerance (e.g., 0.99) or strictly check t >= 1.0.
+            if (dNormalDistance >= 1.0)
+            {
+                // We have reached or passed the end.
+                // Calculate heading to the last point to ensure we turn around if we overshot.
+                double dHeadingToLastWaypoint = geoops::CalculateGeoMeasurement(stRoverPos, stLastPoint).dStartRelativeBearing;
+                return DriveVector{dHeadingToLastWaypoint, 1.0};
+            }
         }
 
         // Update the unicycle model with the current state.

@@ -27,6 +27,14 @@
 
 /// \endcond
 
+/******************************************************************************
+ * @brief The LiDARHandler class manages runtime queries against a LiDAR point
+ * cloud database for autonomy navigation.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-01-22
+ ******************************************************************************/
 class LiDARHandler
 {
     public:
@@ -34,6 +42,13 @@ class LiDARHandler
         // Declare and define structs
         ////////////////////////////////////
 
+        /******************************************************************************
+         * @brief Struct representing a single LiDAR point row from the database.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-01-22
+         ******************************************************************************/
         struct PointRow
         {
             public:
@@ -52,6 +67,13 @@ class LiDARHandler
                 double dTraversalScore;          // Traversal score for the point.
         };
 
+        /******************************************************************************
+         * @brief Struct for filtering LiDAR points during queries.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-01-22
+         ******************************************************************************/
         struct PointFilter
         {
             public:
@@ -89,7 +111,7 @@ class LiDARHandler
         bool OpenDB(const std::string& szDBPath);
         bool CloseDB();
         std::vector<PointRow> GetLiDARData(const PointFilter& stPointFilter);
-        bool InsertLiDARData(const std::vector<geoops::Waypoint>& vPoints);
+        bool DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dRadius);
 
         ////////////////////////////////////
         // Getters

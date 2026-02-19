@@ -82,14 +82,6 @@ jobs:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: /opt/Autonomy_Software/build/AllCoverage.xml
 
-      - name: Upload Test Coverage to DeepSource
-        if: steps.run_tests.outcome == 'success'
-        env:
-          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
-        run: |
-          curl https://deepsource.com/cli | sh
-          ./bin/deepsource report --analyzer test-coverage --key cxx --value-file /opt/Autonomy_Software/build/AllCoverage.xml
-
       - name: Cleanup Action Environment
         if: always()
         run: |

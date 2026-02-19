@@ -36,7 +36,11 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_bWasStuck         = false;
+        m_bWasStuck = false;
+
+        // NOTE: temporary testing
+        m_bTestStuck        = true;
+
         m_bFetchNewWaypoint = true;
         m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
         m_vObjectDetectors  = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
@@ -108,21 +112,16 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
-        /*
-            The overall flow of this state is as follows.
-            1. Navigate to goal waypoint.
-            1. Is there a tag -> MarkerSeen
-            2. Is there an object -> ObjectSeen
-            3. Is there an obstacle -> TBD
-            4. Is the rover stuck -> Stuck
-        */
-
-        ///////////////////////////////////////
-        /* --- Navigate to goal waypoint --- */
-        ///////////////////////////////////////
-
         // Get Current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+
+        // NOTE: temporary testing
+        if (m_bTestStuck)
+        {
+            m_bTestStuck = false;
+            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            return;
+        }
 
         // If navigating was previously stuck, then re-path plan
         if (m_bWasStuck)
@@ -133,29 +132,45 @@ namespace statemachine
                 dRadians += 2 * M_PI;
             // Add the area ahead of the rover as an obstacle.
             geoops::UTMCoordinate stObstaclePosition = stCurrentRoverPose.GetUTMCoordinate();
-            stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
-            stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+            stObstaclePosition.dEasting += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+            stObstaclePosition.dNorthing += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
 
             // Remove all points that are in stuck zone
-            for (int i = 0; i < m_vPathCoordinates.size; i++)
+            int nSpliceStartIndex = -1;
+            for (int i = 0; i < (int) m_vPathCoordinates.size(); i++)
             {
+                // If path coord is inside stuck zone, then remove it
                 if (abs(m_vPathCoordinates[i].GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
                     abs(m_vPathCoordinates[i].GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS)
                 {
-                    m_vPathCoordinates.erase(i);
+                    if (nSpliceStartIndex == -1)
+                        nSpliceStartIndex = i;
+                    m_vPathCoordinates.erase(m_vPathCoordinates.begin() + i);
                     --i;
                 }
-                // TODO: maybe break when condition is false
+                // If the previous node was deleted, then connect the dots correctly by splicing a new path in between
+                else if (nSpliceStartIndex != -1)
+                {
+                    // Plan a new path to the next remaining path node
+                    geoops::UTMCoordinate stSpliceGoalCoordinate = m_vPathCoordinates[i].GetUTMCoordinate();
+                    std::vector<geoops::Waypoint> vSplicePathCoordinates =
+                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, m_vPathCoordinates[nSpliceStartIndex].GetUTMCoordinate(), stSpliceGoalCoordinate);
+                    // Append new path to front
+                    m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nSpliceStartIndex + 1, vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
+                    nSpliceStartIndex = -1;
+                }
+            }
+            if (nSpliceStartIndex != -1)
+            {
+                geoops::UTMCoordinate stSpliceGoalCoordinate = m_stGoalWaypoint.GetUTMCoordinate();
+                // Plan a new path to the next remaining path node
+                std::vector<geoops::Waypoint> vSplicePathCoordinates =
+                    globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, m_vPathCoordinates[nSpliceStartIndex].GetUTMCoordinate(), stSpliceGoalCoordinate);
+                // Append new path to front
+                m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nSpliceStartIndex + 1, vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
             }
 
-            geoops::UTMCoordinate stSpliceGoalCoordinate = (m_vPathCoordinates.size != 0) ? m_vPathCoordinates[0] : m_stGoalWaypoint;
-
-            // Plan a new path to the next remaining path node
-            std::vector<geoops::Waypoint> vSplicePathCoordinates =
-                globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stSpliceGoalCoordinate.GetUTMCoordinate());
-            // Append new path to front
-            m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), --vSplicePathCoordinates.end());
-
+            // Hopefully this part works
             m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
             m_pStanleyController->SetReferencePath(m_vPathCoordinates);
         }
@@ -207,6 +222,95 @@ namespace statemachine
             bAlreadyPrinted = false;
         }
 
+        /*
+            The overall flow of this state is as follows.
+            1. Is there a tag -> MarkerSeen
+            2. Is there an object -> ObjectSeen
+            3. Is there an obstacle -> TBD
+            4. Navigate to goal waypoint.
+            5. Is the rover stuck -> Stuck
+        */
+
+        /////////////////////////
+        /* --- Detect Tags --- */
+        /////////////////////////
+
+        // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
+        if (m_stGoalWaypoint.eType == geoops::WaypointType::eTagWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
+        {
+            // Create instance variables.
+            tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
+            // Identify target marker.
+            statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
+            // Check if either tag type is seen.
+            if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
+            {
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
+
+                // Check if the OpenCV tag has a good absolute position.
+                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                {
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+                // Check if the torch tag has a good absolute position.
+                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
+                {
+                    // Add the tag to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
+                }
+
+                // Handle state transition and save the current search pattern state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
+                // Don't execute the rest of the state.
+                return;
+            }
+        }
+
+        ////////////////////////////
+        /* --- Detect Objects --- */
+        ////////////////////////////
+
+        // In order to even care about any objects we see, the goal waypoint needs to be of an object type and we need to be within the search radius of the object
+        // waypoint.
+        if ((m_stGoalWaypoint.eType == geoops::WaypointType::eObjectWaypoint || m_stGoalWaypoint.eType == geoops::WaypointType::eMalletWaypoint ||
+             m_stGoalWaypoint.eType == geoops::WaypointType::eWaterBottleWaypoint || m_stGoalWaypoint.eType == geoops::WaypointType::eRockPickWaypoint) &&
+            stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
+        {
+            // Create instance variables.
+            objectdetectutils::Object stBestTorchObject;
+            // Identify target object.
+            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject, m_stGoalWaypoint.eType);
+            // Check if either tag type is seen.
+            if (stBestTorchObject.dConfidence != 0.0)
+            {
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target object!");
+
+                // Check if the object has a good absolute position.
+                if (stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
+                {
+                    // Add the object to the path plot.
+                    m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
+                }
+
+                // Handle state transition and save the current search pattern state.
+                globals::g_pStateMachineHandler->HandleEvent(Event::eObjectSeen, true);
+                // Don't execute the rest of the state.
+                return;
+            }
+        }
+
+        //////////////////////////////
+        /* --- Detect Obstacles --- */
+        //////////////////////////////
+
+        // TODO: Add obstacle detection to Navigating state
+
+        ///////////////////////////////////////
+        /* --- Navigate to goal waypoint --- */
+        ///////////////////////////////////////
         // Check if we are at the goal waypoint.
         if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
         {
@@ -268,15 +372,22 @@ namespace statemachine
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
                     return;
                 }
-                // Goal waypoint is object.
+                // Goal waypoint is mallet.
                 case geoops::WaypointType::eMalletWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
                     return;
                 }
-                // Goal waypoint is object.
+                // Goal waypoint is water bottle.
                 case geoops::WaypointType::eWaterBottleWaypoint:
+                {
+                    // We are at the goal, signal event.
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
+                    return;
+                }
+                // Goal waypoint is rock pick.
+                case geoops::WaypointType::eRockPickWaypoint:
                 {
                     // We are at the goal, signal event.
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, false);
@@ -294,82 +405,6 @@ namespace statemachine
             }
         }
 
-        /////////////////////////
-        /* --- Detect Tags --- */
-        /////////////////////////
-
-        // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
-        if (m_stGoalWaypoint.eType == geoops::WaypointType::eTagWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
-        {
-            // Create instance variables.
-            tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
-            // Identify target marker.
-            statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
-            // Check if either tag type is seen.
-            if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
-            {
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
-
-                // Check if the OpenCV tag has a good absolute position.
-                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-                // Check if the torch tag has a good absolute position.
-                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-
-                // Handle state transition and save the current search pattern state.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
-                // Don't execute the rest of the state.
-                return;
-            }
-        }
-
-        ////////////////////////////
-        /* --- Detect Objects --- */
-        ////////////////////////////
-
-        // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
-        if ((m_stGoalWaypoint.eType == geoops::WaypointType::eObjectWaypoint || m_stGoalWaypoint.eType == geoops::WaypointType::eMalletWaypoint ||
-             m_stGoalWaypoint.eType == geoops::WaypointType::eWaterBottleWaypoint) &&
-            stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
-        {
-            // Create instance variables.
-            objectdetectutils::Object stBestTorchObject;
-            // Identify target object.
-            statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestTorchObject, m_stGoalWaypoint.eType);
-            // Check if either tag type is seen.
-            if (stBestTorchObject.dConfidence != 0.0)
-            {
-                // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target object!");
-
-                // Check if the torch tag has a good absolute position.
-                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
-                }
-
-                // Handle state transition and save the current search pattern state.
-                globals::g_pStateMachineHandler->HandleEvent(Event::eObjectSeen, true);
-                // Don't execute the rest of the state.
-                return;
-            }
-        }
-
-        //////////////////////////////
-        /* --- Detect Obstacles --- */
-        //////////////////////////////
-
-        // TODO: Add obstacle detection to Navigating state
-
         //////////////////////////////////////////
         /* ---  Check if the rover is stuck --- */
         //////////////////////////////////////////
@@ -382,6 +417,7 @@ namespace statemachine
             LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+            m_bWasStuck = true;
             // Don't execute the rest of the state.
             return;
         }
@@ -482,6 +518,9 @@ namespace statemachine
                         globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
                                                          globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
                                                          m_stGoalWaypoint.GetUTMCoordinate());
+                    // Add the path to the waypoint handler for reference by other states or handlers.
+                    globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
+                    // Add the new path to the plot.
                     m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
                     // Set the path of the stanley controller.
                     m_pStanleyController->SetReferencePath(m_vPathCoordinates);
@@ -541,12 +580,6 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling ObjectSeen event.");
                 // Change states.
                 eNextState = States::eApproachingObject;
-                break;
-            }
-            case Event::eObstacleAvoidance:
-            {
-                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Obstacle Avoidance event.");
-                eNextState = States::eAvoidance;
                 break;
             }
             case Event::eReverse:
