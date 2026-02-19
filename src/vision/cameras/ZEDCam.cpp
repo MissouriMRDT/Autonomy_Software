@@ -66,21 +66,23 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     // Assign member variables.
     bMemTypeGPU ? m_slMemoryType = sl::MEM::GPU : m_slMemoryType = sl::MEM::CPU;
     bUseHalfDepthPrecision ? m_slDepthMeasureType = sl::MEASURE::DEPTH_U16_MM : m_slDepthMeasureType = sl::MEASURE::DEPTH;
-    m_dPoseOffsetX  = 0.0;
-    m_dPoseOffsetY  = 0.0;
-    m_dPoseOffsetZ  = 0.0;
-    m_dPoseOffsetXO = 0.0;
-    m_dPoseOffsetYO = 0.0;
-    m_dPoseOffsetZO = 0.0;
+    m_dPoseOffsetX                = 0.0;
+    m_dPoseOffsetY                = 0.0;
+    m_dPoseOffsetZ                = 0.0;
+    m_dPoseOffsetXO               = 0.0;
+    m_dPoseOffsetYO               = 0.0;
+    m_dPoseOffsetZO               = 0.0;
+    m_bCameraReopenAlreadyChecked = false;
     // Initialize queued toggles.
-    m_bNormalFramesQueued   = false;
-    m_bDepthFramesQueued    = false;
-    m_bPointCloudsQueued    = false;
-    m_bPosesQueued          = false;
-    m_bGeoPosesQueued       = false;
-    m_bFloorsQueued         = false;
-    m_bObjectsQueued        = false;
-    m_bBatchedObjectsQueued = false;
+    m_bQueueTogglesAlreadyReset = false;
+    m_bNormalFramesQueued       = false;
+    m_bDepthFramesQueued        = false;
+    m_bPointCloudsQueued        = false;
+    m_bPosesQueued              = false;
+    m_bGeoPosesQueued           = false;
+    m_bFloorsQueued             = false;
+    m_bObjectsQueued            = false;
+    m_bBatchedObjectsQueued     = false;
 
     // Setup camera params.
     m_slCameraParams.camera_resolution      = constants::ZED_BASE_RESOLUTION;
@@ -306,14 +308,12 @@ void ZEDCam::ThreadedContinuousCode()
         }
         else
         {
-            // Create instance variables.
-            static bool bReopenAlreadyChecked     = false;
             std::chrono::time_point tmCurrentTime = std::chrono::system_clock::now();
             // Convert time point to seconds since epoch
             int nTimeSinceEpoch = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime.time_since_epoch()).count();
 
             // Only try to reopen camera every 5 seconds.
-            if (nTimeSinceEpoch % 5 == 0 && !bReopenAlreadyChecked)
+            if (nTimeSinceEpoch % 5 == 0 && !m_bCameraReopenAlreadyChecked)
             {
                 // Acquire write lock for camera object.
                 std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
@@ -388,12 +388,12 @@ void ZEDCam::ThreadedContinuousCode()
                 }
 
                 // Set toggle.
-                bReopenAlreadyChecked = true;
+                m_bCameraReopenAlreadyChecked = true;
             }
             else if (nTimeSinceEpoch % 5 != 0)
             {
                 // Reset toggle.
-                bReopenAlreadyChecked = false;
+                m_bCameraReopenAlreadyChecked = false;
             }
         }
     }
@@ -666,12 +666,10 @@ void ZEDCam::ThreadedContinuousCode()
         // Start the thread pool to copy member variables to requesting other threads. Num of tasks queued depends on number of member variables updates and requests.
         this->RunDetachedPool(siTotalQueueLength, m_nNumFrameRetrievalThreads);
 
-        // Static bool for keeping track of reset toggle action.
-        static bool bQueueTogglesAlreadyReset = false;
         // Get current time.
         std::chrono::_V2::system_clock::duration tmCurrentTime = std::chrono::high_resolution_clock::now().time_since_epoch();
         // Only reset once every couple seconds.
-        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime).count() % 31 == 0 && !bQueueTogglesAlreadyReset)
+        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime).count() % 31 == 0 && !m_bQueueTogglesAlreadyReset)
         {
             // Reset queue counters.
             m_bNormalFramesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
@@ -685,13 +683,13 @@ void ZEDCam::ThreadedContinuousCode()
             m_bBatchedObjectsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
 
             // Set reset toggle.
-            bQueueTogglesAlreadyReset = true;
+            m_bQueueTogglesAlreadyReset = true;
         }
         // Crucial for toggle action. If time is not evenly devisable and toggles have previously been set, reset queue reset boolean.
-        else if (bQueueTogglesAlreadyReset)
+        else if (m_bQueueTogglesAlreadyReset)
         {
             // Reset reset toggle.
-            bQueueTogglesAlreadyReset = false;
+            m_bQueueTogglesAlreadyReset = false;
         }
 
         // Wait for thread pool to finish.

@@ -21,7 +21,7 @@ jobs:
           - check: "examples"
             exclude: ""
           - check: "src"
-            exclude: "ArucoSamplesUtility.hpp"
+            exclude: ""
           - check: "tests"
             exclude: ""
           - check: "tools"
@@ -31,11 +31,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: false
-        
+
       - name: Init only needed submodules (and block LiDAR)
         shell: bash
         run: |
           set -euo pipefail
+
+          # Automatically rewrite SSH URLs to HTTPS
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
 
           # Only allow these submodules to ever be touched
           git config --local --unset-all submodule.active || true
