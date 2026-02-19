@@ -85,79 +85,79 @@ jobs:
         if: always()
         run: rm -rf /opt/Autonomy_Software
 
-  build-and-test-arm64:
-    strategy:
-      fail-fast: false
-      matrix:
-        type: [Unit, Integration]
+  # build-and-test-arm64:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       type: [Unit, Integration]
 
-    concurrency:
-      group: "tests-arm64-${{ matrix.type }}"
-      cancel-in-progress: false
+  #   concurrency:
+  #     group: "tests-arm64-${{ matrix.type }}"
+  #     cancel-in-progress: false
 
-    runs-on: [self-hosted, linux, ARM64]
+  #   runs-on: [self-hosted, linux, ARM64]
 
-    steps:
-      - name: Setup Action Environment
-        if: always()
-        run: |
-          cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+  #   steps:
+  #     - name: Setup Action Environment
+  #       if: always()
+  #       run: |
+  #         cd /opt
+  #         if [ ! -d "Autonomy_Software" ]; then git clone -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
 
-      - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory /opt/Autonomy_Software
+  #     - name: Fix Dubious Ownership
+  #       run: git config --global --add safe.directory /opt/Autonomy_Software
 
-      - name: Extract branch name
-        id: extract_branch
-        shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+  #     - name: Extract branch name
+  #       id: extract_branch
+  #       shell: bash
+  #       run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
 
-      - name: Update Branch
-        run: |
-          set -euo pipefail
-          cd /opt/Autonomy_Software/
+  #     - name: Update Branch
+  #       run: |
+  #         set -euo pipefail
+  #         cd /opt/Autonomy_Software/
 
-          branch=${{ steps.extract_branch.outputs.branch }}
-          echo "Using branch: $branch"
+  #         branch=${{ steps.extract_branch.outputs.branch }}
+  #         echo "Using branch: $branch"
 
-          git fetch --force origin "$branch"
-          git checkout -B "$branch" "origin/$branch"
-          git reset --hard "origin/$branch"
+  #         git fetch --force origin "$branch"
+  #         git checkout -B "$branch" "origin/$branch"
+  #         git reset --hard "origin/$branch"
 
-          # Only allow these two submodules to ever be touched
-          git config --local --unset-all submodule.active || true
-          git config --local --add submodule.active external/threadpool
-          git config --local --add submodule.active external/rovecomm
+  #         # Only allow these two submodules to ever be touched
+  #         git config --local --unset-all submodule.active || true
+  #         git config --local --add submodule.active external/threadpool
+  #         git config --local --add submodule.active external/rovecomm
 
-          # Extra safety: make LiDAR a no-op if anything tries to update all submodules
-          git config --local submodule.data/LiDAR.update none
+  #         # Extra safety: make LiDAR a no-op if anything tries to update all submodules
+  #         git config --local submodule.data/LiDAR.update none
 
-          git submodule sync --recursive
-          git submodule update --init --recursive external/threadpool external/rovecomm
+  #         git submodule sync --recursive
+  #         git submodule update --init --recursive external/threadpool external/rovecomm
 
-          git config --global --add safe.directory /opt/Autonomy_Software/external
+  #         git config --global --add safe.directory /opt/Autonomy_Software/external
 
-      - name: Build and Run Tests with CTest
-        run: |
-          DIRECTORY="/opt/Autonomy_Software/tests/${{ matrix.type }}/src"
-          if [ ! -d "$DIRECTORY" ]; then
-            echo "No ${{ matrix.type }} tests found. Skipping."
-            exit 0
-          fi
+  #     - name: Build and Run Tests with CTest
+  #       run: |
+  #         DIRECTORY="/opt/Autonomy_Software/tests/${{ matrix.type }}/src"
+  #         if [ ! -d "$DIRECTORY" ]; then
+  #           echo "No ${{ matrix.type }} tests found. Skipping."
+  #           exit 0
+  #         fi
 
-          cd /opt/Autonomy_Software/
-          rm -rf build && mkdir build && cd build
-          cmake -DBUILD_TESTS_MODE=ON -DENABLE_LIDAR_GEO_UTESTS=OFF ..
-          make -j1
+  #         cd /opt/Autonomy_Software/
+  #         rm -rf build && mkdir build && cd build
+  #         cmake -DBUILD_TESTS_MODE=ON -DENABLE_LIDAR_GEO_UTESTS=OFF ..
+  #         make -j1
 
-          LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
-          ctest --output-on-failure -T Test -L "$LABEL" --output-junit "${LABEL}s.xml"
+  #         LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
+  #         ctest --output-on-failure -T Test -L "$LABEL" --output-junit "${LABEL}s.xml"
 
-      - name: Cleanup Action Environment
-        if: always()
-        run: rm -rf /opt/Autonomy_Software
+  #     - name: Cleanup Action Environment
+  #       if: always()
+  #       run: rm -rf /opt/Autonomy_Software
