@@ -130,7 +130,7 @@ namespace statemachine
             double dRadians = (90.0 - stCurrentRoverPose.GetCompassHeading()) * M_PI / 180.0;
             if (dRadians < 0)
                 dRadians += 2 * M_PI;
-            // Add the area ahead of the rover as an obstacle.
+            // Get the obstacle's origin
             geoops::UTMCoordinate stObstaclePosition = stCurrentRoverPose.GetUTMCoordinate();
             stObstaclePosition.dEasting += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
             stObstaclePosition.dNorthing += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
