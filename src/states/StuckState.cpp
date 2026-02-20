@@ -394,13 +394,12 @@ namespace statemachine
         double dRadians = (90.0 - m_dOriginalHeading) * M_PI / 180.0;
         if (dRadians < 0)
             dRadians += 2 * M_PI;
-        // Add the area ahead of the rover as an obstacle.
-        geoops::GPSCoordinate stObstaclePosition = m_stOriginalPosition;
-        stObstaclePosition.dLatitude += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
-        stObstaclePosition.dLongitude += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+        // Get the obstacle's origin
+        geoops::UTMCoordinate stObstaclePosition = globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate();
+        stObstaclePosition.dEasting += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+        stObstaclePosition.dNorthing += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
 
         // Insert obstacle into lidar data
-        globals::g_pLiDARHandler->DeclareLiDARObstacle(geoops::ConvertGPSToUTM(stObstaclePosition), constants::STUCK_OBSTACLE_RADIUS);
-        // globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
+        globals::g_pLiDARHandler->DeclareLiDARObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
     }
 }    // namespace statemachine
