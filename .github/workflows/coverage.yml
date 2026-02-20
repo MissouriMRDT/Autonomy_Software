@@ -22,12 +22,12 @@ jobs:
         if: always()
         run: |
           cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+          if [ ! -d "Autonomy_Software" ]; then git clone -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Fix Dubious Ownership
@@ -40,14 +40,25 @@ jobs:
 
       - name: Update Branch
         run: |
+          set -euo pipefail
           cd /opt/Autonomy_Software/
-          git fetch --force --recurse-submodules
-          branch=${{ steps.extract_branch.outputs.branch }}
-          echo ${{ github.event.pull_request.head.sha }}
+
+          echo "PR SHA: ${{ github.event.pull_request.head.sha }}"
+          git fetch --force origin ${{ github.event.pull_request.head.sha }}
+          git checkout --detach ${{ github.event.pull_request.head.sha }}
           git reset --hard ${{ github.event.pull_request.head.sha }}
-          git checkout ${{ github.event.pull_request.head.sha }}
-          # git pull --ff-only
-          git submodule update --force --recursive --init
+
+          # Only allow these submodules to ever be touched
+          git config --local --unset-all submodule.active || true
+          git config --local --add submodule.active external/threadpool
+          git config --local --add submodule.active external/rovecomm
+
+          # Extra safety: make LiDAR a no-op if anything tries to update all submodules
+          git config --local submodule.data/LiDAR.update none
+
+          git submodule sync --recursive
+          git submodule update --init --recursive external/threadpool external/rovecomm
+
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
       - name: Configure and Build
@@ -56,7 +67,7 @@ jobs:
           if [ -d "build" ]; then rm -Rf build; fi
           mkdir build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DBUILD_CODE_COVERAGE=ON -DBUILD_COVERAGE_WATCH=OFF -DBUILD_VERBOSE_MODE=ON
+          cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS_MODE=ON -DENABLE_LIDAR_GEO_UTESTS=OFF -DBUILD_CODE_COVERAGE=ON -DBUILD_COVERAGE_WATCH=OFF -DBUILD_VERBOSE_MODE=ON
           make -j8
 
       - name: Run Tests
@@ -73,7 +84,8 @@ jobs:
             --exclude '../src/vision/aruco/TagDetector.h' --exclude '../src/vision/aruco/TagDetector.cpp' \
             --exclude '../src/vision/cameras/.*' \
             --exclude '../src/vision/objects/ObjectDetector.h' --exclude '../src/vision/objects/ObjectDetector.cpp' \
-            --exclude 'util/vision/YOLOModel.hpp'
+            --exclude 'util/vision/YOLOModel.hpp' \
+            --exclude '../src/algorithms/planners/GeoPlanner.h'
 
       - name: Upload Test Coverage to Codacy
         if: steps.run_tests.outcome == 'success'

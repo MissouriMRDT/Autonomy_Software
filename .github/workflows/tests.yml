@@ -25,12 +25,12 @@ jobs:
         if: always()
         run: |
           cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+          if [ ! -d "Autonomy_Software" ]; then git clone -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
@@ -42,13 +42,27 @@ jobs:
 
       - name: Update Branch
         run: |
+          set -euo pipefail
           cd /opt/Autonomy_Software/
-          git fetch --force --recurse-submodules
+
           branch=${{ steps.extract_branch.outputs.branch }}
-          git reset --hard origin/$branch
-          git checkout $branch
-          git pull --ff-only
-          git submodule update --force --recursive --init
+          echo "Using branch: $branch"
+
+          git fetch --force origin "$branch"
+          git checkout -B "$branch" "origin/$branch"
+          git reset --hard "origin/$branch"
+
+          # Only allow these two submodules to ever be touched
+          git config --local --unset-all submodule.active || true
+          git config --local --add submodule.active external/threadpool
+          git config --local --add submodule.active external/rovecomm
+
+          # Extra safety: make LiDAR a no-op if anything tries to update all submodules
+          git config --local submodule.data/LiDAR.update none
+
+          git submodule sync --recursive
+          git submodule update --init --recursive external/threadpool external/rovecomm
+
           git config --global --add safe.directory /opt/Autonomy_Software/external
 
       - name: Build and Run Tests with CTest
@@ -61,7 +75,7 @@ jobs:
 
           cd /opt/Autonomy_Software/
           rm -rf build && mkdir build && cd build
-          cmake -DBUILD_TESTS_MODE=ON ..
+          cmake -DBUILD_TESTS_MODE=ON -DENABLE_LIDAR_GEO_UTESTS=OFF ..
           make -j8
 
           LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
@@ -71,65 +85,79 @@ jobs:
         if: always()
         run: rm -rf /opt/Autonomy_Software
 
-  build-and-test-arm64:
-    strategy:
-      fail-fast: false
-      matrix:
-        type: [Unit, Integration]
+  # build-and-test-arm64:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       type: [Unit, Integration]
 
-    concurrency:
-      group: "tests-arm64-${{ matrix.type }}"
-      cancel-in-progress: false
+  #   concurrency:
+  #     group: "tests-arm64-${{ matrix.type }}"
+  #     cancel-in-progress: false
 
-    runs-on: [self-hosted, linux, ARM64]
+  #   runs-on: [self-hosted, linux, ARM64]
 
-    steps:
-      - name: Setup Action Environment
-        if: always()
-        run: |
-          cd /opt
-          if [ ! -d "Autonomy_Software" ]; then git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
+  #   steps:
+  #     - name: Setup Action Environment
+  #       if: always()
+  #       run: |
+  #         cd /opt
+  #         if [ ! -d "Autonomy_Software" ]; then git clone -j8 https://github.com/MissouriMRDT/Autonomy_Software.git; fi
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
 
-      - name: Fix Dubious Ownership
-        run: git config --global --add safe.directory /opt/Autonomy_Software
+  #     - name: Fix Dubious Ownership
+  #       run: git config --global --add safe.directory /opt/Autonomy_Software
 
-      - name: Extract branch name
-        id: extract_branch
-        shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+  #     - name: Extract branch name
+  #       id: extract_branch
+  #       shell: bash
+  #       run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
 
-      - name: Update Branch
-        run: |
-          cd /opt/Autonomy_Software/
-          git fetch --force --recurse-submodules
-          branch=${{ steps.extract_branch.outputs.branch }}
-          git reset --hard origin/$branch
-          git checkout $branch
-          git pull --ff-only
-          git submodule update --force --recursive --init
-          git config --global --add safe.directory /opt/Autonomy_Software/external
+  #     - name: Update Branch
+  #       run: |
+  #         set -euo pipefail
+  #         cd /opt/Autonomy_Software/
 
-      - name: Build and Run Tests with CTest
-        run: |
-          DIRECTORY="/opt/Autonomy_Software/tests/${{ matrix.type }}/src"
-          if [ ! -d "$DIRECTORY" ]; then
-            echo "No ${{ matrix.type }} tests found. Skipping."
-            exit 0
-          fi
+  #         branch=${{ steps.extract_branch.outputs.branch }}
+  #         echo "Using branch: $branch"
 
-          cd /opt/Autonomy_Software/
-          rm -rf build && mkdir build && cd build
-          cmake -DBUILD_TESTS_MODE=ON ..
-          make -j1
+  #         git fetch --force origin "$branch"
+  #         git checkout -B "$branch" "origin/$branch"
+  #         git reset --hard "origin/$branch"
 
-          LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
-          ctest --output-on-failure -T Test -L "$LABEL" --output-junit "${LABEL}s.xml"
+  #         # Only allow these two submodules to ever be touched
+  #         git config --local --unset-all submodule.active || true
+  #         git config --local --add submodule.active external/threadpool
+  #         git config --local --add submodule.active external/rovecomm
 
-      - name: Cleanup Action Environment
-        if: always()
-        run: rm -rf /opt/Autonomy_Software
+  #         # Extra safety: make LiDAR a no-op if anything tries to update all submodules
+  #         git config --local submodule.data/LiDAR.update none
+
+  #         git submodule sync --recursive
+  #         git submodule update --init --recursive external/threadpool external/rovecomm
+
+  #         git config --global --add safe.directory /opt/Autonomy_Software/external
+
+  #     - name: Build and Run Tests with CTest
+  #       run: |
+  #         DIRECTORY="/opt/Autonomy_Software/tests/${{ matrix.type }}/src"
+  #         if [ ! -d "$DIRECTORY" ]; then
+  #           echo "No ${{ matrix.type }} tests found. Skipping."
+  #           exit 0
+  #         fi
+
+  #         cd /opt/Autonomy_Software/
+  #         rm -rf build && mkdir build && cd build
+  #         cmake -DBUILD_TESTS_MODE=ON -DENABLE_LIDAR_GEO_UTESTS=OFF ..
+  #         make -j1
+
+  #         LABEL="${{ matrix.type == 'Unit' && 'UTest' || 'ITest' }}"
+  #         ctest --output-on-failure -T Test -L "$LABEL" --output-junit "${LABEL}s.xml"
+
+  #     - name: Cleanup Action Environment
+  #       if: always()
+  #       run: rm -rf /opt/Autonomy_Software

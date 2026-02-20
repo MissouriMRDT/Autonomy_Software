@@ -256,7 +256,6 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
         stRow.dNorthing = sqlite3_column_double(sqlSTMT, 2);
         stRow.dAltitude = sqlite3_column_double(sqlSTMT, 3);
 
-        // --- SEGFAULT FIX START ---
         // Retrieve Zone (Column 4). Check for NULL (if LEFT JOIN failed).
         const char* pszZone = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 4));
         stRow.szZone        = pszZone ? pszZone : "Unknown";
@@ -264,15 +263,14 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
         // Retrieve Classification (Column 5). Check for NULL.
         const char* pszClass   = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 5));
         stRow.szClassification = pszClass ? pszClass : "Unclassified";
-        // --- SEGFAULT FIX END ---
 
-        stRow.dNormalX        = sqlite3_column_double(sqlSTMT, 6);
-        stRow.dNormalY        = sqlite3_column_double(sqlSTMT, 7);
-        stRow.dNormalZ        = sqlite3_column_double(sqlSTMT, 8);
-        stRow.dSlope          = sqlite3_column_double(sqlSTMT, 9);
-        stRow.dRoughness      = sqlite3_column_double(sqlSTMT, 10);
-        stRow.dCurvature      = sqlite3_column_double(sqlSTMT, 11);
-        stRow.dTraversalScore = sqlite3_column_double(sqlSTMT, 12);
+        stRow.dNormalX         = sqlite3_column_double(sqlSTMT, 6);
+        stRow.dNormalY         = sqlite3_column_double(sqlSTMT, 7);
+        stRow.dNormalZ         = sqlite3_column_double(sqlSTMT, 8);
+        stRow.dSlope           = sqlite3_column_double(sqlSTMT, 9);
+        stRow.dRoughness       = sqlite3_column_double(sqlSTMT, 10);
+        stRow.dCurvature       = sqlite3_column_double(sqlSTMT, 11);
+        stRow.dTraversalScore  = sqlite3_column_double(sqlSTMT, 12);
 
         vResults.push_back(stRow);
     }
