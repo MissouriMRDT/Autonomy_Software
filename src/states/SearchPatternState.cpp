@@ -150,10 +150,10 @@ namespace statemachine
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
         // Place a dot on the stanley target index.
-        geoops::Waypoint stStanleyTargetCoordinate =
-            m_pStanleyController->GetReferencePath().at(static_cast<size_t>(m_pStanleyController->GetReferencePathTargetIndex()));
-        m_pRoverPathPlot->ClearLayer("StanleyTargetIndex");
-        m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 1);
+        // geoops::Waypoint stStanleyTargetCoordinate =
+        //     m_pStanleyController->GetReferencePath().at(static_cast<size_t>(m_pStanleyController->GetReferencePathTargetIndex()));
+        // m_pRoverPathPlot->ClearLayer("StanleyTargetIndex");
+        // m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 1);
 
         /*
             The overall flow of this state is as follows.
@@ -304,7 +304,7 @@ namespace statemachine
                                                                                      stDriveVector.dThetaHeading,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
-        LOG_NOTICE(logging::g_qSharedLogger, "stDriveVector.dVelocity: {} stDriveVector.dVelocity: {}", stDriveVector.dVelocity, stDriveVector.dThetaHeading);
+        LOG_NOTICE(logging::g_qSharedLogger, "stDriveVector.dVelocity: {}, stDriveVector.dVelocity: {}", stDriveVector.dVelocity, stDriveVector.dThetaHeading);
         // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
         //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
         //                                                                              stCurrentRoverPose.GetCompassHeading(),
