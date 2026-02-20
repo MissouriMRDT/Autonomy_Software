@@ -65,6 +65,9 @@ namespace statemachine
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
 
+        // Set the path of the stanley controller.
+        m_pStanleyController->SetReferencePath(m_vSearchPath);
+
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
         m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
     }
