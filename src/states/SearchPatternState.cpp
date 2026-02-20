@@ -60,6 +60,7 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
         m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "purple");
+        m_pRoverPathPlot->CreateDotLayer("StanleyTargetIndex", "or");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
@@ -87,6 +88,7 @@ namespace statemachine
 
     std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeltonPath)
     {
+        LOG_NOTICE(logging::g_qSharedLogger, "Starting GeoPlanSearchPattern Path length: {}", skeltonPath.size());
         std::vector<geoops::Waypoint> m_vSearchPath;
         for (int i = 0; i < skeltonPath.size() - 1; i++)
         {
@@ -294,17 +296,21 @@ namespace statemachine
             stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
             stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
         }
-
+        // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
         // Use stanley to calculate drive move/powers.
         controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-        // Drive to target waypoint.
-        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
-                                                                                     stCurrRelToTarget.dStartRelativeBearing,
+        // Calculate move from goal heading and desired speed.
+        diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+                                                                                     stDriveVector.dThetaHeading,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
-
+        LOG_NOTICE(logging::g_qSharedLogger, "stDriveVector.dVelocity: {} stDriveVector.dVelocity: {}", stDriveVector.dVelocity, stDriveVector.dThetaHeading);
+        // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
+        //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
+        //                                                                              stCurrentRoverPose.GetCompassHeading(),
+        //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
         // Send drive powers over RoveComm.
-        globals::g_pDriveBoard->SendDrive(stDrivePowers);
+        globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
 
         return;
     }
