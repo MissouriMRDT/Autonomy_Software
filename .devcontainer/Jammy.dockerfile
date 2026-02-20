@@ -196,12 +196,6 @@ RUN mkdir -p ~/.config/fish/ && echo 'set fish_greeting; function random_message
 # Set Fish as Default Shell.
 RUN chsh -s /usr/bin/fish
 
-# Clone Autonomy Software Repository
-RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git
-
-# Set Working Directory
-WORKDIR /opt/Autonomy_Software/
-
 # Set Labels
 LABEL authors="Missouri S&T Mars Rover Design Team"
 LABEL maintainer="Mars Rover Design Team <marsrover@mst.edu>"
