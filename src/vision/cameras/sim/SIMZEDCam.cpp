@@ -84,6 +84,7 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     // Assign member variables.
     m_szCameraPath              = szWebsocketAddress;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
+    m_bQueueTogglesAlreadyReset = false;
 
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
     m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
@@ -340,25 +341,23 @@ void SIMZEDCam::ThreadedContinuousCode()
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(siTotalQueueLength, m_nNumFrameRetrievalThreads);
 
-        // Static bool for keeping track of if the thread pool has been started.
-        static bool bQueueTogglesAlreadyReset = false;
         // Get current time.
         std::chrono::_V2::system_clock::duration tmCurrentTime = std::chrono::high_resolution_clock::now().time_since_epoch();
         // Only reset once every couple seconds.
-        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime).count() % 31 == 0 && !bQueueTogglesAlreadyReset)
+        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime).count() % 31 == 0 && !m_bQueueTogglesAlreadyReset)
         {
             // Reset queue counters.
             m_bPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
             m_bSensorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
 
             // Set reset toggle.
-            bQueueTogglesAlreadyReset = true;
+            m_bQueueTogglesAlreadyReset = true;
         }
         // Crucial for toggle action. If time is not evenly devisable and toggles have previously been set, reset queue reset boolean.
-        else if (bQueueTogglesAlreadyReset)
+        else if (m_bQueueTogglesAlreadyReset)
         {
             // Reset reset toggle.
-            bQueueTogglesAlreadyReset = false;
+            m_bQueueTogglesAlreadyReset = false;
         }
 
         // Wait for thread pool to finish.

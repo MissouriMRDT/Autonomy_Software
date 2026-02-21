@@ -115,6 +115,7 @@ class ZEDCam : public ZEDCamera
         sl::MEM m_slMemoryType;
         sl::MODEL m_slCameraModel;
         float m_fExpectedCameraHeightFromFloorTolerance;
+        bool m_bCameraReopenAlreadyChecked;
 
         // Track if we should turn on features during camera replug.
         bool m_bEnablePositionalTrackingFlag;
@@ -162,6 +163,7 @@ class ZEDCam : public ZEDCamera
 
         // Atomic flags for checking if data is queued.
 
+        bool m_bQueueTogglesAlreadyReset;
         std::atomic<bool> m_bNormalFramesQueued;
         std::atomic<bool> m_bDepthFramesQueued;
         std::atomic<bool> m_bPointCloudsQueued;
