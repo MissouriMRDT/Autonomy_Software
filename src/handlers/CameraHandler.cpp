@@ -94,6 +94,24 @@ CameraHandler::CameraHandler()
                                         constants::ZED_REARCAM_SERIAL);
     }
 
+    // Set the position offsets of the main camera.
+    m_pMainCam->SetCameraPoseOffset(constants::ZED_MAINCAM_EASTING_OFFSET,
+                                    constants::ZED_MAINCAM_NORTHING_OFFSET,
+                                    constants::ZED_MAINCAM_ALTITUDE_OFFSET,
+                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_X,
+                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_Y,
+                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_Z,
+                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_W);
+
+    // Set the position offsets of the rear camera.
+    m_pRearCam->SetCameraPoseOffset(constants::ZED_REARCAM_EASTING_OFFSET,
+                                    constants::ZED_REARCAM_NORTHING_OFFSET,
+                                    constants::ZED_REARCAM_ALTITUDE_OFFSET,
+                                    constants::ZED_REARCAM_QUATERNION_OFFSET_X,
+                                    constants::ZED_REARCAM_QUATERNION_OFFSET_Y,
+                                    constants::ZED_REARCAM_QUATERNION_OFFSET_Z,
+                                    constants::ZED_REARCAM_QUATERNION_OFFSET_W);
+
     // Initialize recording handler for cameras.
     m_pRecordingHandler = std::make_unique<RecordingHandler>(RecordingHandler::RecordingMode::eCameraHandler);
 }

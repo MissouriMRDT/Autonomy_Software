@@ -72,6 +72,7 @@ namespace constants
     extern const int ROVECOMM_OUTGOING_UDP_PORT;
     extern const int ROVECOMM_OUTGOING_TCP_PORT;
     extern const std::string ROVECOMM_TCP_INTERFACE_IP;
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -173,6 +174,7 @@ namespace constants
 
     // BasicCam Basic Config.
     extern const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD;
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -191,6 +193,13 @@ namespace constants
     extern const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH;
     extern const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS;
     extern const int ZED_MAINCAM_SERIAL;
+    extern const double ZED_MAINCAM_EASTING_OFFSET;
+    extern const double ZED_MAINCAM_NORTHING_OFFSET;
+    extern const double ZED_MAINCAM_ALTITUDE_OFFSET;
+    extern const double ZED_MAINCAM_QUATERNION_OFFSET_X;
+    extern const double ZED_MAINCAM_QUATERNION_OFFSET_Y;
+    extern const double ZED_MAINCAM_QUATERNION_OFFSET_Z;
+    extern const double ZED_MAINCAM_QUATERNION_OFFSET_W;
 
     // Rear ZED Camera.
     extern const bool MODE_REAR_ZED;
@@ -205,6 +214,13 @@ namespace constants
     extern const bool ZED_REARCAM_USE_HALF_PRECISION_DEPTH;
     extern const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS;
     extern const int ZED_REARCAM_SERIAL;
+    extern const double ZED_REARCAM_EASTING_OFFSET;
+    extern const double ZED_REARCAM_NORTHING_OFFSET;
+    extern const double ZED_REARCAM_ALTITUDE_OFFSET;
+    extern const double ZED_REARCAM_QUATERNION_OFFSET_X;
+    extern const double ZED_REARCAM_QUATERNION_OFFSET_Y;
+    extern const double ZED_REARCAM_QUATERNION_OFFSET_Z;
+    extern const double ZED_REARCAM_QUATERNION_OFFSET_W;
 
     // Basic Cam.
     extern const int BASICCAM_CAM_RESOLUTIONX;
@@ -418,6 +434,9 @@ namespace constants
     // NavBoard.
     extern const double NAVBOARD_MAX_GPS_DATA_AGE;
     extern const double NAVBOARD_MAX_COMPASS_DATA_AGE;
+    extern const double NAVBOARD_EASTING_OFFSET;
+    extern const double NAVBOARD_NORTHING_OFFSET;
+    extern const double NAVBOARD_ALTITUDE_OFFSET;
 
     ///////////////////////////////////////////////////////////////////////////
 
