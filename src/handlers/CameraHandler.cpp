@@ -82,6 +82,15 @@ CameraHandler::CameraHandler()
                                         constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
                                         constants::ZED_MAINCAM_SERIAL);
 
+        // Set the position offsets of the main camera.
+        m_pMainCam->SetCameraPoseOffset(constants::ZED_MAINCAM_EASTING_OFFSET,
+                                        constants::ZED_MAINCAM_NORTHING_OFFSET,
+                                        constants::ZED_MAINCAM_ALTITUDE_OFFSET,
+                                        constants::ZED_MAINCAM_QUATERNION_OFFSET_X,
+                                        constants::ZED_MAINCAM_QUATERNION_OFFSET_Y,
+                                        constants::ZED_MAINCAM_QUATERNION_OFFSET_Z,
+                                        constants::ZED_MAINCAM_QUATERNION_OFFSET_W);
+
         m_pRearCam =
             std::make_shared<SIMZEDCam>("ws://" + constants::SIM_IP_ADDRESS + ":" + std::to_string(constants::SIM_WEBSOCKET_PORT) + "/" + constants::SIM_REARCAM_NAME,
                                         constants::ZED_REARCAM_RESOLUTIONX,
@@ -92,6 +101,15 @@ CameraHandler::CameraHandler()
                                         constants::ZED_REARCAM_ENABLE_RECORDING,
                                         constants::ZED_REARCAM_FRAME_RETRIEVAL_THREADS,
                                         constants::ZED_REARCAM_SERIAL);
+
+        // Set the position offsets of the rear camera.
+        m_pRearCam->SetCameraPoseOffset(constants::ZED_REARCAM_EASTING_OFFSET,
+                                        constants::ZED_REARCAM_NORTHING_OFFSET,
+                                        constants::ZED_REARCAM_ALTITUDE_OFFSET,
+                                        constants::ZED_REARCAM_QUATERNION_OFFSET_X,
+                                        constants::ZED_REARCAM_QUATERNION_OFFSET_Y,
+                                        constants::ZED_REARCAM_QUATERNION_OFFSET_Z,
+                                        constants::ZED_REARCAM_QUATERNION_OFFSET_W);
     }
 
     // Initialize recording handler for cameras.
