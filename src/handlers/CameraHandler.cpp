@@ -63,9 +63,6 @@ CameraHandler::CameraHandler()
                                               constants::ZED_REARCAM_FRAME_RETRIEVAL_THREADS,
                                               constants::ZED_REARCAM_SERIAL);
 
-        // Always enable positional tracking.
-        m_pRearCam->EnablePositionalTracking();
-
         // Additional setup for rear ZED camera.
         if (constants::ZED_REARCAM_EXPORT_SPATIAL_MAP)
         {

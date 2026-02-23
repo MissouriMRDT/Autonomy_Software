@@ -80,7 +80,6 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
     m_bDepthFramesQueued        = false;
     m_bPointCloudsQueued        = false;
     m_bPosesQueued              = false;
-    m_bGeoPosesQueued           = false;
     m_bFloorsQueued             = false;
     m_bObjectsQueued            = false;
     m_bBatchedObjectsQueued     = false;
