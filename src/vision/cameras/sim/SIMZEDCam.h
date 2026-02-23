@@ -196,6 +196,7 @@ class SIMZEDCam : public ZEDCamera
 
         // Atomic flags for checking if data is queued.
 
+        bool m_bQueueTogglesAlreadyReset;
         std::atomic<bool> m_bPosesQueued;
         std::atomic<bool> m_bGeoPosesQueued;
         std::atomic<bool> m_bSensorsQueued;
