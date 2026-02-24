@@ -43,8 +43,8 @@
     "image": "ghcr.io/missourimrdt/autonomy-jammy:2025-11-06-19-13-36",
     // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2025-11-06-19-13-36",
     // "build": {
-    //     // "dockerfile": "Jammy.dockerfile"
-    //     "dockerfile": "JetPack.dockerfile"
+    //     "dockerfile": "Jammy.dockerfile"
+    //     // "dockerfile": "JetPack.dockerfile"
     // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
