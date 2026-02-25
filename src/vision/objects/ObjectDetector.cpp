@@ -763,8 +763,11 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                 // Use either width of height for the neighborhood size.
                 int nNeighborhoodSize = std::min(stObject.pBoundingBox->width, stObject.pBoundingBox->height);
                 // Geolocate the object in the point cloud.
-                stObject.stGeolocatedPosition =
-                    geoloc::GeolocateBox(m_cvPointCloud, stCameraPose, cv::Point(stObject.pBoundingBox->x, stObject.pBoundingBox->y), nNeighborhoodSize);
+                stObject.stGeolocatedPosition = geoloc::GeolocateBox(
+                    m_cvPointCloud,
+                    stCameraPose,
+                    cv::Point(stObject.pBoundingBox->x + stObject.pBoundingBox->width / 2, stObject.pBoundingBox->y + stObject.pBoundingBox->height / 2),
+                    nNeighborhoodSize);
 
                 // Since this is a object detection, set the object's waypoint type appropriately.
                 stObject.stGeolocatedPosition.eType = geoops::WaypointType::eObjectWaypoint;

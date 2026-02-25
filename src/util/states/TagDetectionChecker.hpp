@@ -60,16 +60,21 @@ namespace statemachine
         }
 
         // Ensure all requests have been fulfilled.
-        // Then transfer tags from the buffer to vDetectedArucoTags and vDetectedTensorflowTags for the user to access.
-        for (size_t siIdx = 0; siIdx < vDetectedArucoTagsFuture.size(); ++siIdx)
+        int nFutureIdx = 0;
+        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
         {
-            // Wait for the request to be fulfilled.
-            vDetectedArucoTagsFuture[siIdx].get();
-
-            // Loop through the detected Aruco tags and add them to the vDetectedArucoTags vector.
-            for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
+            // Only check the buffer if the detector was ready and actually spawned a future
+            if (vTagDetectors[siIdx]->GetIsReady())
             {
-                vDetectedArucoTags.emplace_back(tTag);
+                // Wait for the correct future to finish
+                vDetectedArucoTagsFuture[nFutureIdx].get();
+                nFutureIdx++;
+
+                // Loop through the detected tags using the correct buffer index (siIdx)
+                for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
+                {
+                    vDetectedArucoTags.emplace_back(tTag);
+                }
             }
         }
     }

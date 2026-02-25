@@ -31,7 +31,7 @@ namespace constants
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
     const std::string SIM_IP_ADDRESS   = "127.0.0.1";    // The IP address to use for simulation mode.
-    const uint SIM_WEBSOCKET_PORT      = 8080;           // The port to use for the WebSocket in simulation mode.
+    const uint SIM_WEBSOCKET_PORT      = 80;             // The port to use for the WebSocket in simulation mode.
     const uint SIM_WEBRTC_QP           = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
     const std::string SIM_MAINCAM_NAME = "ZEDFront";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
     const std::string SIM_REARCAM_NAME = "ZEDRear";      // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
@@ -205,13 +205,13 @@ namespace constants
     const bool ZED_REARCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
     const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS   = 10;          // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_REARCAM_SERIAL                    = 39163798;    // The serial number of the camera. Set to 0 to open the next available one. DEFAULT = 31237348
-    const double ZED_REARCAM_EASTING_OFFSET         = 0.0;    // The easting offset to apply to the GPS data that way we know where it is relative to the rover center.
-    const double ZED_REARCAM_NORTHING_OFFSET        = 0.0;    // The northing offset to apply to the GPS data that way we know where it is relative to the rover center.
-    const double ZED_REARCAM_ALTITUDE_OFFSET        = 0.0;    // The altitude offset to apply to the GPS data that way we know where it is relative to the rover center.
-    const double ZED_REARCAM_QUATERNION_OFFSET_X    = 0.0;    // The quaternion X offset to apply to the camera orientation that way we know its orientation.
-    const double ZED_REARCAM_QUATERNION_OFFSET_Y    = 0.0;    // The quaternion Y offset to apply to the camera orientation that way we know its orientation.
-    const double ZED_REARCAM_QUATERNION_OFFSET_Z    = 0.0;    // The quaternion Z offset to apply to the camera orientation that way we know its orientation.
-    const double ZED_REARCAM_QUATERNION_OFFSET_W    = 1.0;    // The quaternion W offset to apply to the camera orientation that way we know its orientation.
+    const double ZED_REARCAM_EASTING_OFFSET         = 0.0;     // The easting offset to apply to the GPS data that way we know where it is relative to the rover center.
+    const double ZED_REARCAM_NORTHING_OFFSET        = -0.5;    // The northing offset to apply to the GPS data that way we know where it is relative to the rover center.
+    const double ZED_REARCAM_ALTITUDE_OFFSET        = 0.0;     // The altitude offset to apply to the GPS data that way we know where it is relative to the rover center.
+    const double ZED_REARCAM_QUATERNION_OFFSET_X    = 0.0;     // The quaternion X offset to apply to the camera orientation that way we know its orientation.
+    const double ZED_REARCAM_QUATERNION_OFFSET_Y    = 1.0;     // The quaternion Y offset to apply to the camera orientation that way we know its orientation.
+    const double ZED_REARCAM_QUATERNION_OFFSET_Z    = 0.0;     // The quaternion Z offset to apply to the camera orientation that way we know its orientation.
+    const double ZED_REARCAM_QUATERNION_OFFSET_W    = 0.0;     // The quaternion W offset to apply to the camera orientation that way we know its orientation.
 
     // Basic Cam.
     const int BASICCAM_CAM_RESOLUTIONX             = 1280;    // The horizontal pixel resolution to resize the basiccam images to.

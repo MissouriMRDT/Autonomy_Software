@@ -52,13 +52,12 @@ ObjectDetectionHandler::ObjectDetectionHandler()
     if (constants::OBJECTDETECT_REARCAM_ENABLE_TORCH)
     {
         // Attempt to init torch detection.
-        if (m_pObjectDetectorMainCam->InitTorchDetection(constants::OBJECTDETECT_TORCH_MODEL))
+        if (m_pObjectDetectorRearCam->InitTorchDetection(constants::OBJECTDETECT_TORCH_MODEL))
         {
             // Set torch detection enabled.
-            m_pObjectDetectorMainCam->EnableTorchDetection(constants::OBJECTDETECT_REARCAM_TORCH_CONFIDENCE, constants::OBJECTDETECT_REARCAM_TORCH_NMS_THRESH);
+            m_pObjectDetectorRearCam->EnableTorchDetection(constants::OBJECTDETECT_REARCAM_TORCH_CONFIDENCE, constants::OBJECTDETECT_REARCAM_TORCH_NMS_THRESH);
         }
     }
-    
 
     // Initialize recording handler for detectors.
     m_pRecordingHandler = std::make_unique<RecordingHandler>(RecordingHandler::RecordingMode::eObjectDetectionHandler);
@@ -92,6 +91,7 @@ void ObjectDetectionHandler::StartAllDetectors()
     // Start ZED rearcam detector.
     m_pObjectDetectorRearCam->Start();
 }
+
 /******************************************************************************
  * @brief Signal the RecordingHandler to start recording feeds from the detectors.
  *
