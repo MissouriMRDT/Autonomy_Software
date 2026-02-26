@@ -202,10 +202,12 @@ void ObjectDetector::ThreadedContinuousCode()
         // Create future for indicating when the frame has been copied.
         std::future<bool> fuPointCloudCopyStatus;
         std::future<bool> fuRegularFrameCopyStatus;
+        bool bRequestingPointCloud = false;
 
         // Check if the camera is setup to use CPU or GPU mats.
         if (m_bUsingZedCamera)
         {
+            bRequestingPointCloud = true;
             // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
             if (m_bUsingGpuMats)
             {
@@ -213,8 +215,48 @@ void ObjectDetector::ThreadedContinuousCode()
                 fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
                 // Get the regular RGB image from the camera.
                 fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
+            }
+            else
+            {
+                // Grabs point cloud from ZEDCam.
+                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+            }
+        }
+        else
+        {
+            // Grab frames from camera.
+            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+        }
 
-                // Wait for point cloud to be retrieved.
+        // Safe polling wrapper to prevent deadlocks.
+        bool bCloudReady = !bRequestingPointCloud;    // True by default if we don't need a point cloud
+        bool bFrameReady = false;
+
+        // Keep polling as long as the thread hasn't been asked to stop.
+        while (this->GetThreadState() == AutonomyThreadState::eRunning)
+        {
+            if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+                bCloudReady = true;
+
+            if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+                bFrameReady = true;
+
+            if (bCloudReady && bFrameReady)
+                break;
+        }
+
+        // If the thread is shutting down, break out of the loop gracefully
+        if (this->GetThreadState() != AutonomyThreadState::eRunning)
+        {
+            return;
+        }
+
+        // Process the retrieved frames
+        if (m_bUsingZedCamera)
+        {
+            if (m_bUsingGpuMats)
+            {
                 if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
                 {
                     // Download mat from GPU memory.
@@ -225,38 +267,21 @@ void ObjectDetector::ThreadedContinuousCode()
                 }
                 else
                 {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
+                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or frame from ZEDCam!");
                 }
             }
             else
             {
-                // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
-                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-
-                // Wait for point cloud to be retrieved.
                 if (!fuPointCloudCopyStatus.get())
-                {
-                    // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
-                }
                 if (!fuRegularFrameCopyStatus.get())
-                {
-                    // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
-                }
             }
         }
         else
         {
-            // Grab frames from camera.
-            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-
-            // Wait for point cloud to be retrieved.
             if (!fuRegularFrameCopyStatus.get())
             {
-                // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
             }
         }

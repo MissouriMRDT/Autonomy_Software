@@ -448,7 +448,7 @@ int main()
                             int nObjectCount = 0;
 
                             // Get the best/valid tags from the tag detectors.
-                            std::vector<std::shared_ptr<ObjectDetector>> vTagDetectors = {pMainObjectDetector};
+                            std::vector<std::shared_ptr<ObjectDetector>> vTagDetectors = {pMainObjectDetector, pRearObjectDetector};
                             // Get the best tags from the tag detectors.
                             nObjectCount = statemachine::IdentifyTargetObject(vTagDetectors, stBestTorchObject);
 
