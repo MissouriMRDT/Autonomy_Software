@@ -61,15 +61,21 @@ namespace statemachine
 
         // Ensure all requests have been fulfilled.
         // Then transfer objects from the buffer to vDetectedObjects for the user to access.
+        int nFutureIdx = 0;
         for (size_t siIdx = 0; siIdx < vDetectedObjectsFuture.size(); ++siIdx)
         {
-            // Wait for the request to be fulfilled.
-            vDetectedObjectsFuture[siIdx].get();
-
-            // Loop through the detected objects and add them to the vDetectedObjects vector.
-            for (const objectdetectutils::Object& tObject : vDetectedObjectBuffers[siIdx])
+            // Only check the buffer if the detector was ready and actually spawned a future
+            if (vObjectDetectors[siIdx]->GetIsReady())
             {
-                vDetectedObjects.emplace_back(tObject);
+                // Wait for the correct future to finish
+                vDetectedObjectsFuture[nFutureIdx].get();
+                nFutureIdx++;
+
+                // Loop through the detected objects and add them to the vDetectedObjects vector.
+                for (const objectdetectutils::Object& tObject : vDetectedObjectBuffers[siIdx])
+                {
+                    vDetectedObjects.emplace_back(tObject);
+                }
             }
         }
     }

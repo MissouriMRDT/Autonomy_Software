@@ -813,11 +813,11 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
             // Recreate the rover pose with the camera's adjusted absolute position and absolute heading
             geoops::RoverPose stCameraPose = geoops::RoverPose(stCamera, dAbsoluteCameraHeading);
 
-            LOG_NOTICE(logging::g_qSharedLogger,
-                       "RoverPose GPS: {} {} | RoverPose Heading: {}",
-                       stCameraPose.GetGPSCoordinate().dLatitude,
-                       stCameraPose.GetGPSCoordinate().dLongitude,
-                       stCameraPose.GetCompassHeading());
+            // LOG_NOTICE(logging::g_qSharedLogger,
+            //            "RoverPose GPS: {} {} | RoverPose Heading: {}",
+            //            stCameraPose.GetGPSCoordinate().dLatitude,
+            //            stCameraPose.GetGPSCoordinate().dLongitude,
+            //            stCameraPose.GetCompassHeading());
             // // Recreate the rover pose with the camera's adjusted position and heading.
             // geoops::RoverPose stCameraPose = geoops::RoverPose(stCamera, dCameraHeading);
 

@@ -393,10 +393,12 @@ void VisualizationHandler::UpdateDetections()
     };
 
     // Prepare Detector Vectors
-    std::vector<std::shared_ptr<TagDetector>> vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
+    std::vector<std::shared_ptr<TagDetector>> vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                                                  globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
 
     std::vector<std::shared_ptr<ObjectDetector>> vObjDetectors = {
-        globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+        globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
 
     /////////////////////////////////////////
     // Tags.
