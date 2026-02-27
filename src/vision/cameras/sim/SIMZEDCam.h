@@ -146,6 +146,7 @@ class SIMZEDCam : public ZEDCamera
 
         std::string m_szCameraPath;
         std::atomic<bool> m_bCameraPositionalTrackingEnabled;
+        std::string m_szFullStreamName;
 
         // Simulated IMU Data from the SIM.
         sl::SensorsData m_stIMUData;

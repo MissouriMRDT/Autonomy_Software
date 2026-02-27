@@ -48,6 +48,9 @@ namespace statemachine
         // Initialize vectors to store detected tags futures.
         std::vector<std::future<bool>> vDetectedArucoTagsFuture;
 
+        // Track exactly which cameras successfully spawned a future to prevent vector crashes.
+        std::vector<bool> vSpawnedFuture(siNumTagDetectors, false);
+
         // Request tags from each detector.
         for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
         {
@@ -56,6 +59,7 @@ namespace statemachine
             {
                 // Request detected Aruco tags from detector.
                 vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
+                vSpawnedFuture[siIdx] = true;
             }
         }
 
@@ -64,7 +68,7 @@ namespace statemachine
         for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
         {
             // Only check the buffer if the detector was ready and actually spawned a future
-            if (vTagDetectors[siIdx]->GetIsReady())
+            if (vSpawnedFuture[siIdx])
             {
                 // Wait for the correct future to finish
                 vDetectedArucoTagsFuture[nFutureIdx].get();

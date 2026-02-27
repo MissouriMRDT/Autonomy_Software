@@ -48,6 +48,9 @@ namespace statemachine
         // Initialize vectors to store detected objects futures.
         std::vector<std::future<bool>> vDetectedObjectsFuture;
 
+        // Track exactly which cameras successfully spawned a future to prevent vector crashes.
+        std::vector<bool> vSpawnedFuture(siNumObjectDetectors, false);
+
         // Request objects from each detector.
         for (size_t siIdx = 0; siIdx < siNumObjectDetectors; ++siIdx)
         {
@@ -56,6 +59,7 @@ namespace statemachine
             {
                 // Request detected objects from detector.
                 vDetectedObjectsFuture.emplace_back(vObjectDetectors[siIdx]->RequestDetectedObjects(vDetectedObjectBuffers[siIdx]));
+                vSpawnedFuture[siIdx] = true;
             }
         }
 
@@ -65,7 +69,7 @@ namespace statemachine
         for (size_t siIdx = 0; siIdx < vDetectedObjectsFuture.size(); ++siIdx)
         {
             // Only check the buffer if the detector was ready and actually spawned a future
-            if (vObjectDetectors[siIdx]->GetIsReady())
+            if (vSpawnedFuture[siIdx])
             {
                 // Wait for the correct future to finish
                 vDetectedObjectsFuture[nFutureIdx].get();

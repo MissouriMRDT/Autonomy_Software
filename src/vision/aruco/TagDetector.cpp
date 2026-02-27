@@ -826,12 +826,12 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
             double dQY = m_pCamera->GetCameraPoseOffset().dQY;
             double dQZ = m_pCamera->GetCameraPoseOffset().dQZ;
             // Update the rover pose's heading to match the camera's heading. We will need to calculate the camera's heading using the quaternion.
-            double dSinYCosP      = 2.0 * (dQW * dQZ + dQX * dQY);
-            double dCosYCosP      = 1.0 - 2.0 * (dQY * dQY + dQZ * dQZ);
+            double dSinYCosP      = 2.0 * (dQW * dQY + dQX * dQZ);
+            double dCosYCosP      = 1.0 - 2.0 * (dQX * dQX + dQY * dQY);
             double dCameraHeading = std::atan2(dSinYCosP, dCosYCosP) * (180.0 / CV_PI);
 
             // Add the relative camera heading to the absolute rover heading
-            double dAbsoluteCameraHeading = m_stRoverPose.GetCompassHeading() + dCameraHeading;
+            double dAbsoluteCameraHeading = numops::InputAngleModulus<double>(m_stRoverPose.GetCompassHeading() + dCameraHeading, 0.0, 360.0);
 
             // Recreate the rover pose with the camera's adjusted absolute position and absolute heading
             geoops::RoverPose stCameraPose = geoops::RoverPose(stCamera, dAbsoluteCameraHeading);

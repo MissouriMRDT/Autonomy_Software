@@ -83,6 +83,7 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
 
     // Assign member variables.
     m_szCameraPath              = szWebsocketAddress;
+    m_szFullStreamName          = szFullStreamName;
     m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
     m_bQueueTogglesAlreadyReset = false;
 
@@ -93,8 +94,8 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
     // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
-    m_pRGBStream        = std::make_unique<WebRTC>(szWebsocketAddress, szFullStreamName + "RGB");
-    m_pDepthImageStream = std::make_unique<WebRTC>(szWebsocketAddress, szFullStreamName + "DepthImage");
+    m_pRGBStream        = std::make_unique<WebRTC>(szWebsocketAddress, m_szFullStreamName + "RGB");
+    m_pDepthImageStream = std::make_unique<WebRTC>(szWebsocketAddress, m_szFullStreamName + "DepthImage");
 
     // Set callbacks for the WebRTC connections.
     this->SetCallbacks();
@@ -704,7 +705,7 @@ sl::ERROR_CODE SIMZEDCam::ResetPositionalTracking()
  * @return sl::ERROR_CODE - The error code returned by the ZED SDK. In this case, it will always be SUCCESS.
  *              Even if the streams are not successfully reconnected, the camera will still be considered open.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2024-12-26
  ******************************************************************************/
 sl::ERROR_CODE SIMZEDCam::RebootCamera()
@@ -718,8 +719,8 @@ sl::ERROR_CODE SIMZEDCam::RebootCamera()
     m_pRGBStream.reset();
     m_pDepthImageStream.reset();
     // Reconstruct camera stream objects. Append proper camera path arguments to each URL camera path.
-    m_pRGBStream        = std::make_unique<WebRTC>(m_szCameraPath, "ZEDFrontRGB");
-    m_pDepthImageStream = std::make_unique<WebRTC>(m_szCameraPath, "ZEDFrontDepthImage");
+    m_pRGBStream        = std::make_unique<WebRTC>(m_szCameraPath, m_szFullStreamName + "RGB");
+    m_pDepthImageStream = std::make_unique<WebRTC>(m_szCameraPath, m_szFullStreamName + "DepthImage");
 
     // Set the frame callbacks.
     this->SetCallbacks();
