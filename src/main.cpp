@@ -530,11 +530,17 @@ int main()
 
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
-        globals::g_pObjectDetectionHandler->StopAllDetectors();
-        globals::g_pTagDetectionHandler->StopAllDetectors();
+
+        // Stop the visualization handler.
+        pVisualizationHandler->RequestStop();
+        pVisualizationHandler->Join();
 
         // Export visualization data.
         pVisualizationHandler->SaveVisualization(constants::LOGGING_OUTPUT_PATH_ABSOLUTE + logging::g_szProgramStartTimeString + "/visualization.html");
+
+        // Stop detectors.
+        globals::g_pObjectDetectionHandler->StopAllDetectors();
+        globals::g_pTagDetectionHandler->StopAllDetectors();
 
         // Check if ZED spatial map was enabled.
         if (pMainCam->GetSpatialMappingState() == sl::SPATIAL_MAPPING_STATE::OK)
@@ -551,9 +557,6 @@ int main()
 
         // Stop the camera handler.
         globals::g_pCameraHandler->StopAllCameras();
-        // Stop the visualization handler.
-        pVisualizationHandler->RequestStop();
-        pVisualizationHandler->Join();
 
         // Close the LiDAR database.
         globals::g_pLiDARHandler->CloseDB();
