@@ -1878,15 +1878,15 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::Mesh>& 
                                       // Create instance variables.
                                       sl::Mesh slSpatialMap;
 
-                                      // Loop until map is finished generating.
-                                      while (m_slCamera.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE)
+                                      // Loop until map is finished generating or the camera unexpectedly closes.
+                                      while (m_slCamera.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::FAILURE && m_slCamera.isOpened())
                                       {
                                           // Sleep for 10ms.
                                           std::this_thread::sleep_for(std::chrono::milliseconds(10));
                                       }
 
                                       // Check if the spatial map was exported successfully.
-                                      if (m_slCamera.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::SUCCESS)
+                                      if (m_slCamera.getSpatialMapRequestStatusAsync() == sl::ERROR_CODE::SUCCESS && m_slCamera.isOpened())
                                       {
                                           // Get and store the spatial map.
                                           m_slCamera.retrieveSpatialMapAsync(slSpatialMap);

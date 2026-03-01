@@ -528,6 +528,11 @@ int main()
         // Cleanup.
         /////////////////////////////////////////
 
+        // Stop handlers.
+        globals::g_pStateMachineHandler->StopStateMachine();
+        globals::g_pObjectDetectionHandler->StopAllDetectors();
+        globals::g_pTagDetectionHandler->StopAllDetectors();
+
         // Export visualization data.
         pVisualizationHandler->SaveVisualization(constants::LOGGING_OUTPUT_PATH_ABSOLUTE + logging::g_szProgramStartTimeString + "/visualization.html");
 
@@ -544,10 +549,7 @@ int main()
             slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
         }
 
-        // Stop handlers.
-        globals::g_pStateMachineHandler->StopStateMachine();
-        globals::g_pObjectDetectionHandler->StopAllDetectors();
-        globals::g_pTagDetectionHandler->StopAllDetectors();
+        // Stop the camera handler.
         globals::g_pCameraHandler->StopAllCameras();
         // Stop the visualization handler.
         pVisualizationHandler->RequestStop();
