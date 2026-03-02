@@ -606,6 +606,44 @@ namespace pathplanners
     }
 
     /******************************************************************************
+     * @brief Unload tile LiDAR data
+     *
+     * @param minX - Minimum x coordinate of tile range.
+     * @param maxX - Maximum x coordinate of tile range.
+     * @param minY - Minimum y coordinate of tile range.
+     * @param maxY - Maximum y coordinate of tile range.
+     *
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2025-03-01
+     ******************************************************************************/
+    void GeoPlanner::UnloadLiDARTiles(double minX, double maxX, double minY, double maxY)
+    {
+        int nMinTileX = static_cast<int>(std::floor(minX / m_dTileSize));
+        int nMinTileY = static_cast<int>(std::floor(minY / m_dTileSize));
+        int nMaxTileX = static_cast<int>(std::floor(maxX / m_dTileSize));
+        int nMaxTileY = static_cast<int>(std::floor(maxY / m_dTileSize));
+
+        std::list<TileKey> tileKeys;
+        for (int i = 0; i < nMaxTileX - nMinTileX + 1; ++i)
+            for (int j = 0; j < nMaxTileY - nMaxTileY + 1; ++j)
+                tileKeys.push_back(TileKey{nMinTileX + i, nMinTileY + j});
+
+        for (std::list<TileKey>::iterator it = tileKeys.begin(); it != tileKeys.end(); ++it)
+        {
+            // Make sure tile is actually loaded
+            if (m_umTileMapCache.find(*it) != m_umTileMapCache.end())
+            {
+                LOG_INFO(logging::g_qSharedLogger, "TileKey NOT LOADED: ({}, {})", it->nX, it->nY);
+                continue;
+            }
+
+            LOG_INFO(logging::g_qSharedLogger, "TileKey ERASED: ({}, {})", it->nX, it->nY);
+            m_umTileMapCache.erase(*it);
+            m_usKDTreeInsertedTiles.erase(*it);
+        }
+    }
+
+    /******************************************************************************
      * @brief Find the closest LiDAR point to the given UTM coordinate.
      *
      * @param stCoordinate - The UTM coordinate to find the closest LiDAR point to.

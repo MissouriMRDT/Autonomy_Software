@@ -98,6 +98,7 @@ namespace pathplanners
                                                    double dMaxSearchTimeSeconds = 240.0,
                                                    bool bPlotPath               = false);
             void ClearGeoCache();
+            void UnloadLiDARTiles(double minX, double maxX, double minY, double maxY);
 
             ////////////////////////////////////
             // Setters.
