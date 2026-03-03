@@ -128,10 +128,10 @@ namespace statemachine
             stObstaclePosition.dNorthing += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
 
             // Reload saved path planner LiDAR data
-            globals::g_pGeoPlanner->ReloadTiles(stObstaclePosition.dEasting - constants::STUCK_OBSTACLE_RADIUS,
-                                                stObstaclePosition.dEasting + constants::STUCK_OBSTACLE_RADIUS,
-                                                stObstaclePosition.dNorthing - constants::STUCK_OBSTACLE_RADIUS,
-                                                stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
+            globals::g_pGeoPlanner->UnloadLiDARTiles(stObstaclePosition.dEasting - constants::STUCK_OBSTACLE_RADIUS,
+                                                     stObstaclePosition.dEasting + constants::STUCK_OBSTACLE_RADIUS,
+                                                     stObstaclePosition.dNorthing - constants::STUCK_OBSTACLE_RADIUS,
+                                                     stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
 
             int count = 0;
             for (std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
