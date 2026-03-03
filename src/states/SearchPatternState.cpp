@@ -93,7 +93,7 @@ namespace statemachine
     {
         LOG_NOTICE(logging::g_qSharedLogger, "Starting GeoPlanSearchPattern Path length: {}", skeltonPath.size());
         std::vector<geoops::Waypoint> m_vSearchPath;
-        for (int i = 0; i < skeltonPath.size() - 1; i++)
+        for (long unsigned int i = 0; i < skeltonPath.size() - 1; i++)
         {
             std::vector<geoops::Waypoint> newPoints =
                 globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, skeltonPath[i].GetUTMCoordinate(), skeltonPath[i + 1].GetUTMCoordinate(), 2.0, 240.0, false);
@@ -389,6 +389,7 @@ namespace statemachine
                         m_eCurrentSearchPatternType = SearchPatternType::END;
 
                         m_vSearchPath               = GeoPlanSearchPattern(m_vSearchPath);
+                        std::reverse(m_vSearchPath.begin(), m_vSearchPath.end());
 
                         // Add the search and rover path layers to the plot.
                         m_pRoverPathPlot->AddDots(m_vSearchPath, "ReverseSpiralSearchPattern");
