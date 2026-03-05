@@ -396,7 +396,7 @@ namespace controllers
         int nBestSegmentIndex = -1;
         geoops::UTMCoordinate stBestProjection;
 
-        size_t lookAheadLimiter = std::min((nWaypoints - 1) - m_nCurrentReferencePathTargetIndex, static_cast<size_t>(10));
+        size_t lookAheadLimiter = std::min(nWaypoints - 1, m_nCurrentReferencePathTargetIndex + static_cast<size_t>(10));
         for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < lookAheadLimiter; ++siIter)
         {
             const geoops::UTMCoordinate& stA = m_vReferencePath[siIter].GetUTMCoordinate();

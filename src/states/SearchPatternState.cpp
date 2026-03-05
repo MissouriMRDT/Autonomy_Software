@@ -307,7 +307,6 @@ namespace statemachine
                                                                                      stDriveVector.dThetaHeading,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
-        LOG_NOTICE(logging::g_qSharedLogger, "stDriveVector.dVelocity: {}, stDriveVector.dVelocity: {}", stDriveVector.dVelocity, stDriveVector.dThetaHeading);
         // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
         //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
         //                                                                              stCurrentRoverPose.GetCompassHeading(),
