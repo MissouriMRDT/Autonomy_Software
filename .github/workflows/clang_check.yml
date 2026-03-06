@@ -21,7 +21,7 @@ jobs:
           - check: "examples"
             exclude: ""
           - check: "src"
-            exclude: "ArucoSamplesUtility.hpp"
+            exclude: ""
           - check: "tests"
             exclude: ""
           - check: "tools"
@@ -30,15 +30,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
+
+      - name: Init only needed submodules (and block LiDAR)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Automatically rewrite SSH URLs to HTTPS
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+          # Only allow these submodules to ever be touched
+          git config --local --unset-all submodule.active || true
+          git config --local --add submodule.active external/threadpool
+          git config --local --add submodule.active external/rovecomm
+
+          # Extra safety: make LiDAR a no-op if anything tries to update all submodules
+          git config --local submodule.data/LiDAR.update none
+
+          git submodule sync --recursive
+          git submodule update --init --recursive external/threadpool external/rovecomm
 
       - name: Fix Dubious Ownership
         run: git config --global --add safe.directory /opt/Autonomy_Software
 
       - name: Run clang-format style check
-        uses: jidicula/clang-format-action@v4.11.0
+        uses: jidicula/clang-format-action@v4.16.0
         with:
-          clang-format-version: "16"
+          clang-format-version: "21"
           check-path: ${{ matrix.path['check'] }}
           exclude-regex: ${{ matrix.path['exclude'] }}
           fallback-style: "Microsoft"

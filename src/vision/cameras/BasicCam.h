@@ -70,6 +70,7 @@ class BasicCam : public BasicCamera
         /////////////////////////////////////////
         // Basic Camera specific.
         cv::VideoCapture m_cvCamera;
+        bool m_bCameraReopenAlreadyChecked;
 
         // Mats for storing frames.
         cv::Mat m_cvFrame;

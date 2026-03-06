@@ -100,6 +100,8 @@ namespace tracking
                 m_mBoundingBoxes[nBestTrackerID]->height = cvBoundingBox->height;
                 cv::Ptr<cv::Tracker> cvTracker           = this->CreateTracker(eTrackerType);
                 cvTracker->init(cvFrame, *m_mBoundingBoxes[nBestTrackerID]);
+                // Update the tracker in the map.
+                m_mTrackers[nBestTrackerID] = cvTracker;
                 // Update the last update time for the tracker.
                 m_mLastUpdateTime[nBestTrackerID] = std::chrono::system_clock::now();
                 // Update the time since the last ground truth detection.

@@ -73,21 +73,30 @@ namespace constants
     // NOTE: NEVER CHANGE THESE VALUES UNLESS DRIVE BOARD HARDWARE IS CHANGED.
     const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
     const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
-    const float DRIVE_MAX_SAFE_POWER = 0.6;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
+    const float DRIVE_MAX_SAFE_POWER = 0.4;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
 
     // Control constants.
-    const double DRIVE_PID_PROPORTIONAL      = 0.01;     // The proportional gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_INTEGRAL          = 0.001;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_DERIVATIVE        = 0.008;    // The derivative gain for the controller used to point the rover at a goal heading during navigation.
-    const double DRIVE_PID_FEEDFORWARD       = 0.0;      // The feedforward for the controller used to predict control output.
-    const double DRIVE_PID_MAX_ERROR         = 180.0;    // The max allowable error the controller will see per iteration. This is on degrees from setpoint. 0 = Disable.
-    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.1;      // The max effort the I term is allowed to contribute. 0 = Disable.
-    const double DRIVE_PID_MAX_RAMP_RATE     = 0.08;     // The max ramp rate of the output of the PID controller. 0 = Disable.
-    const double DRIVE_PID_OUTPUT_FILTER     = 0.0;      // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point. 0 = Disable.
-    const double DRIVE_PID_TOLERANCE         = 0.0;      // The max allowable error from the setpoint for the controller to be considered at the setpoint. 0 = Disable.
-    const bool DRIVE_PID_OUTPUT_REVERSED     = false;    // Negates the output of the PID controller.
-    const bool DRIVE_SQUARE_CONTROL_INPUTS   = false;    // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
+    const double DRIVE_PID_PROPORTIONAL      = 0.01;      // The proportional gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_INTEGRAL          = 0.0003;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_DERIVATIVE        = 0.008;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
+    const double DRIVE_PID_FEEDFORWARD       = 0.0;       // The feedforward for the controller used to predict control output.
+    const double DRIVE_PID_MAX_ERROR         = 180.0;     // The max allowable error the controller will see per iteration. This is on degrees from setpoint. 0 = Disable.
+    const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.1;       // The max effort the I term is allowed to contribute. 0 = Disable.
+    const double DRIVE_PID_MAX_RAMP_RATE     = 0.08;      // The max ramp rate of the output of the PID controller. 0 = Disable.
+    const double DRIVE_PID_OUTPUT_FILTER     = 0.0;       // Larger values will filter out large spikes or oscillations. 0.1 is a good starting point. 0 = Disable.
+    const double DRIVE_PID_TOLERANCE         = 0.0;       // The max allowable error from the setpoint for the controller to be considered at the setpoint. 0 = Disable.
+    const bool DRIVE_PID_OUTPUT_REVERSED     = false;     // Negates the output of the PID controller.
+    const bool DRIVE_SQUARE_CONTROL_INPUTS   = false;     // This is used by the DifferentialDrive algorithms. True makes fine inputs smoother, but less responsive.
     const bool DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED = true;    // Whether to enable turning in-place when using curvature drive control.
+
+    // Drive Board constants
+    const float DRIVE_BOARD_MIN_SLOPE    = 3.5;     // The min slope in degrees for fTheta to start calculating multiplier. If fTheta is less: set to max multiplier.
+    const float DRIVE_BOARD_MAX_SLOPE    = 30.0;    // The max slope in degrees for fTheta to stop calculating multiplier and set to min multiplier.
+    const float DRIVE_BOARD_MIN_DAMP     = 0.5;     // The min multiplier used in variable drive speed applied to SetMaxDriveEffort().
+    const float DRIVE_BOARD_MAX_DAMP     = 1.0;     // The max multiplier used in variable drive speed applied to SetMaxDriveEffort().
+    const float DRIVE_BOARD_ROLL_WEIGHT  = 0.6;     // The weight in a percentage of importance for the roll position: 60%.
+    const float DRIVE_BOARD_PITCH_WEIGHT = 0.4;     // The weight in a percentage of importance for the pitch position: 40%.
+    const float DRIVE_BOARD_YAW_WEIGHT   = 0.0;     // The weight in a percentage of importance for the yaw position: 0% (added for future proofing).
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -190,14 +199,11 @@ namespace constants
     //// Bounding Box Tracking Constants.
     ///////////////////////////////////////////////////////////////////////////
 
-    // NOTE: These next two constants are how we set the min amount of time the tracker needs to be seen before being considered a valid detection and how long to wait
-    // NOTE: before considering a tracker lost. ARUCO_BBOX_MIN_LIFETIME_THRESHOLD - ARUCO_BBOX_TRACKER_LOST_TIMEOUT is the time the tag needs to be seen before being
-    // NOTE: considered valid.
-    const double BBOX_MIN_LIFETIME_THRESHOLD      = 0.15;     // How many seconds does the tag need to be detected before being validated as an actual aruco tag.
-    const double BBOX_MIN_SCREEN_PERCENTAGE       = 0.001;    // Minumum percentage of the screen the AR tag must cover to be valid. 0-100
-    const double BBOX_TRACKER_LOST_TIMEOUT        = 0.1;      // The time in seconds to wait before considering a tracker lost.
-    const double BBOX_TRACKER_MAX_TRACK_TIME      = 5.0;      // The maximum time in seconds to track a tag without new detection.
-    const double BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;      // The IOU threshold to match a new detection to an existing tracker.
+    const double BBOX_MIN_LIFETIME_THRESHOLD = 0.15;     // How many seconds does the detection need to be detected before being validated as a good detection.
+    const double BBOX_MIN_SCREEN_PERCENTAGE  = 0.001;    // Minumum percentage of the screen the detection must cover to be valid. 0-100
+    const double BBOX_TRACKER_LOST_TIMEOUT   = 0.1;      // The time in seconds to wait before considering a tracker lost. This should always be less than MAX_LIFTTIME.
+    const double BBOX_TRACKER_MAX_TRACK_TIME = 5.0;      // The maximum time in seconds to track a detection without new detection.MAX_TRACK_TIME
+    const double BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;                             // The IOU threshold to match a new detection to an existing tracker.
     const tracking::TrackerType BBOX_TRACKER_TYPE = tracking::TrackerType::eCSRT;    // The type of tracker to use for the DNN detection.
     ///////////////////////////////////////////////////////////////////////////
 
@@ -230,9 +236,9 @@ namespace constants
     const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
     const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
     const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL =
-        "../data/models/yolo_models/bottle_mallet_new/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.8f;                                  // The minimum confidence to consider a viable object detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                                  // The threshold for non-max suppression filtering.
+        "../data/models/yolo_models/bmp_v4/v8n_x640_200epochs/best.torchscript";    // The model path to use for detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE = 0.7f;                       // The minimum confidence to consider a viable object detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH = 0.4f;                       // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -241,7 +247,18 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/Rolla_SIM.db";    // The path to the LiDAR database file.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/Flat_SIM.db";    // The path to the LiDAR database file.
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    //// Visualization Handler Adjustments.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // LiDAR Data Handler.
+    const int VISUALIZER_WEBSERVER_PORT             = 3284;    // The port for the simple web server to use for serving the visualizer web UI.
+    const std::string VISUALIZER_THREEJS_PATH       = "../data/Web_Visualizer/assets/three.module.js";     // The path to the ThreeJS library.
+    const std::string VISUALIZER_ORBITCONTROLS_PATH = "../data/Web_Visualizer/assets/OrbitControls.js";    // The path to the OrbitControls library.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -251,7 +268,6 @@ namespace constants
 
     // Global GeoPlanner
     const double GEOPLANNER_TILE_SIZE = 50.0;    // The size of each tile in the GeoPlanner in meters.
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -277,7 +293,7 @@ namespace constants
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.6;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
     const bool APPROACH_MARKER_VERIFY_POSITION        = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
@@ -286,7 +302,7 @@ namespace constants
     const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
 
     // Approaching Object State
-    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_SAFE_POWER * 0.6;    // The amount of power the motors use when approaching the object.
+    const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the object.
     const double APPROACH_OBJECT_PROXIMITY_THRESHOLD = 2.0;     // How close in meters the rover must be to the target object before completing its approach.
     const double APPROACH_OBJECT_LOST_GIVE_UP_TIME   = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the object is lost.
     const bool APPROACH_OBJECT_VERIFY_POSITION       = true;    // Whether or not the rover should sit and watch the object for a while before moving on.
@@ -311,7 +327,7 @@ namespace constants
     const bool REVERSE_MAINTAIN_HEADING    = true;                          // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.5;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.4;    // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES = 57.0;                          // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING       = 1.0;                           // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING       = 4.0;                           // The spacing between successive points in the zigzag (meters).
@@ -320,15 +336,11 @@ namespace constants
     const bool SEARCH_ENABLE_STUCK_DETECT    = false;                         // Whether or not to enable the stuck detection algorithm when searching for a marker.
 
     // Navigating State.
-    const double NAVIGATING_MOTOR_POWER         = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
+    const double NAVIGATING_MOTOR_POWER         = DRIVE_MAX_SAFE_POWER * 0.9;    // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
     const bool NAVIGATING_VERIFY_POSITION       = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
     const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
-
-    // Avoidance State.
-    const double AVOIDANCE_STATE_MOTOR_POWER = DRIVE_MAX_SAFE_POWER * 0.3;    // Drive speed of avoidance state
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -336,9 +348,9 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Stanley Controller config.
-    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.3;     // Determines how reactive the rover is to crosstrack error adjustments.
+    const double STANLEY_CROSSTRACK_CONTROL_GAIN = 0.5;     // Determines how reactive the rover is to crosstrack error adjustments.
     const double STANLEY_ANGULAR_VELOCITY_LIMIT  = 90.0;    // The maximum angular velocity in degrees per second.
-    const int STANLEY_PREDICTION_HORIZON         = 10;      // The number of predictions to make.
+    const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
     const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller unicycle model.
 
     // ASTAR config.
@@ -346,7 +358,6 @@ namespace constants
     const double ASTAR_MAX_SEARCH_GRID      = 4000.0;    // Maximum search grid size (UTM)
     const double ASTAR_MAX_SEARCH_TIME      = 120.0;     // Maximum time to search for a path before giving up. Time is in seconds.
     const double ASTAR_NODE_SIZE            = 0.5;       // Represents the node size / accuracy in meters
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -356,7 +367,6 @@ namespace constants
     // NavBoard.
     const double NAVBOARD_MAX_GPS_DATA_AGE     = 3.0;    // The maximum age of the current GPS data before printing warnings.
     const double NAVBOARD_MAX_COMPASS_DATA_AGE = 3.0;    // The maximum age of the current Compass data before printing warnings.
-
-    ///////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
 
 }    // namespace constants

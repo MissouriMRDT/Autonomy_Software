@@ -28,13 +28,13 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Clean APT Cache
 RUN rm /var/lib/dpkg/info/libc-bin.*
 # Add APT Repo for PCIe drivers and Bazel.
-RUN apt update && apt install -y wget && \
+RUN apt-get update && apt-get install -y wget && \
     echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
     wget -q -O - https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    build-essential cmake git gdb file tar libatlas-base-dev apt-transport-https iputils-ping \
+    build-essential lld cmake git gdb file tar libatlas-base-dev apt-transport-https iputils-ping \
     libswresample-dev libcanberra-gtk3-module zstd less libx264-dev libdrm-dev python-is-python3 \
     libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools libssl-dev \
     libgstreamer-plugins-good1.0-dev libgstreamer1.0-dev libgtk-3-dev libjpeg-dev sudo usbutils \
@@ -46,15 +46,16 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev libusb-1.0-0-dev \
     libboost-all-dev libflann-dev libqhull-dev libopenni2-dev libsvm-dev \
-    libpcap-dev libopenni-dev libcjson-dev libxerces-c-dev \
-    sqlite3 libsqlite3-dev libhdf5-dev
-
+    libpcap-dev libopenni-dev libcjson-dev libxerces-c-dev libwebp-dev \
+    sqlite3 libsqlite3-dev libhdf5-dev libglpk-dev libbz2-dev \
+    coinor-libcbc-dev coinor-libclp-dev coinor-libosi-dev coinor-libcoinutils-dev
+    
 # Nice to have
 RUN apt-get update && apt-get install --no-install-recommends -y bat \
     bash-completion fish git-lfs
 
 # Remove Unused Packages.
-RUN apt purge 'qt5-*' 'libqt5*' && apt autoremove --purge -y
+RUN apt purge -y 'qt5-*' 'libqt5*' || true && apt autoremove --purge -y
 
 # Install Required Python Packages.
 RUN python -m pip install numpy opencv-python pyopengl matplotlib
@@ -184,14 +185,8 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/gtest/arm
 # Set Fish as Default Shell
 RUN chsh -s /usr/bin/fish && mkdir -p ~/.config/fish/ && echo 'set fish_greeting' >> ~/.config/fish/config.fish
 
-# Clone Autonomy Software Repository
-RUN git clone --recurse-submodules -j8 https://github.com/MissouriMRDT/Autonomy_Software.git /opt/Autonomy_Software
-
 # Disable the VSCode server requirements check, this fixes the cross architecture issues and potentially fixes mismatching VSCode server versions. Can be unstable.
 RUN touch /tmp/vscode-skip-server-requirements-check
-
-# Set Working Directory
-WORKDIR /opt/Autonomy_Software/
 
 # Set Labels
 LABEL authors="Missouri S&T Mars Rover Design Team"

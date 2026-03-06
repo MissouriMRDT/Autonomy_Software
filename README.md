@@ -17,20 +17,11 @@
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/deploy_docker.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/deploy_docker.yml?branch=development&label=Docker&style=flat-round" alt="docker-ci" />
     </a>
-    <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/doxygen_generate.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/doxygen_generate.yml?branch=development&label=Docs&style=flat-round" alt="docs-ci" />
+    <a href="https://github.com/MissouriMRDT/RoveSoDocs/actions/workflows/deploy.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/RoveSoDocs/deploy.yml?branch=development&label=Docs&style=flat-round" alt="docs-ci" />
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/actions/workflows/tests.yml">
       <img src="https://img.shields.io/github/actions/workflow/status/missourimrdt/autonomy_software/tests.yml?branch=development&label=Unit%20Tests&style=flat-round" alt="tests-ci" />
-    </a>
-  </div>
-
-  <div>
-    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
-      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=resolved+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
-    </a>
-    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
-      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=code+coverage&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
     </a>
   </div>
 
@@ -52,12 +43,6 @@
     </a>
     <a href="https://github.com/MissouriMRDT/Autonomy_Software/pkgs/container/autonomy-jetpack">
       <img src="https://img.shields.io/badge/NVIDIA_JetPack_6-latest-orange" alt="jetpack-pkg" />
-    </a>
-  </div>
-
-  <div>
-    <a href="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software/" target="_blank">
-      <img alt="DeepSource" title="DeepSource" src="https://app.deepsource.com/gh/MissouriMRDT/Autonomy_Software.svg/?label=active+issues&show_trend=true&token=tVB3x0Y5Dq6PL_4Pl3nLwIAL"/>
     </a>
   </div>
 
@@ -93,7 +78,7 @@ Welcome to the **Autonomy Software** repository of the [Mars Rover Design Team (
 
 Here's the overall layout of the Autonomy Software codebase:
 
-![Autonomy_Software Codebase Structure](https://missourimrdt.github.io/Autonomy_Software/main_8cpp__incl.png)
+![Autonomy_Software Codebase Structure](https://docs.themrdt.org/autonomy/main_8cpp__incl.png)
 
 ### Directory Structure:
 
@@ -117,7 +102,7 @@ Here's the overall layout of the Autonomy Software codebase:
 
 Our documentation is automatically generated via [Doxygen](https://doxygen.nl/) on each commit to the `development` branch. Ensure you use the correct documentation templates to keep the documentation consistent.
 
-**📚 [Click here for full API documentation.](https://missourimrdt.github.io/Autonomy_Software/)**
+**📚 [Click here for full API documentation.](https://docs.themrdt.org/autonomy/)**
 
 ---
 

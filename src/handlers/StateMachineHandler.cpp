@@ -84,7 +84,6 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
         case statemachine::States::eVerifyingPosition: return std::make_shared<statemachine::VerifyingPositionState>();
         case statemachine::States::eVerifyingMarker: return std::make_shared<statemachine::VerifyingMarkerState>();
         case statemachine::States::eVerifyingObject: return std::make_shared<statemachine::VerifyingObjectState>();
-        case statemachine::States::eAvoidance: return std::make_shared<statemachine::AvoidanceState>();
         case statemachine::States::eReversing: return std::make_shared<statemachine::ReversingState>();
         case statemachine::States::eStuck: return std::make_shared<statemachine::StuckState>();
         default:
@@ -561,7 +560,7 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bVIOHeading, 
         {
             LOG_WARNING_LIMIT(std::chrono::seconds(5),
                               logging::g_qSharedLogger,
-                              "Positional tracking is not enabled or camera is not open! Using NavBoard GPS data for rover pose...");
+                              "Positional tracking is NOT ENABLED, NOT STABLE, or camera is NOT OPEN! Using NavBoard GPS data for rover pose...");
         }
     }
 

@@ -49,9 +49,13 @@ namespace pathplanners
         m_pPathTracer->CreateDotLayer("TerrainPoints", "gray", false);
         m_pPathTracer->CreatePathLayer("RoverPath", "red");
 
-        // Set RoveComm Node callbacks.
-        network::g_pRoveCommUDPNode->AddUDPCallback<float>(MinTravScore, manifest::Autonomy::COMMANDS.find("SETMINTRAVSCORE")->second.DATA_ID);
-        network::g_pRoveCommUDPNode->AddUDPCallback<float>(BetaBias, manifest::Autonomy::COMMANDS.find("SETBETABIAS")->second.DATA_ID);
+        // Make sure RoveComm UDP Node is initialized.
+        if (network::g_pRoveCommUDPNode != nullptr)
+        {
+            // Set RoveComm Node callbacks.
+            network::g_pRoveCommUDPNode->AddUDPCallback<float>(MinTravScore, manifest::Autonomy::COMMANDS.find("SETMINTRAVSCORE")->second.DATA_ID);
+            network::g_pRoveCommUDPNode->AddUDPCallback<float>(BetaBias, manifest::Autonomy::COMMANDS.find("SETBETABIAS")->second.DATA_ID);
+        }
 
         // Log initialization message.
         LOG_INFO(logging::g_qSharedLogger, "GeoPlanner initialized with tile size: {} meters", std::to_string(dTileSize));
