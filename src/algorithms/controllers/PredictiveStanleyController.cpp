@@ -221,7 +221,7 @@ namespace controllers
         // Distance to closest point on path
         double remainingDistance =
             geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_vReferencePath[m_nCurrentReferencePathTargetIndex]).dDistanceMeters;
-        
+
         // Add remaining distance of the path
         for (size_t i = static_cast<size_t>(m_nCurrentReferencePathTargetIndex); i < m_vReferencePath.size() - 1; i++)
         {
@@ -235,13 +235,15 @@ namespace controllers
         m_qPreviousVelocities.push_back(curVelocity);
 
         // Cap rolling average at 30 velocity values
-        if (m_qPreviousVelocities.size() > 30) {
+        if (m_qPreviousVelocities.size() > 30)
+        {
             m_qPreviousVelocities.pop_front();
         }
-        
+
         // Compute average velocity of past 30 velocity values
         double totalVelocity = 0;
-        for (double velocity : m_qPreviousVelocities) {
+        for (double velocity : m_qPreviousVelocities)
+        {
             totalVelocity += velocity;
         }
         double avgVelocity = totalVelocity / m_qPreviousVelocities.size();
@@ -252,23 +254,24 @@ namespace controllers
             // Get time remaining in seconds
             timeRemaining = remainingDistance / avgVelocity;
         }
-        else {
+        else
+        {
             // -1 signals the time remaining is infinite since rover is not moving
             timeRemaining = -1;
         }
 
         // Initialize packet
         rovecomm::RoveCommPacket<double> stPacket;
-        stPacket.unDataId  = 11105;
-        stPacket.eDataType = manifest::DataTypes::DOUBLE_T;
+        stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("TIMEREMAINING")->second.DATA_ID;
+        stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("TIMEREMAINING")->second.DATA_TYPE;
         stPacket.unDataCount = 1;
         stPacket.vData.emplace_back(timeRemaining);
-        
+
         // Send time remaining over RoveComm to Basestation
         if (network::g_pRoveCommUDPNode)
         {
             // Send packet to Basestation
-            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::BaseStationNav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
         }
 
         return DriveVector{dAbsoluteHeadingGoal, dMaxSpeed};
@@ -297,9 +300,8 @@ namespace controllers
 
         // Initialize packet
         rovecomm::RoveCommPacket<double> stPacket;
-        stPacket.unDataId  = 11104;
-
-        stPacket.eDataType = manifest::DataTypes::DOUBLE_T;
+        stPacket.unDataId  = manifest::Autonomy::TELEMETRY.find("PATHWAYPOINTS")->second.DATA_ID;
+        stPacket.eDataType = manifest::Autonomy::TELEMETRY.find("PATHWAYPOINTS")->second.DATA_TYPE;
         /* Difference threshold for including a waypoint in the packet
         If the magnitude of the difference between latitude and longitude between the last and current
          point is less than this, the waypoint is skipped.
@@ -322,11 +324,11 @@ namespace controllers
             {
                 continue;
             }
-            
+
             // Add waypoint to the packet data
             stPacket.vData.emplace_back(gps.dLatitude);
             stPacket.vData.emplace_back(gps.dLongitude);
-            
+
             // Track the last waypoint that was added
             lastLat = gps.dLatitude;
             lastLon = gps.dLongitude;
@@ -339,7 +341,7 @@ namespace controllers
         if (network::g_pRoveCommUDPNode)
         {
             // Send packet to Basestation
-            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, manifest::BaseStationNav::IP_ADDRESS.IP_STR.c_str(), constants::ROVECOMM_OUTGOING_UDP_PORT);
+            network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
         }
     }
 
