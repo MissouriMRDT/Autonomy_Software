@@ -32,6 +32,19 @@ project(Autonomy_Software VERSION 24.05.00 LANGUAGES C CXX CUDA)
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "Suppress developer warnings")
 
 ####################################################################################################################
+##                                          Performance Enhancements                                              ##
+####################################################################################################################
+
+## Use LLD linker if available to save RAM and time during the linking phase
+if(NOT MSVC)
+    add_link_options("-fuse-ld=lld")
+endif()
+
+## Enable Unity Builds to drastically reduce memory usage during compilation
+set(CMAKE_UNITY_BUILD ON)
+set(CMAKE_UNITY_BUILD_BATCH_SIZE 8) # Adjust batch size based on project size. Lower is less RAM usage but longer compile times.
+
+####################################################################################################################
 ##                                                    Options                                                     ##
 ####################################################################################################################
 
@@ -336,6 +349,18 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
 )
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 
+# Add a precompiled header for the heaviest libraries to vastly reduce RAM usage
+target_precompile_headers(${EXE_NAME} PRIVATE
+    <vector>
+    <string>
+    <memory>
+    <Eigen/Dense>
+    <pcl/point_cloud.h>
+    <pcl/point_types.h>
+    <torch/torch.h>
+    <opencv2/opencv.hpp>
+)
+
 ####################################################################################################################
 ##                                             Installation and Tests                                             ##
 ####################################################################################################################
@@ -368,6 +393,18 @@ if (BUILD_TESTS_MODE)
 
         add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${TEST_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
+        
+        # Apply precompiled headers to Unit Tests
+        target_precompile_headers(${EXE_NAME}_UnitTests PRIVATE
+            <vector>
+            <string>
+            <memory>
+            <Eigen/Dense>
+            <pcl/point_cloud.h>
+            <pcl/point_types.h>
+            <torch/torch.h>
+            <opencv2/opencv.hpp>
+        )
 
         foreach(test_file ${UTests_SRC})
             get_filename_component(test_name ${test_file} NAME_WE)
@@ -381,6 +418,18 @@ if (BUILD_TESTS_MODE)
     if (IntegrationTests_LEN GREATER 0)
         add_executable(${EXE_NAME}_IntegrationTests ${Runner_SRC} ${ITests_SRC} ${TEST_SRC})
         target_link_libraries(${EXE_NAME}_IntegrationTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
+
+        # Apply precompiled headers to Integration Tests
+        target_precompile_headers(${EXE_NAME}_IntegrationTests PRIVATE
+            <vector>
+            <string>
+            <memory>
+            <Eigen/Dense>
+            <pcl/point_cloud.h>
+            <pcl/point_types.h>
+            <torch/torch.h>
+            <opencv2/opencv.hpp>
+        )
 
         foreach(test_file ${ITests_SRC})
             get_filename_component(test_name ${test_file} NAME_WE)
