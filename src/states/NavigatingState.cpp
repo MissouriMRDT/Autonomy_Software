@@ -134,6 +134,7 @@ namespace statemachine
                                                      stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
 
             int count = 0;
+            LOG_INFO(logging::g_qSharedLogger, "Path before modification:");
             for (std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
             {
                 LOG_INFO(logging::g_qSharedLogger,
@@ -147,7 +148,6 @@ namespace statemachine
                          constants::STUCK_OBSTACLE_RADIUS);
                 ++count;
             }
-            LOG_INFO(logging::g_qSharedLogger, "connected");
 
             geoops::UTMCoordinate stStartCoordinate = stCurrentRoverPose.GetUTMCoordinate();
             geoops::UTMCoordinate stGoalCoordinate  = stObstaclePosition;    // Point at rim of obstacle closest to rover
@@ -155,7 +155,6 @@ namespace statemachine
             stGoalCoordinate.dNorthing -= std::sin(dRadians) * constants::STUCK_OBSTACLE_RADIUS;
             std::vector<geoops::Waypoint> vSplicePathCoordinates;
             std::vector<geoops::Waypoint>::iterator it;
-            count = 0;
 
             // If rover is in the obstacle, path it out first and connect it to previous path
             if (abs(stStartCoordinate.dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
@@ -167,7 +166,6 @@ namespace statemachine
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
                 it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), vSplicePathCoordinates.end());
                 it += vSplicePathCoordinates.size();
-                count += vSplicePathCoordinates.size();
 
                 // Splice in a new path from outside of the obstacle to the end of the previous path
                 stStartCoordinate      = std::prev(vSplicePathCoordinates.end())->GetUTMCoordinate();
@@ -191,15 +189,12 @@ namespace statemachine
                 if (abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
                     abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS)
                 {
-                    LOG_INFO(logging::g_qSharedLogger, "deleted: {}", count);
                     lastDeleted = true;
                     it          = m_vPathCoordinates.erase(it);
-                    --count;
                 }
                 // If the previous node was deleted, then connect the dots correctly by splicing a new path in between
                 else if (lastDeleted)
                 {
-                    LOG_INFO(logging::g_qSharedLogger, "connected at goal: {}", count);
                     //  Plan a new path to the next remaining path node
                     stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
                     stGoalCoordinate       = it->GetUTMCoordinate();
@@ -207,18 +202,14 @@ namespace statemachine
                     it                     = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
                     lastDeleted            = false;
                     it += vSplicePathCoordinates.size() - 1;    // Move iterator to one after the inserted elements
-                    count += vSplicePathCoordinates.size() - 1;
-                    LOG_INFO(logging::g_qSharedLogger, "count is now {}", count);
                 }
                 else
                 {
                     ++it;
                 }
-                ++count;
             }
             if (lastDeleted)
             {
-                LOG_INFO(logging::g_qSharedLogger, "obstacle at goal?");
                 // Plan a new path to the next remaining path node
                 stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
                 stGoalCoordinate       = it->GetUTMCoordinate();
@@ -231,6 +222,7 @@ namespace statemachine
             m_pStanleyController->SetReferencePath(m_vPathCoordinates);
 
             count = 0;
+            LOG_INFO(logging::g_qSharedLogger, "Path after modification:");
             for (it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
             {
                 LOG_INFO(logging::g_qSharedLogger,
