@@ -625,19 +625,17 @@ namespace pathplanners
 
         std::list<TileKey> tileKeys;
         for (int i = 0; i < nMaxTileX - nMinTileX + 1; ++i)
-            for (int j = 0; j < nMaxTileY - nMaxTileY + 1; ++j)
+            for (int j = 0; j < nMaxTileY - nMinTileY + 1; ++j)
                 tileKeys.push_back(TileKey{nMinTileX + i, nMinTileY + j});
 
         for (std::list<TileKey>::iterator it = tileKeys.begin(); it != tileKeys.end(); ++it)
         {
             // Make sure tile is actually loaded
-            if (m_umTileMapCache.find(*it) != m_umTileMapCache.end())
+            if (m_umTileMapCache.find(*it) == m_umTileMapCache.end())
             {
-                LOG_INFO(logging::g_qSharedLogger, "TileKey NOT LOADED: ({}, {})", it->nX, it->nY);
                 continue;
             }
 
-            LOG_INFO(logging::g_qSharedLogger, "TileKey ERASED: ({}, {})", it->nX, it->nY);
             m_umTileMapCache.erase(*it);
             m_usKDTreeInsertedTiles.erase(*it);
         }
