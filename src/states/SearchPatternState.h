@@ -11,7 +11,7 @@
 #ifndef SEARCH_PATTERN_STATE_H
 #define SEARCH_PATTERN_STATE_H
 
-#include "../algorithms/controllers/PredictiveStanleyController.h"
+#include "../algorithms/controllers/PurePursuitController.h"
 #include "../algorithms/planners/GeoPlanner.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
@@ -68,7 +68,7 @@ namespace statemachine
             SearchPatternType m_eCurrentSearchPatternType;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
-            std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
+            std::unique_ptr<controllers::PurePursuitController> m_pPursuitController;
 
         protected:
             /////////////////////////////////////////

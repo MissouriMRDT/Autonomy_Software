@@ -60,13 +60,15 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
         m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "purple");
-        m_pRoverPathPlot->CreateDotLayer("StanleyTargetIndex", "or");
+        m_pRoverPathPlot->CreateDotLayer("PurePursuitTargetIndex", "or");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
+        // Plot the search path in the visualizer.
+        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
 
-        // Set the path of the stanley controller.
-        m_pStanleyController->SetReferencePath(m_vSearchPath);
+        // Set the path of the pure pursuit controller.
+        m_pPursuitController->SetReferencePath(m_vSearchPath);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
         m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
@@ -122,10 +124,7 @@ namespace statemachine
                                                                        constants::STUCK_CHECK_VEL_THRESH,
                                                                        constants::STUCK_CHECK_ROT_THRESH);
         m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
-        m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
-                                                                                          constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
-                                                                                          constants::STANLEY_PREDICTION_HORIZON,
-                                                                                          constants::STANLEY_PREDICTION_TIME_STEP);
+        m_pPursuitController = std::make_unique<controllers::PurePursuitController>();
 
         // Start state.
         if (!m_bInitialized)
@@ -152,11 +151,11 @@ namespace statemachine
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
-        // Place a dot on the stanley target index.
-        // geoops::Waypoint stStanleyTargetCoordinate =
-        //     m_pStanleyController->GetReferencePath().at(static_cast<size_t>(m_pStanleyController->GetReferencePathTargetIndex()));
-        // m_pRoverPathPlot->ClearLayer("StanleyTargetIndex");
-        // m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 1);
+        // Place a dot on the pure pursuit target index.
+        // geoops::Waypoint stPurePursuitTargetCoordinate =
+        //     m_pPurePursuitController->GetReferencePath().at(static_cast<size_t>(m_pPurePursuitController->GetReferencePathTargetIndex()));
+        // m_pRoverPathPlot->ClearLayer("PurePursuitTargetIndex");
+        // m_pRoverPathPlot->AddDot(stPurePursuitTargetCoordinate.GetUTMCoordinate(), "PurePursuitTargetIndex", 1);
 
         /*
             The overall flow of this state is as follows.
@@ -299,9 +298,9 @@ namespace statemachine
             stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
             stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
         }
-        // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
-        // Use stanley to calculate drive move/powers.
-        controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
+        // NOTE: Optional - Uncomment the above code and comment out the below code to use pure pursuit control to navigate to the goal waypoint.
+        // Use pure pursuit to calculate drive move/powers.
+        controllers::PurePursuitController::DriveVector stDriveVector = m_pPursuitController->Calculate(stCurrentRoverPose, constants::SEARCH_MOTOR_POWER);
         // Calculate move from goal heading and desired speed.
         diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
                                                                                      stDriveVector.dThetaHeading,
@@ -392,8 +391,9 @@ namespace statemachine
 
                         // Add the search and rover path layers to the plot.
                         m_pRoverPathPlot->AddDots(m_vSearchPath, "ReverseSpiralSearchPattern");
-                        // Set the path of the stanley controller.
-                        m_pStanleyController->SetReferencePath(m_vSearchPath);
+                        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
+                        // Set the path of the pure pursuit controller.
+                        m_pPursuitController->SetReferencePath(m_vSearchPath);
                         break;
                     }
                     case SearchPatternType::END:
