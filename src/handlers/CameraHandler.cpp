@@ -112,6 +112,13 @@ CameraHandler::CameraHandler()
                                     constants::ZED_REARCAM_QUATERNION_OFFSET_Z,
                                     constants::ZED_REARCAM_QUATERNION_OFFSET_W);
 
+    // Set the thread priorities for the cameras. This is important to ensure that the cameras are able to retrieve frames at their full FPS and don't get starved of CPU
+    // time by other threads.
+    m_pMainCam->SetMainThreadPriority(AutonomyThread<void>::AutonomyThreadPriority::eHighest);
+    m_pMainCam->SetPoolThreadPriority(AutonomyThread<void>::AutonomyThreadPriority::eHigh);
+    m_pRearCam->SetMainThreadPriority(AutonomyThread<void>::AutonomyThreadPriority::eHighest);
+    m_pRearCam->SetPoolThreadPriority(AutonomyThread<void>::AutonomyThreadPriority::eHigh);
+
     // Initialize recording handler for cameras.
     m_pRecordingHandler = std::make_unique<RecordingHandler>(RecordingHandler::RecordingMode::eCameraHandler);
 }
