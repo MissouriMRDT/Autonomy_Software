@@ -368,16 +368,21 @@ void VisualizationHandler::UpdateDetections()
         std::lock_guard<std::mutex> lkDetectionsLock(m_muDetectionMutex);
 
         // Deduplication.
-        for (const DisplayDetection& stExistingDetection : m_vDetections)
+        for (DisplayDetection& stExistingDetection : m_vDetections)
         {
             // Same type check
             if (stExistingDetection.nType == nType)
             {
                 // Calculate the distance between existing detection and new detection.
                 float dist = std::hypot(stExistingDetection.fX - fX, stExistingDetection.fZ - fZ);
-                // If close to another detection of the same type, skip adding.
+                // If close to another detection of the same type, update the existing location.
                 if (dist < 1.5f)
                 {
+                    // Update the existing detection's position to be the average of the two detections.
+                    stExistingDetection.fX = (stExistingDetection.fX + fX) / 2.0f;
+                    stExistingDetection.fY = (stExistingDetection.fY + fY) / 2.0f;
+                    stExistingDetection.fZ = (stExistingDetection.fZ + fZ) / 2.0f;
+
                     return;
                 }
             }
