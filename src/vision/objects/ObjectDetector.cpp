@@ -202,10 +202,12 @@ void ObjectDetector::ThreadedContinuousCode()
         // Create future for indicating when the frame has been copied.
         std::future<bool> fuPointCloudCopyStatus;
         std::future<bool> fuRegularFrameCopyStatus;
+        bool bRequestingPointCloud = false;
 
         // Check if the camera is setup to use CPU or GPU mats.
         if (m_bUsingZedCamera)
         {
+            bRequestingPointCloud = true;
             // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
             if (m_bUsingGpuMats)
             {
@@ -213,8 +215,48 @@ void ObjectDetector::ThreadedContinuousCode()
                 fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
                 // Get the regular RGB image from the camera.
                 fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
+            }
+            else
+            {
+                // Grabs point cloud from ZEDCam.
+                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+            }
+        }
+        else
+        {
+            // Grab frames from camera.
+            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
+        }
 
-                // Wait for point cloud to be retrieved.
+        // Safe polling wrapper to prevent deadlocks.
+        bool bCloudReady = !bRequestingPointCloud;    // True by default if we don't need a point cloud
+        bool bFrameReady = false;
+
+        // Keep polling as long as the thread hasn't been asked to stop.
+        while (this->GetThreadState() == AutonomyThreadState::eRunning)
+        {
+            if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+                bCloudReady = true;
+
+            if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+                bFrameReady = true;
+
+            if (bCloudReady && bFrameReady)
+                break;
+        }
+
+        // If the thread is shutting down, break out of the loop gracefully
+        if (this->GetThreadState() != AutonomyThreadState::eRunning)
+        {
+            return;
+        }
+
+        // Process the retrieved frames
+        if (m_bUsingZedCamera)
+        {
+            if (m_bUsingGpuMats)
+            {
                 if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
                 {
                     // Download mat from GPU memory.
@@ -225,38 +267,21 @@ void ObjectDetector::ThreadedContinuousCode()
                 }
                 else
                 {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
+                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or frame from ZEDCam!");
                 }
             }
             else
             {
-                // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
-                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-
-                // Wait for point cloud to be retrieved.
                 if (!fuPointCloudCopyStatus.get())
-                {
-                    // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
-                }
                 if (!fuRegularFrameCopyStatus.get())
-                {
-                    // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
-                }
             }
         }
         else
         {
-            // Grab frames from camera.
-            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-
-            // Wait for point cloud to be retrieved.
             if (!fuRegularFrameCopyStatus.get())
             {
-                // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
             }
         }
@@ -742,14 +767,48 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
         {
             // Get the rover pose from the waypoint handler.
             m_stRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+
+            // Find the camera's position in UTM coordinates by applying the camera offset to the rover pose.
+            geoops::UTMCoordinate stCamera = m_stRoverPose.GetUTMCoordinate();
+
+            // Translate the camera's local offsets into global Easting/Northing.
+            double dRoverHeadingRad = m_stRoverPose.GetCompassHeading() * (CV_PI / 180.0);
+            double dRotatedX        = (m_pCamera->GetCameraPoseOffset().dPosY * sin(dRoverHeadingRad)) + (m_pCamera->GetCameraPoseOffset().dPosX * cos(dRoverHeadingRad));
+            double dRotatedY        = (m_pCamera->GetCameraPoseOffset().dPosY * cos(dRoverHeadingRad)) - (m_pCamera->GetCameraPoseOffset().dPosX * sin(dRoverHeadingRad));
+
+            // Apply the rotated offsets to the global coordinates.
+            stCamera.dEasting += dRotatedX;
+            stCamera.dNorthing += dRotatedY;
+            stCamera.dAltitude += m_pCamera->GetCameraPoseOffset().dPosZ;
+
+            // Creating variables for the camera pose offset values.
+            double dQW = m_pCamera->GetCameraPoseOffset().dQW;
+            double dQX = m_pCamera->GetCameraPoseOffset().dQX;
+            double dQY = m_pCamera->GetCameraPoseOffset().dQY;
+            double dQZ = m_pCamera->GetCameraPoseOffset().dQZ;
+
+            // Update the rover pose's heading to match the camera's heading. We will need to calculate the camera's heading using the quaternion.
+            double dSinYCosP      = 2.0 * (dQW * dQZ + dQX * dQY);
+            double dCosYCosP      = 1.0 - 2.0 * (dQY * dQY + dQZ * dQZ);
+            double dCameraHeading = std::atan2(dSinYCosP, dCosYCosP) * (180.0 / CV_PI);
+
+            // Add the relative camera heading to the absolute rover heading
+            double dAbsoluteCameraHeading = m_stRoverPose.GetCompassHeading() + dCameraHeading;
+
+            // Recreate the rover pose with the camera's adjusted position and heading.
+            geoops::RoverPose stCameraPose = geoops::RoverPose(stCamera, dAbsoluteCameraHeading);
+
             // Loop through the objects and use their center point to lookup their distance in the point cloud.
             for (objectdetectutils::Object& stObject : m_vDetectedObjects)
             {
                 // Use either width of height for the neighborhood size.
                 int nNeighborhoodSize = std::min(stObject.pBoundingBox->width, stObject.pBoundingBox->height);
                 // Geolocate the object in the point cloud.
-                stObject.stGeolocatedPosition =
-                    geoloc::GeolocateBox(m_cvPointCloud, m_stRoverPose, cv::Point(stObject.pBoundingBox->x, stObject.pBoundingBox->y), nNeighborhoodSize);
+                stObject.stGeolocatedPosition = geoloc::GeolocateBox(
+                    m_cvPointCloud,
+                    stCameraPose,
+                    cv::Point(stObject.pBoundingBox->x + stObject.pBoundingBox->width / 2, stObject.pBoundingBox->y + stObject.pBoundingBox->height / 2),
+                    nNeighborhoodSize);
 
                 // Since this is a object detection, set the object's waypoint type appropriately.
                 stObject.stGeolocatedPosition.eType = geoops::WaypointType::eObjectWaypoint;

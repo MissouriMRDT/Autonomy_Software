@@ -104,6 +104,7 @@ class VisualizationHandler : public AutonomyThread<void>
         std::vector<char> OnRequestPlannedPath(const std::string& szQuery);
         std::vector<char> OnRequestWaypoints(const std::string& szQuery);
         std::vector<char> OnRequestDetections(const std::string& szQuery);
+        std::vector<char> OnRequestDetectionList(const std::string& szQuery);
 
         // Local Asset API.
         std::vector<char> OnRequestLibThree(const std::string& szQuery);

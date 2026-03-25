@@ -27,7 +27,7 @@ namespace statemachine
      *        initialize the state.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void NavigatingState::Start()
@@ -37,8 +37,10 @@ namespace statemachine
 
         // Initialize member variables.
         m_bFetchNewWaypoint = true;
-        m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
-        m_vObjectDetectors  = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
+        m_vObjectDetectors  = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+                               globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
 
         // Create rover path layers.
         m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");
@@ -79,9 +81,9 @@ namespace statemachine
         // Initialize member variables.
         m_bInitialized       = false;
         m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                       constants::STUCK_CHECK_INTERVAL,
-                                                                       constants::STUCK_CHECK_VEL_THRESH,
-                                                                       constants::STUCK_CHECK_ROT_THRESH);
+                                                                            constants::STUCK_CHECK_INTERVAL,
+                                                                            constants::STUCK_CHECK_VEL_THRESH,
+                                                                            constants::STUCK_CHECK_ROT_THRESH);
         m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
                                                                                           constants::STANLEY_ANGULAR_VELOCITY_LIMIT,

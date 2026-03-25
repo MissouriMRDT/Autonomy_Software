@@ -41,6 +41,7 @@ class SimpleWebServer
         ~SimpleWebServer();
         void SetHtmlContent(const std::string& szHtml);
         void RegisterEndpoint(const std::string& szEndpoint, RequestCallback fnCallback);
+        void AddStaticDirectory(const std::string& szUrlPrefix, const std::string& szLocalDir);
 
     private:
         ////////////////////////////////////
@@ -53,6 +54,21 @@ class SimpleWebServer
         std::string m_szHtmlContent;
         std::map<std::string, RequestCallback> m_mGetCallbacks;
         std::mutex m_muDataMutex;
+
+        /******************************************************************************
+         * @brief Represents a local path as an object.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-03-25
+         ******************************************************************************/
+        struct StaticDir
+        {
+            public:
+                std::string szLocalPath;
+        };
+
+        std::map<std::string, StaticDir> m_mStaticDirectories;
 
         // Thread Management.
         std::thread m_thAcceptThread;
@@ -67,6 +83,10 @@ class SimpleWebServer
         void StopServer();
         void AcceptLoop();
         void HandleClient(int nClientFD);
+
+        // File Utilities.
+        std::vector<char> LoadFile(const std::string& szPath);
+        std::string GetMimeType(const std::string& szPath);
 };
 
 #endif

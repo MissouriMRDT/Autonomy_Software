@@ -321,7 +321,7 @@ namespace logging
                     {
                         std::tuple<double, double, double>& stdLastPoint = m_umPathMap[szLayerName].back();
                         double dDistSq                                   = std::pow(std::get<0>(stdLastPoint) - stWaypoint.GetUTMCoordinate().dEasting, 2) +
-                                         std::pow(std::get<1>(stdLastPoint) - stWaypoint.GetUTMCoordinate().dNorthing, 2);
+                                                                           std::pow(std::get<1>(stdLastPoint) - stWaypoint.GetUTMCoordinate().dNorthing, 2);
                         // Ignore updates smaller than 1 cm.
                         if (dDistSq < 0.0001)
                         {

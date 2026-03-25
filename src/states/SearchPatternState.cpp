@@ -29,7 +29,7 @@ namespace statemachine
      *        initialize the state.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void SearchPatternState::Start()
@@ -62,8 +62,10 @@ namespace statemachine
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
 
-        m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
-        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                              globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+                              globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
     }
 
     /******************************************************************************
@@ -98,9 +100,9 @@ namespace statemachine
         // Initialize member variables.
         m_bInitialized   = false;
         m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                       constants::STUCK_CHECK_INTERVAL,
-                                                                       constants::STUCK_CHECK_VEL_THRESH,
-                                                                       constants::STUCK_CHECK_ROT_THRESH);
+                                                                        constants::STUCK_CHECK_INTERVAL,
+                                                                        constants::STUCK_CHECK_VEL_THRESH,
+                                                                        constants::STUCK_CHECK_ROT_THRESH);
         m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
 
         // Start state.

@@ -38,6 +38,11 @@ VisualizationHandler::VisualizationHandler(int nPort)
     // Start Web Server.
     m_pWebServer = std::make_unique<SimpleWebServer>(m_nPort);
 
+    // Serve the detections folder as static files from the current logging session
+    // This allows access via http://ip:port/detections/filename.png
+    std::string szDetectionsPath = logging::g_szLoggingOutputPath + "detections";
+    m_pWebServer->AddStaticDirectory("/detections", szDetectionsPath);
+
     // Register Asset Endpoints.
     m_pWebServer->RegisterEndpoint("/lib/three.js", std::bind(&VisualizationHandler::OnRequestLibThree, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/lib/orbit.js", std::bind(&VisualizationHandler::OnRequestLibOrbit, this, std::placeholders::_1));
@@ -49,6 +54,7 @@ VisualizationHandler::VisualizationHandler(int nPort)
     m_pWebServer->RegisterEndpoint("/api/planned_path", std::bind(&VisualizationHandler::OnRequestPlannedPath, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/api/waypoints", std::bind(&VisualizationHandler::OnRequestWaypoints, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/api/detections", std::bind(&VisualizationHandler::OnRequestDetections, this, std::placeholders::_1));
+    m_pWebServer->RegisterEndpoint("/api/detection_list", std::bind(&VisualizationHandler::OnRequestDetectionList, this, std::placeholders::_1));
 
     // Set main thread's max iteration rate.
     this->SetMainThreadIPSLimit(20);    // 20 Hz
@@ -392,10 +398,12 @@ void VisualizationHandler::UpdateDetections()
     };
 
     // Prepare Detector Vectors
-    std::vector<std::shared_ptr<TagDetector>> vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
+    std::vector<std::shared_ptr<TagDetector>> vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                                                  globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
 
     std::vector<std::shared_ptr<ObjectDetector>> vObjDetectors = {
-        globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+        globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
 
     /////////////////////////////////////////
     // Tags.
@@ -727,6 +735,86 @@ std::vector<char> VisualizationHandler::OnRequestDetections(const std::string& s
 }
 
 /******************************************************************************
+ * @brief Handles detection list requests from the web server.
+ *
+ * @param szQuery - The query string from the request.
+ * @return std::vector<char> - The binary response data.
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2026-01-30
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string& szQuery)
+{
+    (void) szQuery;
+    std::string szJson = "[";
+    std::string szDir  = logging::g_szLoggingOutputPath + "/detections/";
+
+    // Helper function to escape JSON strings
+    std::function<std::string(const std::string&)> fnEscapeJson = [](const std::string& szInput) -> std::string
+    {
+        std::string szOutput;
+        szOutput.reserve(szInput.size());
+        for (char c : szInput)
+        {
+            switch (c)
+            {
+                case '"': szOutput += "\\\""; break;
+                case '\\': szOutput += "\\\\"; break;
+                case '\b': szOutput += "\\b"; break;
+                case '\f': szOutput += "\\f"; break;
+                case '\n': szOutput += "\\n"; break;
+                case '\r': szOutput += "\\r"; break;
+                case '\t': szOutput += "\\t"; break;
+                default:
+                    if (static_cast<unsigned char>(c) < 0x20)
+                    {
+                        // Escape control characters
+                        char szBuf[7];
+                        snprintf(szBuf, sizeof(szBuf), "\\u%04x", static_cast<unsigned char>(c));
+                        szOutput += szBuf;
+                    }
+                    else
+                    {
+                        szOutput += c;
+                    }
+                    break;
+            }
+        }
+        return szOutput;
+    };
+
+    // Ensure the directory exists
+    if (std::filesystem::exists(szDir) && std::filesystem::is_directory(szDir))
+    {
+        bool bFirst = true;
+        // Iterate over files in the directory
+        for (const std::filesystem::directory_entry& stEntry : std::filesystem::directory_iterator(szDir))
+        {
+            if (stEntry.is_regular_file())
+            {
+                // Get filename
+                std::string szFilename = stEntry.path().filename().string();
+
+                // Simple filter for image extensions
+                if (szFilename.ends_with(".png") || szFilename.ends_with(".jpg"))
+                {
+                    if (!bFirst)
+                        szJson += ",";
+                    // Append escaped filename to JSON array
+                    szJson += "\"" + fnEscapeJson(szFilename) + "\"";
+                    bFirst = false;
+                }
+            }
+        }
+    }
+
+    szJson += "]";
+
+    // Convert string to vector
+    return std::vector<char>(szJson.begin(), szJson.end());
+}
+
+/******************************************************************************
  * @brief Handles map data requests from the web server.
  *
  * @param szQuery - The query string from the request.
@@ -1053,6 +1141,18 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         .hud-btn.active { background: #00aa00; border-color: #00ff00; }
         .key { color: #fff; font-weight: bold; border: 1px solid #666; padding: 2px 5px; border-radius: 3px; background: #333; }
         h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 5px; }
+        #detection-panel { position: absolute; top: 10px; right: 280px; width: 250px; max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 10; }
+        #detection-panel h3 { color: #0f0; margin-top: 0; }
+        .gallery-item { margin-bottom: 8px; cursor: pointer; }
+        .gallery-item img { width: 100%; border: 2px solid #666; border-radius: 4px; transition: border-color 0.2s; }
+        .gallery-item img:hover { border-color: #0f0; }
+        #detection-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; }
+        #detection-modal img { max-width: 90%; max-height: 90%; border: 3px solid #0f0; }
+        #modal-caption { position: absolute; bottom: 80px; color: #0f0; font-size: 18px; text-align: center; width: 100%; }
+        #modal-open-btn { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 10px 30px; background: #444; color: white; border: 2px solid #0f0; cursor: pointer; font-size: 16px; border-radius: 5px; }
+        #modal-open-btn:hover { background: #00aa00; }
+        .modal-close { position: absolute; top: 20px; right: 40px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; }
+        .modal-close:hover { color: #0f0; }
     </style>
     <script type="importmap">
     { 
@@ -1091,6 +1191,18 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         <div class="legend-section" id="state-legend">
             <strong>State Key</strong>
         </div>
+    </div>
+    
+    <div id="detection-panel">
+        <h3>Detection Images</h3>
+        <div id="detection-gallery-items"></div>
+    </div>
+    
+    <div id="detection-modal" onclick="closeDetectionModal()">
+        <span class="modal-close" onclick="closeDetectionModal()">&times;</span>
+        <img id="modal-image" src="" alt="Detection" onclick="event.stopPropagation()">
+        <div id="modal-caption"></div>
+        <button id="modal-open-btn" onclick="event.stopPropagation()">Open in New Tab</button>
     </div>
     
     <div id="marker-layer"></div>
@@ -1267,6 +1379,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         setInterval(fetchPlannedPath, 2000); 
         setInterval(fetchWaypoints, 2000); 
         setInterval(fetchDetections, 1000); // Poll detections every second
+        setInterval(fetchDetectionsList, 5000);
         fetchMapSquare(0, 0);
     }
 
@@ -1307,6 +1420,56 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             const buffer = await response.arrayBuffer();
             updateDetections(buffer);
         } catch(e) {}
+    }
+
+    async function fetchDetectionsList() {
+        try {
+            const response = await fetch('/api/detection_list');
+            const filenames = await response.json();
+            updateDetectionGallery(filenames);
+        } catch(e) {
+            console.error('Failed to fetch detection list:', e);
+        }
+    }
+    
+    function updateDetectionGallery(filenames) {
+        const gallery = document.getElementById('detection-gallery-items');
+        if (!gallery) return;
+        
+        gallery.innerHTML = '';
+        filenames.forEach(filename => {
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            
+            const img = document.createElement('img');
+            img.src = `/detections/${filename}`;
+            img.alt = filename;
+            img.addEventListener('click', () => showDetectionModal(img.src, filename));
+            
+            item.appendChild(img);
+            gallery.appendChild(item);
+        });
+    }
+    
+    window.showDetectionModal = function(src, filename) {
+        const modal = document.getElementById('detection-modal');
+        const img = document.getElementById('modal-image');
+        const caption = document.getElementById('modal-caption');
+        const openBtn = document.getElementById('modal-open-btn');
+        
+        if (modal && img && caption) {
+            img.src = src;
+            caption.innerText = filename;
+            if (openBtn) {
+                openBtn.onclick = () => window.open(src, '_blank');
+            }
+            modal.style.display = 'flex';
+        }
+    }
+    
+    window.closeDetectionModal = function() {
+        const modal = document.getElementById('detection-modal');
+        if (modal) modal.style.display = 'none';
     }
     
     function updateArrow(arrow, power) {
@@ -1371,7 +1534,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             const pathGeo = new THREE.BufferGeometry();
             pathGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             pathGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 3 });
+            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 5 });
             pathLine = new THREE.Line(pathGeo, mat); 
             scene.add(pathLine);
         }
@@ -1414,7 +1577,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 4 }));
+            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 6 }));
             scene.add(plannedPathLine);
         }
     }
@@ -2051,7 +2214,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 3 });
+            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 5 });
             pathLine = new THREE.Line(geo, mat); 
             scene.add(pathLine);
         }
@@ -2065,7 +2228,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         if(vertices.length > 0) {
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 4 }));
+            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 5 }));
             scene.add(plannedPathLine);
         }
     }
