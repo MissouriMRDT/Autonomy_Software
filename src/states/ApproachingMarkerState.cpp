@@ -48,7 +48,7 @@ namespace statemachine
 
         // Get tag detectors.
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-            globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
     }
 
     /******************************************************************************
@@ -80,9 +80,9 @@ namespace statemachine
         m_bInitialized   = false;
 
         m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                       constants::STUCK_CHECK_INTERVAL,
-                                                                       constants::STUCK_CHECK_VEL_THRESH,
-                                                                       constants::STUCK_CHECK_ROT_THRESH);
+                                                                        constants::STUCK_CHECK_INTERVAL,
+                                                                        constants::STUCK_CHECK_VEL_THRESH,
+                                                                        constants::STUCK_CHECK_ROT_THRESH);
         m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("ApproachingMarkerRoverPath");
 
         if (!m_bInitialized)

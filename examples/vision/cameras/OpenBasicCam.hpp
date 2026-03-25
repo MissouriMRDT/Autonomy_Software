@@ -34,7 +34,7 @@
  ******************************************************************************/
 void RunExample()
 {
-    // Initialize basic cam. 
+    // Initialize basic cam.
     std::shared_ptr<BasicCamera> ExampleBasicCam1 = std::make_unique<BasicCam>(0, 1280, 720, 60, PIXEL_FORMATS::eBGR, 0, 0, false);
     // Start basic cam.
     ExampleBasicCam1->Start();
