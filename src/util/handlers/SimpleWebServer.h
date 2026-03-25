@@ -55,8 +55,16 @@ class SimpleWebServer
         std::map<std::string, RequestCallback> m_mGetCallbacks;
         std::mutex m_muDataMutex;
 
+        /******************************************************************************
+         * @brief Represents a local path as an object.
+         *
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-03-25
+         ******************************************************************************/
         struct StaticDir
         {
+            public:
                 std::string szLocalPath;
         };
 
