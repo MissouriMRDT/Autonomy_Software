@@ -56,6 +56,7 @@ namespace statemachine
 
         // Add the search and rover path layers to the plot.
         m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
+        m_pRoverPathPlot->CreatePathLayer("ReverseSpiralSearchPattern", "-o");
         m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
@@ -376,11 +377,11 @@ namespace statemachine
                         LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying reverse spiral...");
                         // Generate vertical reverse spiral pattern.
 
-                        m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
-                                                                                       -constants::SEARCH_ANGULAR_STEP_DEGREES,
-                                                                                       m_stSearchPatternCenter.dRadius,
-                                                                                       stCurrentRoverPose.GetCompassHeading(),
-                                                                                       constants::SEARCH_SPIRAL_SPACING);
+                        // m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
+                        //                                                                -constants::SEARCH_ANGULAR_STEP_DEGREES,
+                        //                                                                m_stSearchPatternCenter.dRadius,
+                        //                                                                stCurrentRoverPose.GetCompassHeading(),
+                        //                                                                constants::SEARCH_SPIRAL_SPACING);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
@@ -390,7 +391,8 @@ namespace statemachine
                         std::reverse(m_vSearchPath.begin(), m_vSearchPath.end());
 
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "ReverseSpiralSearchPattern");
+                        m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "ReverseSpiralSearchPattern", 0);
+                        // Plot the search path in the visualizer.
                         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
                         // Set the path of the pure pursuit controller.
                         m_pPursuitController->SetReferencePath(m_vSearchPath);
