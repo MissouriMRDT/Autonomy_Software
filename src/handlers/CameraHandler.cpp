@@ -19,7 +19,7 @@
  * @brief Construct a new Camera Handler Thread:: Camera Handler Thread object.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-08-17
  ******************************************************************************/
 CameraHandler::CameraHandler()
@@ -39,42 +39,85 @@ CameraHandler::CameraHandler()
                                               constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
                                               constants::ZED_MAINCAM_USE_GPU_MAT,
                                               constants::ZED_MAINCAM_USE_HALF_PRECISION_DEPTH,
-                                              constants::ZED_MAINCAM_FUSION_MASTER,
                                               constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
                                               constants::ZED_MAINCAM_SERIAL);
-
-        // Always enable positional tracking.
-        m_pMainCam->EnablePositionalTracking();
 
         // Additional setup for main ZED camera.
         if (constants::ZED_MAINCAM_EXPORT_SPATIAL_MAP)
         {
             m_pMainCam->EnableSpatialMapping();
         }
+
+        // Initialize rear ZED camera.
+        m_pRearCam = std::make_shared<ZEDCam>(constants::ZED_REARCAM_RESOLUTIONX,
+                                              constants::ZED_REARCAM_RESOLUTIONY,
+                                              constants::ZED_REARCAM_FPS,
+                                              constants::ZED_REARCAM_HORIZONTAL_FOV,
+                                              constants::ZED_REARCAM_VERTICAL_FOV,
+                                              constants::ZED_REARCAM_ENABLE_RECORDING,
+                                              constants::ZED_REARCAM_EXPORT_SVO_RECORDING,
+                                              constants::ZED_DEFAULT_MINIMUM_DISTANCE,
+                                              constants::ZED_DEFAULT_MAXIMUM_DISTANCE,
+                                              constants::ZED_REARCAM_USE_GPU_MAT,
+                                              constants::ZED_REARCAM_USE_HALF_PRECISION_DEPTH,
+                                              constants::ZED_REARCAM_FRAME_RETRIEVAL_THREADS,
+                                              constants::ZED_REARCAM_SERIAL);
+
+        // Additional setup for rear ZED camera.
+        if (constants::ZED_REARCAM_EXPORT_SPATIAL_MAP)
+        {
+            m_pRearCam->EnableSpatialMapping();
+        }
     }
     else
     {
-        m_pMainCam = std::make_shared<SIMZEDCam>("ws://" + constants::SIM_IP_ADDRESS + ":" + std::to_string(constants::SIM_WEBSOCKET_PORT),
-                                                 constants::ZED_MAINCAM_RESOLUTIONX,
-                                                 constants::ZED_MAINCAM_RESOLUTIONY,
-                                                 constants::ZED_MAINCAM_FPS,
-                                                 constants::ZED_MAINCAM_HORIZONTAL_FOV,
-                                                 constants::ZED_MAINCAM_VERTICAL_FOV,
-                                                 constants::ZED_MAINCAM_ENABLE_RECORDING,
-                                                 constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
-                                                 constants::ZED_MAINCAM_SERIAL);
+        m_pMainCam =
+            std::make_shared<SIMZEDCam>("ws://" + constants::SIM_IP_ADDRESS + ":" + std::to_string(constants::SIM_WEBSOCKET_PORT) + "/" + constants::SIM_MAINCAM_NAME,
+                                        constants::ZED_MAINCAM_RESOLUTIONX,
+                                        constants::ZED_MAINCAM_RESOLUTIONY,
+                                        constants::ZED_MAINCAM_FPS,
+                                        constants::ZED_MAINCAM_HORIZONTAL_FOV,
+                                        constants::ZED_MAINCAM_VERTICAL_FOV,
+                                        constants::ZED_MAINCAM_ENABLE_RECORDING,
+                                        constants::ZED_MAINCAM_FRAME_RETRIEVAL_THREADS,
+                                        constants::ZED_MAINCAM_SERIAL);
+
+        m_pRearCam =
+            std::make_shared<SIMZEDCam>("ws://" + constants::SIM_IP_ADDRESS + ":" + std::to_string(constants::SIM_WEBSOCKET_PORT) + "/" + constants::SIM_REARCAM_NAME,
+                                        constants::ZED_REARCAM_RESOLUTIONX,
+                                        constants::ZED_REARCAM_RESOLUTIONY,
+                                        constants::ZED_REARCAM_FPS,
+                                        constants::ZED_REARCAM_HORIZONTAL_FOV,
+                                        constants::ZED_REARCAM_VERTICAL_FOV,
+                                        constants::ZED_REARCAM_ENABLE_RECORDING,
+                                        constants::ZED_REARCAM_FRAME_RETRIEVAL_THREADS,
+                                        constants::ZED_REARCAM_SERIAL);
     }
 
-    // Initialize ground eye.
-    m_pGroundCam = std::make_shared<BasicCam>(constants::BASICCAM_GROUNDCAM_INDEX,
-                                              constants::BASICCAM_GROUNDCAM_RESOLUTIONX,
-                                              constants::BASICCAM_GROUNDCAM_RESOLUTIONY,
-                                              constants::BASICCAM_GROUNDCAM_FPS,
-                                              constants::BASICCAM_GROUNDCAM_PIXELTYPE,
-                                              constants::BASICCAM_GROUNDCAM_HORIZONTAL_FOV,
-                                              constants::BASICCAM_GROUNDCAM_VERTICAL_FOV,
-                                              constants::BASICCAM_GROUNDCAM_ENABLE_RECORDING,
-                                              constants::BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS);
+    // Set the position offsets of the main camera.
+    m_pMainCam->SetCameraPoseOffset(constants::ZED_MAINCAM_EASTING_OFFSET,
+                                    constants::ZED_MAINCAM_NORTHING_OFFSET,
+                                    constants::ZED_MAINCAM_ALTITUDE_OFFSET,
+                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_X,
+                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_Y,
+                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_Z,
+                                    constants::ZED_MAINCAM_QUATERNION_OFFSET_W);
+
+    // Set the position offsets of the rear camera.
+    m_pRearCam->SetCameraPoseOffset(constants::ZED_REARCAM_EASTING_OFFSET,
+                                    constants::ZED_REARCAM_NORTHING_OFFSET,
+                                    constants::ZED_REARCAM_ALTITUDE_OFFSET,
+                                    constants::ZED_REARCAM_QUATERNION_OFFSET_X,
+                                    constants::ZED_REARCAM_QUATERNION_OFFSET_Y,
+                                    constants::ZED_REARCAM_QUATERNION_OFFSET_Z,
+                                    constants::ZED_REARCAM_QUATERNION_OFFSET_W);
+
+    // Set the thread priorities for the cameras. This is important to ensure that the cameras are able to retrieve frames at their full FPS and don't get starved of CPU
+    // time by other threads.
+    m_pMainCam->SetMainThreadPriority(AutonomyThread<void>::AutonomyThreadPriority::eHighest);
+    m_pMainCam->SetPoolThreadPriority(AutonomyThread<void>::AutonomyThreadPriority::eHigh);
+    m_pRearCam->SetMainThreadPriority(AutonomyThread<void>::AutonomyThreadPriority::eHighest);
+    m_pRearCam->SetPoolThreadPriority(AutonomyThread<void>::AutonomyThreadPriority::eHigh);
 
     // Initialize recording handler for cameras.
     m_pRecordingHandler = std::make_unique<RecordingHandler>(RecordingHandler::RecordingMode::eCameraHandler);
@@ -97,16 +140,14 @@ CameraHandler::~CameraHandler()
  * @brief Signals all cameras to start their threads.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-09-09
  ******************************************************************************/
 void CameraHandler::StartAllCameras()
 {
     // Start ZED cams.
     m_pMainCam->Start();
-
-    // Start basic cams.
-    // m_pGroundCam->Start();
+    m_pRearCam->Start();
 }
 
 /******************************************************************************
@@ -126,7 +167,7 @@ void CameraHandler::StartRecording()
  * @brief Signals all cameras to stop their threads.
  *
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-10-03
  ******************************************************************************/
 void CameraHandler::StopAllCameras()
@@ -135,13 +176,17 @@ void CameraHandler::StopAllCameras()
     m_pRecordingHandler->RequestStop();
     m_pRecordingHandler->Join();
 
-    // Stop ZED cams.
+    // Stop main ZED cam.
     m_pMainCam->RequestStop();
     m_pMainCam->Join();
 
-    // Stop basic cams.
-    // m_pGroundCam->RequestStop();
-    // m_pGroundCam->Join();
+    // Stop rear ZED cam.
+    m_pRearCam->RequestStop();
+    m_pRearCam->Join();
+
+    // Stop basic cam.
+    // m_pBasicCam->RequestStop();
+    // m_pBasicCam->Join();
 }
 
 /******************************************************************************
@@ -164,7 +209,7 @@ void CameraHandler::StopRecording()
  * @param eCameraName - The name of the camera to retrieve. An enum defined in and specific to this class.
  * @return std::shared_ptr<ZEDCamera> - A pointer to the zed camera pertaining to the given name.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
 std::shared_ptr<ZEDCamera> CameraHandler::GetZED(ZEDCamName eCameraName)
@@ -172,7 +217,8 @@ std::shared_ptr<ZEDCamera> CameraHandler::GetZED(ZEDCamName eCameraName)
     // Determine which camera should be returned.
     switch (eCameraName)
     {
-        case ZEDCamName::eHeadMainCam: return m_pMainCam; break;    // Return the ZEDCam in the autonomy head.
+        case ZEDCamName::eHeadMainCam: return m_pMainCam; break;    // Return the main ZEDCam in the autonomy head.
+        case ZEDCamName::eRearCam: return m_pRearCam; break;        // Return the rear ZedCam.
         default: return m_pMainCam; break;
     }
 }
@@ -183,7 +229,7 @@ std::shared_ptr<ZEDCamera> CameraHandler::GetZED(ZEDCamName eCameraName)
  * @param eCameraName - The name of the camera to retrieve. An enum defined in and specific to this class.
  * @return std::shared_ptr<BasicCamera> - A pointer to the basic camera pertaining to the given name.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-09-01
  ******************************************************************************/
 std::shared_ptr<BasicCamera> CameraHandler::GetBasicCam(BasicCamName eCameraName)
@@ -191,7 +237,6 @@ std::shared_ptr<BasicCamera> CameraHandler::GetBasicCam(BasicCamName eCameraName
     // Determine which camera should be returned.
     switch (eCameraName)
     {
-        case BasicCamName::eHeadGroundCam: return m_pGroundCam; break;    // Return the ground fisheye cam in the autonomy head.
-        default: return m_pGroundCam; break;
+        default: return nullptr; break;
     }
 }

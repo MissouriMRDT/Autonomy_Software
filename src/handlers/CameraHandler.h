@@ -38,7 +38,7 @@ class CameraHandler
         /////////////////////////////////////////
 
         std::shared_ptr<ZEDCamera> m_pMainCam;
-        std::shared_ptr<BasicCamera> m_pGroundCam;
+        std::shared_ptr<ZEDCamera> m_pRearCam;
         std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:
@@ -50,13 +50,14 @@ class CameraHandler
         {
             ZEDCAM_START,
             eHeadMainCam,
+            eRearCam,
             ZEDCAM_END
         };
 
         enum class BasicCamName    // Enum for different basic cameras.
         {
             BASICCAM_START,
-            eHeadGroundCam,
+            // eExampleBasicCam,   // Uncomment and change name if basic cam needed.
             BASICCAM_END
         };
 

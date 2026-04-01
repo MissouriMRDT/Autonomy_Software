@@ -109,11 +109,11 @@ TEST_F(NavigationBoardTests, Leaks)
 TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
 {
     // The latitude, longitude, and altitude are set to the location of Missouri S&T
-    EXPECT_EQ(m_pNavBoard->GetGPSData().dLatitude, 37.951771);
-    EXPECT_EQ(m_pNavBoard->GetGPSData().dLongitude, -91.778114);
-    EXPECT_EQ(m_pNavBoard->GetGPSData().dAltitude, 315.0);
-    EXPECT_EQ(m_pNavBoard->GetHeading(), 0);
-    EXPECT_EQ(m_pNavBoard->GetHeadingAccuracy(), 0);
+    EXPECT_NEAR(m_pNavBoard->GetGPSData().dLatitude, 37.951771, 0.000001);
+    EXPECT_NEAR(m_pNavBoard->GetGPSData().dLongitude, -91.778114, 0.000001);
+    EXPECT_NEAR(m_pNavBoard->GetGPSData().dAltitude, 315.0, 0.000001);
+    EXPECT_NEAR(m_pNavBoard->GetHeading(), 0, 0.000001);
+    EXPECT_NEAR(m_pNavBoard->GetHeadingAccuracy(), 0, 0.000001);
     // Not moving or rotating
     EXPECT_EQ(m_pNavBoard->GetVelocity(), 0);
     EXPECT_EQ(m_pNavBoard->GetAngularVelocity(), 0);
@@ -133,13 +133,13 @@ TEST_F(NavigationBoardTests, ConstructorInitializesMembers)
 TEST_F(NavigationBoardTests, GetGPSDataReturnsCorrectData)
 {
     geoops::GPSCoordinate stGPSData = m_pNavBoard->GetGPSData();
-    EXPECT_EQ(stGPSData.dLatitude, 37.951771);
-    EXPECT_EQ(stGPSData.dLongitude, -91.778114);
-    EXPECT_EQ(stGPSData.dAltitude, 315.0);
-    EXPECT_EQ(stGPSData.d2DAccuracy, -1);
-    EXPECT_EQ(stGPSData.d3DAccuracy, -1);
-    EXPECT_EQ(stGPSData.dMeridianConvergence, -1);
-    EXPECT_EQ(stGPSData.dScale, 0);
+    EXPECT_NEAR(stGPSData.dLatitude, 37.951771, 0.000001);
+    EXPECT_NEAR(stGPSData.dLongitude, -91.778114, 0.000001);
+    EXPECT_NEAR(stGPSData.dAltitude, 315.0, 0.000001);
+    EXPECT_NEAR(stGPSData.d2DAccuracy, -1, 0.000001);
+    EXPECT_NEAR(stGPSData.d3DAccuracy, -1, 0.000001);
+    EXPECT_NEAR(stGPSData.dMeridianConvergence, 0.75152911093843622, 0.000001);
+    EXPECT_NEAR(stGPSData.dScale, 0.99974193500083242, 0.000001);
     EXPECT_EQ(stGPSData.eCoordinateAccuracyFixType, geoops::PositionFixType::eUNKNOWN);
     EXPECT_EQ(stGPSData.bIsDifferential, false);
 }

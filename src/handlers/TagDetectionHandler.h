@@ -32,6 +32,7 @@ class TagDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<TagDetector> m_pTagDetectorMainCam;
+        std::shared_ptr<TagDetector> m_pTagDetectorRearCam;
         std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
     public:
@@ -43,6 +44,7 @@ class TagDetectionHandler
         {
             TAGDETECTOR_START,
             eHeadMainCam,
+            eRearCam,
             TAGDETECTOR_END
         };
 
@@ -62,6 +64,8 @@ class TagDetectionHandler
         /////////////////////////////////////////
 
         std::shared_ptr<TagDetector> GetTagDetector(TagDetectors eDetectorName);
+
+        cv::Mat RequestDetectionOverlayFrame(TagDetectors eDetector = TagDetectors::eHeadMainCam);
 };
 
 #endif

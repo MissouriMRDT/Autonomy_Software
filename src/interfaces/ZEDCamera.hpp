@@ -141,7 +141,6 @@ class ZEDCamera : public Camera<cv::Mat>
          * @param fMaxSenseDistance - The maximum distance the camera can sense.
          * @param bMemTypeGPU - Whether or not to use GPU memory.
          * @param bUseHalfDepthPrecision - Whether or not to use half depth precision.
-         * @param bEnableFusionMaster - Whether or not to enable the fusion master.
          * @param nNumFrameRetrievalThreads - The number of threads to use for frame queueing and copying.
          * @param unCameraSerialNumber - The serial number of the camera.
          *
@@ -156,7 +155,6 @@ class ZEDCamera : public Camera<cv::Mat>
                   const bool bEnableRecordingFlag,
                   const bool bMemTypeGPU,
                   const bool bUseHalfDepthPrecision,
-                  const bool bEnableFusionMaster,
                   const int nNumFrameRetrievalThreads,
                   const unsigned int unCameraSerialNumber) :
             Camera(nPropResolutionX,
@@ -171,9 +169,7 @@ class ZEDCamera : public Camera<cv::Mat>
             // Initialize member variables. Some parameters are not used.
             (void) bMemTypeGPU;
             (void) bUseHalfDepthPrecision;
-            (void) bEnableFusionMaster;
-            m_bCameraIsFusionMaster = bEnableFusionMaster;
-            m_unCameraSerialNumber  = unCameraSerialNumber;
+            m_unCameraSerialNumber = unCameraSerialNumber;
         }
 
         /******************************************************************************
@@ -311,17 +307,6 @@ class ZEDCamera : public Camera<cv::Mat>
         virtual std::future<bool> RequestPositionalPoseCopy(Pose& stPose) = 0;
 
         /******************************************************************************
-         * @brief Puts a GeoPose pointer into a queue so a copy of a GeoPose from the camera can be written to it.
-         *
-         * @param slGeoPose - A reference to the sl::GeoPose to store the GeoPose in.
-         * @return std::future<bool> - A future that should be waited on before the passed in GeoPose is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose) = 0;
-
-        /******************************************************************************
          * @brief Puts a FloorPlane pointer into a queue so a copy of a FloorPlane from the camera can be written to it.
          *
          * @param slFloorPlane - A reference to the sl::Plane to store the FloorPlane in.
@@ -457,47 +442,6 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual sl::ERROR_CODE RebootCamera() = 0;
 
-        /******************************************************************************
-         * @brief Subscribes the fusion object to the camera with the given UUID.
-         *
-         * @param slCameraUUID - The UUID of the camera to subscribe to.
-         * @return sl::FUSION_ERROR_CODE - The error code returned by the ZED SDK.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual sl::FUSION_ERROR_CODE SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID) = 0;
-
-        /******************************************************************************
-         * @brief Publishes the camera to the fusion object.
-         *
-         * @return sl::CameraIdentifier - The identifier of the camera.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual sl::CameraIdentifier PublishCameraToFusion() = 0;
-
-        /******************************************************************************
-         * @brief Ingests GPS data into the fusion object.
-         *
-         * @param stNewGPSLocation - The new GPS location to ingest.
-         * @return sl::FUSION_ERROR_CODE - The error code returned by the ZED SDK.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual sl::FUSION_ERROR_CODE IngestGPSDataToFusion(geoops::GPSCoordinate stNewGPSLocation)
-        {
-            // Initialize instance variables.
-            (void) stNewGPSLocation;
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::IngestGPSDataToFusion(geoops::GPSCoordinate stNewGPSLocation) not implemented.");
-
-            return sl::FUSION_ERROR_CODE::FAILURE;
-        }
-
         /////////////////////////////////////////
         // Setters for class member variables.
         /////////////////////////////////////////
@@ -615,17 +559,6 @@ class ZEDCamera : public Camera<cv::Mat>
         virtual bool GetUsingGPUMem() const { return false; }
 
         /******************************************************************************
-         * @brief Accessor for if this ZED is running a fusion instance.
-         *
-         * @return true - This ZEDCam is a fusion master and is running an sl::Fusion instance.
-         * @return false - This ZEDCam is not a fusion master and is not running a sl::Fusion instance.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-01-26
-         ******************************************************************************/
-        virtual bool GetIsFusionMaster() const { return m_bCameraIsFusionMaster; }
-
-        /******************************************************************************
          * @brief Accessor for the Camera Model private member.
          *
          * @return std::string - The model of the camera.
@@ -671,25 +604,6 @@ class ZEDCamera : public Camera<cv::Mat>
 
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::GetPositionalTrackingState() not implemented.");
-
-            return stStatus;
-        }
-
-        /******************************************************************************
-         * @brief Accessor for the Fused Positional Tracking State private member.
-         *
-         * @return sl::FusedPositionalTrackingStatus - The fused positional tracking state.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual sl::FusedPositionalTrackingStatus GetFusedPositionalTrackingState()
-        {
-            // Initialize instance variable.
-            sl::FusedPositionalTrackingStatus stStatus;
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::GetFusedPositionalTrackingState() not implemented.");
 
             return stStatus;
         }
@@ -748,7 +662,6 @@ class ZEDCamera : public Camera<cv::Mat>
 
         // ZED Camera specific.
         unsigned int m_unCameraSerialNumber;
-        bool m_bCameraIsFusionMaster;
 
     private:
         /////////////////////////////////////////
