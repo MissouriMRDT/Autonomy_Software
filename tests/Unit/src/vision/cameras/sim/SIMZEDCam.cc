@@ -77,7 +77,7 @@ class SIMZEDCamTests : public TestingBase<SIMZEDCamTests>
 TEST_F(SIMZEDCamTests, ConstructorDestructor)
 {
     // Create a SIMZEDCam object.
-    SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
+    SIMZEDCam simZEDCam("ws://127.0.0.1:8080/ZEDFrontCam", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
 
     // Check initial camera open status.
     EXPECT_FALSE(simZEDCam.GetCameraIsOpen());
@@ -95,7 +95,7 @@ TEST_F(SIMZEDCamTests, ConstructorDestructor)
 TEST_F(SIMZEDCamTests, DoesNotLeak)
 {
     // Create a new SIMZEDCam object.
-    SIMZEDCam* pSimZEDCam = new SIMZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
+    SIMZEDCam* pSimZEDCam = new SIMZEDCam("ws://127.0.0.1:8080/ZEDFrontCam", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
     // Delete object.
     delete pSimZEDCam;
     // Point to null.
@@ -112,7 +112,7 @@ TEST_F(SIMZEDCamTests, DoesNotLeak)
 TEST_F(SIMZEDCamTests, Leaks)
 {
     // Create a new SIMZEDCam object.
-    SIMZEDCam* pSimZEDCam = new SIMZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
+    SIMZEDCam* pSimZEDCam = new SIMZEDCam("ws://127.0.0.1:8080/ZEDFrontCam", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
     EXPECT_TRUE(pSimZEDCam != nullptr);
 }
 
@@ -126,7 +126,7 @@ TEST_F(SIMZEDCamTests, Leaks)
 TEST_F(SIMZEDCamTests, ResetPositionalTracking)
 {
     // Create a SIMZEDCam object.
-    SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
+    SIMZEDCam simZEDCam("ws://127.0.0.1:8080/ZEDFrontCam", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
 
     // Call ResetPositionalTracking.
     auto errorCode = simZEDCam.ResetPositionalTracking();
@@ -145,7 +145,7 @@ TEST_F(SIMZEDCamTests, ResetPositionalTracking)
 TEST_F(SIMZEDCamTests, RebootCamera)
 {
     // Create a SIMZEDCam object.
-    SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
+    SIMZEDCam simZEDCam("ws://127.0.0.1:8080/ZEDFrontCam", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
 
     // Call RebootCamera.
     auto errorCode = simZEDCam.RebootCamera();
@@ -164,7 +164,7 @@ TEST_F(SIMZEDCamTests, RebootCamera)
 TEST_F(SIMZEDCamTests, EnablePositionalTracking)
 {
     // Create a SIMZEDCam object.
-    SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
+    SIMZEDCam simZEDCam("ws://127.0.0.1:8080/ZEDFrontCam", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
 
     // Call EnablePositionalTracking.
     auto errorCode = simZEDCam.EnablePositionalTracking(1.0f);
@@ -183,7 +183,7 @@ TEST_F(SIMZEDCamTests, EnablePositionalTracking)
 TEST_F(SIMZEDCamTests, DisablePositionalTracking)
 {
     // Create a SIMZEDCam object.
-    SIMZEDCam simZEDCam("/dev/video0", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
+    SIMZEDCam simZEDCam("ws://127.0.0.1:8080/ZEDFrontCam", 1280, 720, 30, 90.0, 60.0, false, 1, 12345);
 
     // Call DisablePositionalTracking.
     simZEDCam.DisablePositionalTracking();

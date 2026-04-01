@@ -53,12 +53,9 @@ class SIMZEDCam : public ZEDCamera
         std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
         std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
         std::future<bool> RequestPositionalPoseCopy(Pose& stPose) override;
-        std::future<bool> RequestFusionGeoPoseCopy(sl::GeoPose& slGeoPose) override;
         std::future<bool> RequestSensorsCopy(sl::SensorsData& slSensorsData) override;
         sl::ERROR_CODE ResetPositionalTracking() override;
         sl::ERROR_CODE RebootCamera() override;
-        sl::FUSION_ERROR_CODE SubscribeFusionToCameraUUID(sl::CameraIdentifier& slCameraUUID) override;
-        sl::CameraIdentifier PublishCameraToFusion() override;
 
         /////////////////////////////////////////
         // Setters for class member variables.
@@ -149,6 +146,7 @@ class SIMZEDCam : public ZEDCamera
 
         std::string m_szCameraPath;
         std::atomic<bool> m_bCameraPositionalTrackingEnabled;
+        std::string m_szFullStreamName;
 
         // Simulated IMU Data from the SIM.
         sl::SensorsData m_stIMUData;
@@ -181,7 +179,6 @@ class SIMZEDCam : public ZEDCamera
         cv::Mat m_cvPointCloud;
 
         std::queue<containers::DataFetchContainer<Pose>> m_qPoseCopySchedule;
-        std::queue<containers::DataFetchContainer<sl::GeoPose>> m_qGeoPoseCopySchedule;
         std::queue<containers::DataFetchContainer<sl::SensorsData>> m_qSensorsCopySchedule;
 
         // Mutexes for copying frames from the WebRTC connection to the OpenCV Mats.
@@ -191,14 +188,12 @@ class SIMZEDCam : public ZEDCamera
 
         // Mutexes for copying frames from the ZEDSDK to the OpenCV Mats in PoolLinearCode.
         std::shared_mutex m_muPoseCopyMutex;
-        std::shared_mutex m_muGeoPoseCopyMutex;
         std::shared_mutex m_muSensorsCopyMutex;
 
         // Atomic flags for checking if data is queued.
 
         bool m_bQueueTogglesAlreadyReset;
         std::atomic<bool> m_bPosesQueued;
-        std::atomic<bool> m_bGeoPosesQueued;
         std::atomic<bool> m_bSensorsQueued;
 };
 #endif

@@ -46,7 +46,8 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("FinalObject", "green");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
 
-        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+                              globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
     }
 
     /******************************************************************************
@@ -77,9 +78,9 @@ namespace statemachine
         m_bInitialized   = false;
 
         m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                       constants::STUCK_CHECK_INTERVAL,
-                                                                       constants::STUCK_CHECK_VEL_THRESH,
-                                                                       constants::STUCK_CHECK_ROT_THRESH);
+                                                                        constants::STUCK_CHECK_INTERVAL,
+                                                                        constants::STUCK_CHECK_VEL_THRESH,
+                                                                        constants::STUCK_CHECK_ROT_THRESH);
         m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("ApproachingObjectRoverPath");
 
         if (!m_bInitialized)

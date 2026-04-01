@@ -29,7 +29,7 @@ namespace statemachine
      *        initialize the state.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void SearchPatternState::Start()
@@ -71,8 +71,10 @@ namespace statemachine
         // Set the path of the pure pursuit controller.
         m_pPursuitController->SetReferencePath(m_vSearchPath);
 
-        m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam)};
-        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                              globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+                              globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
     }
 
     /******************************************************************************

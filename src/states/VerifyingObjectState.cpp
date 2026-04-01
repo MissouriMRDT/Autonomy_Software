@@ -11,7 +11,10 @@
 #include "VerifyingObjectState.h"
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
+#include "../util/TimeOperations.hpp"
 #include "../util/states/ObjectDetectionChecker.hpp"
+#include <filesystem>
+#include <opencv2/opencv.hpp>
 
 // #include "../util/states/ObjectDetectionChecker.hpp"
 
@@ -28,7 +31,7 @@ namespace statemachine
      *        initialize the state.
      *
      *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void VerifyingObjectState::Start()
@@ -42,7 +45,8 @@ namespace statemachine
         m_tmObjectLastSeenTime          = std::chrono::system_clock::now();
 
         // Get object detectors.
-        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+                              globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
     }
 
     /******************************************************************************
@@ -172,6 +176,39 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Complete event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
+
+                // Request the snapshot from the object detection handler
+                cv::Mat cvSnapshot = globals::g_pObjectDetectionHandler->RequestDetectionOverlayFrame();
+
+                if (!cvSnapshot.empty())
+                {
+                    std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
+                    if (!std::filesystem::exists(szLogDir))
+                    {
+                        std::filesystem::create_directories(szLogDir);
+                    }
+
+                    // Create a unique filename using the current timestamp
+                    std::string szTimestamp = timeops::GetTimestamp();
+                    std::string szFilename  = szLogDir + "object_" + szTimestamp + ".png";
+
+                    // Save the image to the disk
+                    bool bSuccess = cv::imwrite(szFilename, cvSnapshot);
+
+                    if (bSuccess)
+                    {
+                        LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Saved detection snapshot to {}", szFilename);
+                    }
+                    else
+                    {
+                        LOG_ERROR(logging::g_qSharedLogger, "VerifyingObjectState: Failed to write snapshot to disk.");
+                    }
+                }
+                else
+                {
+                    LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Overlay frame was empty. No snapshot taken.");
+                }
+
                 // Pop old waypoint out of queue.
                 globals::g_pWaypointHandler->PopNextWaypoint();
                 // Clear saved states.

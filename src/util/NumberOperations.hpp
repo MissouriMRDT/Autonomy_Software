@@ -141,12 +141,9 @@ namespace numops
         }
 
         // Perform the mapping using linear interpolation.
-        T tOldValueRange = tOldMaximum - tOldMinimum;
-        T tNewValueRange = tNewMaximum - tNewMinimum;
-        T tScaledValue   = (tValue - tOldMinimum) / tOldValueRange;
-
-        // Return new mapped value.
-        return tNewMinimum + tScaledValue * tNewValueRange;
+        T tOldRange = tOldMaximum - tOldMinimum;
+        T tNewRange = tNewMaximum - tNewMinimum;
+        return (((tValue - tOldMinimum) * tNewRange) / tOldRange) + tNewMinimum;
     }
 
     /******************************************************************************

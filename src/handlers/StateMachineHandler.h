@@ -53,7 +53,9 @@ class StateMachineHandler : private AutonomyThread<void>
         std::shared_mutex m_muEventMutex;
         std::atomic_bool m_bSwitchingStates;
         std::shared_ptr<ZEDCamera> m_pMainCam;
+        std::shared_ptr<ZEDCamera> m_pRearCam;
         geoops::GPSCoordinate m_stCurrentGPSLocation;
+        double m_dZEDHeadingOffset;    // This is the offset that is applied to the ZED's heading to align it with the actual heading of the rover.
 
         /////////////////////////////////////////
         // Declare private class methods.
@@ -211,10 +213,10 @@ class StateMachineHandler : private AutonomyThread<void>
         statemachine::States GetPreviousState() const;
 
         // Smart location retrieving.
-        geoops::RoverPose SmartRetrieveRoverPose(bool bVIOHeading = true, bool bVIOTracking = false);
+        geoops::RoverPose SmartRetrieveRoverPose(bool bIMUHeading = true);
         double SmartRetrieveVelocity();
         double SmartRetrieveAngularVelocity();
-        void RealignZEDPosition(CameraHandler::ZEDCamName eCameraName, const geoops::UTMCoordinate& stNewCameraPosition, const double dNewCameraHeading);
+        void RealignZEDHeading(const double dNewActualHeading);
 
         using AutonomyThread::GetIPS;
 };

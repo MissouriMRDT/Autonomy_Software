@@ -48,6 +48,9 @@ namespace statemachine
         // Initialize vectors to store detected tags futures.
         std::vector<std::future<bool>> vDetectedArucoTagsFuture;
 
+        // Track exactly which cameras successfully spawned a future to prevent vector crashes.
+        std::vector<bool> vSpawnedFuture(siNumTagDetectors, false);
+
         // Request tags from each detector.
         for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
         {
@@ -56,20 +59,26 @@ namespace statemachine
             {
                 // Request detected Aruco tags from detector.
                 vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
+                vSpawnedFuture[siIdx] = true;
             }
         }
 
         // Ensure all requests have been fulfilled.
-        // Then transfer tags from the buffer to vDetectedArucoTags and vDetectedTensorflowTags for the user to access.
-        for (size_t siIdx = 0; siIdx < vDetectedArucoTagsFuture.size(); ++siIdx)
+        int nFutureIdx = 0;
+        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
         {
-            // Wait for the request to be fulfilled.
-            vDetectedArucoTagsFuture[siIdx].get();
-
-            // Loop through the detected Aruco tags and add them to the vDetectedArucoTags vector.
-            for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
+            // Only check the buffer if the detector was ready and actually spawned a future
+            if (vSpawnedFuture[siIdx])
             {
-                vDetectedArucoTags.emplace_back(tTag);
+                // Wait for the correct future to finish
+                vDetectedArucoTagsFuture[nFutureIdx].get();
+                nFutureIdx++;
+
+                // Loop through the detected tags using the correct buffer index (siIdx)
+                for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
+                {
+                    vDetectedArucoTags.emplace_back(tTag);
+                }
             }
         }
     }

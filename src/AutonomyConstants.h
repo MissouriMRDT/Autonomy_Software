@@ -40,6 +40,8 @@ namespace constants
     extern const std::string SIM_IP_ADDRESS;
     extern const uint SIM_WEBSOCKET_PORT;
     extern const uint SIM_WEBRTC_QP;
+    extern const std::string SIM_MAINCAM_NAME;
+    extern const std::string SIM_REARCAM_NAME;
 
     // Safety constants.
     extern const double BATTERY_MINIMUM_CELL_VOLTAGE;
@@ -70,6 +72,7 @@ namespace constants
     extern const int ROVECOMM_OUTGOING_UDP_PORT;
     extern const int ROVECOMM_OUTGOING_TCP_PORT;
     extern const std::string ROVECOMM_TCP_INTERFACE_IP;
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -113,12 +116,13 @@ namespace constants
     extern const int RECORDER_FPS;
     // Camera recording toggles.
     extern const bool ZED_MAINCAM_ENABLE_RECORDING;
-    extern const bool BASICCAM_GROUNDCAM_ENABLE_RECORDING;
+    extern const bool ZED_REARCAM_ENABLE_RECORDING;
     // TagDetector recording toggles.
     extern const bool TAGDETECT_MAINCAM_ENABLE_RECORDING;
-    extern const bool TAGDETECT_GROUNDCAM_ENABLE_RECORDING;
+    extern const bool TAGDETECT_REARCAM_ENABLE_RECORDING;
     // ObjectDetector recording toggles.
     extern const bool OBJECTDETECT_MAINCAM_ENABLE_RECORDING;
+    extern const bool OBJECTDETECT_REARCAM_ENABLE_RECORDING;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -170,6 +174,7 @@ namespace constants
 
     // BasicCam Basic Config.
     extern const cv::InterpolationFlags BASICCAM_RESIZE_INTERPOLATION_METHOD;
+
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -186,19 +191,46 @@ namespace constants
     extern const bool ZED_MAINCAM_EXPORT_SPATIAL_MAP;
     extern const bool ZED_MAINCAM_USE_GPU_MAT;
     extern const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH;
-    extern const bool ZED_MAINCAM_FUSION_MASTER;
     extern const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS;
     extern const int ZED_MAINCAM_SERIAL;
+    extern const double ZED_MAINCAM_EASTING_OFFSET;
+    extern const double ZED_MAINCAM_NORTHING_OFFSET;
+    extern const double ZED_MAINCAM_ALTITUDE_OFFSET;
+    extern const double ZED_MAINCAM_QUATERNION_OFFSET_X;
+    extern const double ZED_MAINCAM_QUATERNION_OFFSET_Y;
+    extern const double ZED_MAINCAM_QUATERNION_OFFSET_Z;
+    extern const double ZED_MAINCAM_QUATERNION_OFFSET_W;
 
-    // Ground Basic Cam.
-    extern const int BASICCAM_GROUNDCAM_RESOLUTIONX;
-    extern const int BASICCAM_GROUNDCAM_RESOLUTIONY;
-    extern const int BASICCAM_GROUNDCAM_FPS;
-    extern const int BASICCAM_GROUNDCAM_HORIZONTAL_FOV;
-    extern const int BASICCAM_GROUNDCAM_VERTICAL_FOV;
-    extern const int BASICCAM_GROUNDCAM_FRAME_RETRIEVAL_THREADS;
-    extern const int BASICCAM_GROUNDCAM_INDEX;
-    extern const PIXEL_FORMATS BASICCAM_GROUNDCAM_PIXELTYPE;
+    // Rear ZED Camera.
+    extern const bool MODE_REAR_ZED;
+    extern const int ZED_REARCAM_RESOLUTIONX;
+    extern const int ZED_REARCAM_RESOLUTIONY;
+    extern const int ZED_REARCAM_FPS;
+    extern const int ZED_REARCAM_HORIZONTAL_FOV;
+    extern const int ZED_REARCAM_VERTICAL_FOV;
+    extern const bool ZED_REARCAM_EXPORT_SVO_RECORDING;
+    extern const bool ZED_REARCAM_EXPORT_SPATIAL_MAP;
+    extern const bool ZED_REARCAM_USE_GPU_MAT;
+    extern const bool ZED_REARCAM_USE_HALF_PRECISION_DEPTH;
+    extern const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS;
+    extern const int ZED_REARCAM_SERIAL;
+    extern const double ZED_REARCAM_EASTING_OFFSET;
+    extern const double ZED_REARCAM_NORTHING_OFFSET;
+    extern const double ZED_REARCAM_ALTITUDE_OFFSET;
+    extern const double ZED_REARCAM_QUATERNION_OFFSET_X;
+    extern const double ZED_REARCAM_QUATERNION_OFFSET_Y;
+    extern const double ZED_REARCAM_QUATERNION_OFFSET_Z;
+    extern const double ZED_REARCAM_QUATERNION_OFFSET_W;
+
+    // Basic Cam.
+    extern const int BASICCAM_CAM_RESOLUTIONX;
+    extern const int BASICCAM_CAM_RESOLUTIONY;
+    extern const int BASICCAM_CAM_FPS;
+    extern const int BASICCAM_CAM_HORIZONTAL_FOV;
+    extern const int BASICCAM_CAM_VERTICAL_FOV;
+    extern const int BASICCAM_CAM_FRAME_RETRIEVAL_THREADS;
+    extern const int BASICCAM_CAM_INDEX;
+    extern const PIXEL_FORMATS BASICCAM_CAM_PIXELTYPE;
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -218,6 +250,9 @@ namespace constants
     //// Tag Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
 
+    // Models to use for detection.
+    extern const std::string TAGDETECT_TORCH_MODEL;
+
     // Main ZED Camera.
     extern const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS;
     extern const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER;
@@ -228,22 +263,44 @@ namespace constants
     extern const bool TAGDETECT_MAINCAM_ENABLE_TRACKING;
     extern const int TAGDETECT_MAINCAM_MAX_FPS;
     extern const bool TAGDETECT_MAINCAM_ENABLE_TORCH;
-    extern const std::string TAGDETECT_MAINCAM_TORCH_MODEL;
     extern const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH;
+
+    // Rear ZED Camera.
+    extern const int TAGDETECT_REARCAM_DATA_RETRIEVAL_THREADS;
+    extern const int TAGDETECT_REARCAM_CORNER_REFINE_MAX_ITER;
+    extern const int TAGDETECT_REARCAM_CORNER_REFINE_METHOD;
+    extern const bool TAGDETECT_REARCAM_DETECT_INVERTED_MARKER;
+    extern const int TAGDETECT_REARCAM_MARKER_BORDER_BITS;
+    extern const bool TAGDETECT_REARCAM_USE_ARUCO3_DETECTION;
+    extern const bool TAGDETECT_REARCAM_ENABLE_TRACKING;
+    extern const int TAGDETECT_REARCAM_MAX_FPS;
+    extern const bool TAGDETECT_REARCAM_ENABLE_TORCH;
+    extern const float TAGDETECT_REARCAM_TORCH_CONFIDENCE;
+    extern const float TAGDETECT_REARCAM_TORCH_NMS_THRESH;
 
     ///////////////////////////////////////////////////////////////////////////
     //// Object Detection Handler Adjustments.
     ///////////////////////////////////////////////////////////////////////////
+
+    // Models to use for detection.
+    extern const std::string OBJECTDETECT_TORCH_MODEL;
 
     // Main ZED Camera.
     extern const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS;
     extern const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING;
     extern const int OBJECTDETECT_MAINCAM_MAX_FPS;
     extern const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH;
-    extern const std::string OBJECTDETECT_MAINCAM_TORCH_MODEL;
     extern const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE;
     extern const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH;
+
+    // Rear ZED Camera.
+    extern const int OBJECTDETECT_REARCAM_DATA_RETRIEVAL_THREADS;
+    extern const bool OBJECTDETECT_REARCAM_ENABLE_TRACKING;
+    extern const int OBJECTDETECT_REARCAM_MAX_FPS;
+    extern const bool OBJECTDETECT_REARCAM_ENABLE_TORCH;
+    extern const float OBJECTDETECT_REARCAM_TORCH_CONFIDENCE;
+    extern const float OBJECTDETECT_REARCAM_TORCH_NMS_THRESH;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -377,6 +434,9 @@ namespace constants
     // NavBoard.
     extern const double NAVBOARD_MAX_GPS_DATA_AGE;
     extern const double NAVBOARD_MAX_COMPASS_DATA_AGE;
+    extern const double NAVBOARD_EASTING_OFFSET;
+    extern const double NAVBOARD_NORTHING_OFFSET;
+    extern const double NAVBOARD_ALTITUDE_OFFSET;
 
     ///////////////////////////////////////////////////////////////////////////
 

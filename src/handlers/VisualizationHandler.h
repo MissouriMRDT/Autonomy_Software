@@ -55,6 +55,7 @@ class VisualizationHandler : public AutonomyThread<void>
          ******************************************************************************/
         struct DisplayPoint
         {
+            public:
                 float fX, fY, fZ;    // RELATIVE to m_stOriginUTM.
                 float fScore;        // Traversal Score.
                 int nState;          // Robot State at this point.
@@ -69,6 +70,7 @@ class VisualizationHandler : public AutonomyThread<void>
          ******************************************************************************/
         struct DisplayWaypoint
         {
+            public:
                 float fX, fY, fZ;    // RELATIVE to m_stOriginUTM.
                 int nType;           // Type of waypoint/obstacle.
         };
@@ -82,6 +84,7 @@ class VisualizationHandler : public AutonomyThread<void>
          ******************************************************************************/
         struct DisplayDetection
         {
+            public:
                 float fX, fY, fZ;    // RELATIVE to m_stOriginUTM.
                 int nType;           // 10=Tag, 11=Mallet, 12=Bottle, 13=Pick
         };
@@ -101,6 +104,7 @@ class VisualizationHandler : public AutonomyThread<void>
         std::vector<char> OnRequestPlannedPath(const std::string& szQuery);
         std::vector<char> OnRequestWaypoints(const std::string& szQuery);
         std::vector<char> OnRequestDetections(const std::string& szQuery);
+        std::vector<char> OnRequestDetectionList(const std::string& szQuery);
 
         // Local Asset API.
         std::vector<char> OnRequestLibThree(const std::string& szQuery);
