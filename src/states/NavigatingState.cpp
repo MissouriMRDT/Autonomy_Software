@@ -135,21 +135,21 @@ namespace statemachine
                                                      stObstaclePosition.dNorthing - constants::STUCK_OBSTACLE_RADIUS,
                                                      stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
 
-            // int count = 0;
-            // LOG_INFO(logging::g_qSharedLogger, "Path before modification:");
-            // for (std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
-            // {
-            //     LOG_INFO(logging::g_qSharedLogger,
-            //              "{}: Point at ({}, {}) is ({} <= {}) && ({} <= {})",
-            //              count,
-            //              it->GetUTMCoordinate().dEasting,
-            //              it->GetUTMCoordinate().dNorthing,
-            //              abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting),
-            //              constants::STUCK_OBSTACLE_RADIUS,
-            //              abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing),
-            //              constants::STUCK_OBSTACLE_RADIUS);
-            //     ++count;
-            // }
+            int count = 0;
+            LOG_INFO(logging::g_qSharedLogger, "Path before modification:");
+            for (std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
+            {
+                LOG_INFO(logging::g_qSharedLogger,
+                         "{}: Point at ({}, {}) is ({} <= {}) && ({} <= {})",
+                         count,
+                         it->GetUTMCoordinate().dEasting,
+                         it->GetUTMCoordinate().dNorthing,
+                         abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting),
+                         constants::STUCK_OBSTACLE_RADIUS,
+                         abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing),
+                         constants::STUCK_OBSTACLE_RADIUS);
+                ++count;
+            }
 
             geoops::UTMCoordinate stStartCoordinate = stCurrentRoverPose.GetUTMCoordinate();
             geoops::UTMCoordinate stGoalCoordinate  = stObstaclePosition;    // Point at rim of obstacle closest to rover
@@ -157,9 +157,6 @@ namespace statemachine
             stGoalCoordinate.dNorthing -= std::sin(dRadians) * constants::STUCK_OBSTACLE_RADIUS;
             std::vector<geoops::Waypoint> vSplicePathCoordinates;
             std::vector<geoops::Waypoint>::iterator it;
-
-            int pointsAdded   = 0;
-            int pointsRemoved = 0;
 
             // If rover is in the obstacle, path it out first and connect it to previous path
             if (abs(stStartCoordinate.dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
@@ -171,13 +168,11 @@ namespace statemachine
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
                 it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), vSplicePathCoordinates.end());
                 it += vSplicePathCoordinates.size();
-                pointsAdded += vSplicePathCoordinates.size();
 
                 // Splice in a new path from outside of the obstacle to the end of the previous path
-                stStartCoordinate      = vSplicePathCoordinates.end()->GetUTMCoordinate();
+                stStartCoordinate      = std::prev(vSplicePathCoordinates.end())->GetUTMCoordinate();
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stFirstNodeOfOriginalPath);
                 it                     = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                pointsAdded += vSplicePathCoordinates.size() - 2;
             }
             // Just connect it to previous path
             else
@@ -186,7 +181,6 @@ namespace statemachine
                 stGoalCoordinate       = m_vPathCoordinates.front().GetUTMCoordinate();
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
                 it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), std::prev(vSplicePathCoordinates.end()));
-                pointsAdded += vSplicePathCoordinates.size() - 1;
             }
 
             // Remove all points that are in stuck zone
@@ -199,7 +193,6 @@ namespace statemachine
                 {
                     lastDeleted = true;
                     it          = m_vPathCoordinates.erase(it);
-                    ++pointsRemoved;
                 }
                 // If the previous node was deleted, then connect the dots correctly by splicing a new path in between
                 else if (lastDeleted)
@@ -211,7 +204,6 @@ namespace statemachine
                     it                     = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
                     lastDeleted            = false;
                     it += vSplicePathCoordinates.size() - 1;    // Move iterator to one after the inserted elements
-                    pointsAdded += vSplicePathCoordinates.size() - 2;
                 }
                 else
                 {
@@ -225,30 +217,27 @@ namespace statemachine
                 stGoalCoordinate       = it->GetUTMCoordinate();
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
                 m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                pointsAdded += vSplicePathCoordinates.size() - 2;
             }
-
-            LOG_INFO(logging::g_qSharedLogger, "Stuck state modified rover path: {} nodes added, {} nodes removed", pointsAdded, pointsRemoved);
 
             // Hopefully this part works
             m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
             m_pStanleyController->SetReferencePath(m_vPathCoordinates);
 
-            // count = 0;
-            // LOG_INFO(logging::g_qSharedLogger, "Path after modification:");
-            // for (it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
-            // {
-            //     LOG_INFO(logging::g_qSharedLogger,
-            //              "{}: Point at ({}, {}) is ({} <= {}) && ({} <= {})",
-            //              count,
-            //              it->GetUTMCoordinate().dEasting,
-            //              it->GetUTMCoordinate().dNorthing,
-            //              abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting),
-            //              constants::STUCK_OBSTACLE_RADIUS,
-            //              abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing),
-            //              constants::STUCK_OBSTACLE_RADIUS);
-            //     ++count;
-            // }
+            count = 0;
+            LOG_INFO(logging::g_qSharedLogger, "Path after modification:");
+            for (it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
+            {
+                LOG_INFO(logging::g_qSharedLogger,
+                         "{}: Point at ({}, {}) is ({} <= {}) && ({} <= {})",
+                         count,
+                         it->GetUTMCoordinate().dEasting,
+                         it->GetUTMCoordinate().dNorthing,
+                         abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting),
+                         constants::STUCK_OBSTACLE_RADIUS,
+                         abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing),
+                         constants::STUCK_OBSTACLE_RADIUS);
+                ++count;
+            }
             m_bWasStuck = false;
         }
 
