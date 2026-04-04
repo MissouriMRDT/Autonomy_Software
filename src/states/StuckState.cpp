@@ -401,5 +401,9 @@ namespace statemachine
 
         // Insert obstacle into lidar data
         globals::g_pLiDARHandler->DeclareLiDARObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
+
+        // TODO: There is no way another obstacle could be added between now and when it is accessed in navigating, right?
+        // Add obstacle to Waypoint handler to be accessed later in navigating state
+        globals::g_pWaypointHandler->AddObstacle(stObstaclePosition);
     }
 }    // namespace statemachine

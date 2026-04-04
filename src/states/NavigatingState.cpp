@@ -120,36 +120,22 @@ namespace statemachine
         // If navigating was previously stuck, then re-path plan
         if (m_bWasStuck)
         {
-            // Convert from compass degrees to unit circle radians.
-            double dRadians = (90.0 - stCurrentRoverPose.GetCompassHeading()) * M_PI / 180.0;
-            if (dRadians < 0)
-                dRadians += 2 * M_PI;
-            // Get the obstacle's origin
-            geoops::UTMCoordinate stObstaclePosition = stCurrentRoverPose.GetUTMCoordinate();
-            stObstaclePosition.dEasting += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
-            stObstaclePosition.dNorthing += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+            // Get the obstacle's origin and radians from rover to obstacle
+            int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount();
+            geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex - 1).GetUTMCoordinate();
+            LOG_INFO(logging::g_qSharedLogger, "Retrieved Obstacle: ({}, {})", stObstaclePosition.dEasting, stObstaclePosition.dNorthing);
+
+            // Get radian heading from rover to obstacle
+            double dx       = stObstaclePosition.dEasting - stCurrentRoverPose.GetUTMCoordinate().dEasting;
+            double dy       = stObstaclePosition.dNorthing - stCurrentRoverPose.GetUTMCoordinate().dNorthing;
+            double dRadians = atan2(dy, dx);
+            LOG_INFO(logging::g_qSharedLogger, "Retrieved angle: {} degrees", dRadians);
 
             // Reload saved path planner LiDAR data
             globals::g_pGeoPlanner->UnloadLiDARTiles(stObstaclePosition.dEasting - constants::STUCK_OBSTACLE_RADIUS,
                                                      stObstaclePosition.dEasting + constants::STUCK_OBSTACLE_RADIUS,
                                                      stObstaclePosition.dNorthing - constants::STUCK_OBSTACLE_RADIUS,
                                                      stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
-
-            // int count = 0;
-            // LOG_INFO(logging::g_qSharedLogger, "Path before modification:");
-            // for (std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
-            // {
-            //     LOG_INFO(logging::g_qSharedLogger,
-            //              "{}: Point at ({}, {}) is ({} <= {}) && ({} <= {})",
-            //              count,
-            //              it->GetUTMCoordinate().dEasting,
-            //              it->GetUTMCoordinate().dNorthing,
-            //              abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting),
-            //              constants::STUCK_OBSTACLE_RADIUS,
-            //              abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing),
-            //              constants::STUCK_OBSTACLE_RADIUS);
-            //     ++count;
-            // }
 
             geoops::UTMCoordinate stStartCoordinate = stCurrentRoverPose.GetUTMCoordinate();
             geoops::UTMCoordinate stGoalCoordinate  = stObstaclePosition;    // Point at rim of obstacle closest to rover
@@ -234,21 +220,6 @@ namespace statemachine
             m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
             m_pStanleyController->SetReferencePath(m_vPathCoordinates);
 
-            // count = 0;
-            // LOG_INFO(logging::g_qSharedLogger, "Path after modification:");
-            // for (it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
-            // {
-            //     LOG_INFO(logging::g_qSharedLogger,
-            //              "{}: Point at ({}, {}) is ({} <= {}) && ({} <= {})",
-            //              count,
-            //              it->GetUTMCoordinate().dEasting,
-            //              it->GetUTMCoordinate().dNorthing,
-            //              abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting),
-            //              constants::STUCK_OBSTACLE_RADIUS,
-            //              abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing),
-            //              constants::STUCK_OBSTACLE_RADIUS);
-            //     ++count;
-            // }
             m_bWasStuck = false;
         }
 
