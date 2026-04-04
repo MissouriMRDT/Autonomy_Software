@@ -165,7 +165,7 @@ namespace statemachine
             else
             {
                 // Splice in a new path from rover's current location to the end of the previous path
-                stGoalCoordinate       = m_vPathCoordinates.front().GetUTMCoordinate();
+                stGoalCoordinate       = m_vPathCoordinates.back().GetUTMCoordinate();
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
                 it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), std::prev(vSplicePathCoordinates.end()));
                 pointsAdded += vSplicePathCoordinates.size() - 1;
