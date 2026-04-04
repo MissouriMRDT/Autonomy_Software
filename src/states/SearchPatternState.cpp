@@ -51,7 +51,7 @@ namespace statemachine
                                                                        m_stSearchPatternCenter.dRadius,
                                                                        stCurrentRoverPose.GetCompassHeading(),
                                                                        constants::SEARCH_SPIRAL_SPACING);
-
+        m_vSearchPath = RemoveRedZonePoints(m_vSearchPath);
         m_vSearchPath = GeoPlanSearchPattern(m_vSearchPath);
 
         // Add the search and rover path layers to the plot.
@@ -94,14 +94,36 @@ namespace statemachine
         globals::g_pDriveBoard->SendStop();
     }
 
-    std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeltonPath)
+    std::vector<geoops::Waypoint> SearchPatternState::RemoveRedZonePoints(const std::vector<geoops::Waypoint>& skeletonPath)
     {
-        LOG_NOTICE(logging::g_qSharedLogger, "Starting GeoPlanSearchPattern Path length: {}", skeltonPath.size());
+        std::vector<geoops::Waypoint> adjustedPath = skeletonPath;
+        for (long unsigned int i = 0; i < skeletonPath.size(); i++)
+        {
+            std::vector<LiDARHandler::PointRow> vLidarData = globals::g_pLiDARHandler->GetLiDARData(
+                LiDARHandler::PointFilter{skeletonPath[i].GetUTMCoordinate().dEasting, skeletonPath[i].GetUTMCoordinate().dNorthing, skeletonPath[i].dRadius});
+            for (long unsigned int j = 0; j < vLidarData.size(); j++)
+            {
+                LOG_NOTICE(logging::g_qSharedLogger, "Lidar Traverse Score: {}", vLidarData[j].dTraversalScore);
+                if (vLidarData[j].dTraversalScore >= 2)
+                {
+                    adjustedPath.erase(adjustedPath.begin() + static_cast<long int>(i));
+                    i--;
+                    break;
+                }
+            }
+        }
+
+        return adjustedPath;
+    };
+
+    std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeletonPath)
+    {
+        LOG_NOTICE(logging::g_qSharedLogger, "Starting GeoPlanSearchPattern Path length: {}", skeletonPath.size());
         std::vector<geoops::Waypoint> m_vSearchPath;
-        for (long unsigned int i = 0; i < skeltonPath.size() - 1; i++)
+        for (long unsigned int i = 0; i < skeletonPath.size() - 1; i++)
         {
             std::vector<geoops::Waypoint> newPoints =
-                globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, skeltonPath[i].GetUTMCoordinate(), skeltonPath[i + 1].GetUTMCoordinate(), 2.0, 240.0, false);
+                globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, skeletonPath[i].GetUTMCoordinate(), skeletonPath[i + 1].GetUTMCoordinate(), 2.0, 240.0, false);
             m_vSearchPath.insert(m_vSearchPath.end(), newPoints.begin(), newPoints.end());
         }
 
@@ -123,9 +145,9 @@ namespace statemachine
         // Initialize member variables.
         m_bInitialized       = false;
         m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                       constants::STUCK_CHECK_INTERVAL,
-                                                                       constants::STUCK_CHECK_VEL_THRESH,
-                                                                       constants::STUCK_CHECK_ROT_THRESH);
+                                                                            constants::STUCK_CHECK_INTERVAL,
+                                                                            constants::STUCK_CHECK_VEL_THRESH,
+                                                                            constants::STUCK_CHECK_ROT_THRESH);
         m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
         m_pPursuitController = std::make_unique<controllers::PurePursuitController>();
 
