@@ -36,11 +36,7 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_bWasStuck = false;
-
-        // NOTE: temporary testing
-        m_bTestStuck        = true;
-
+        m_bWasStuck         = false;
         m_bFetchNewWaypoint = true;
         m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                                globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
@@ -457,18 +453,10 @@ namespace statemachine
         /* ---  Check if the rover is stuck --- */
         //////////////////////////////////////////
 
-        // NOTE: temporary testing
-        if (m_bTestStuck)
-        {
-            m_bTestStuck = false;
-            goto A;
-        }
-
         // Check if stuck.
         if (constants::NAVIGATING_ENABLE_STUCK_DETECT &&
             m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(), globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()))
         {
-        A:
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
             // Handle state transition and save the current search pattern state.
