@@ -35,6 +35,7 @@ namespace statemachine
         private:
             bool m_bInitialized;
             geoops::Waypoint m_stGoalWaypoint;
+            ObjectDetectionHandler::ObjectDetectors m_eWinningDetector;
             std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             std::chrono::system_clock::time_point m_tmObjectVerificationStartTime;
             std::chrono::system_clock::time_point m_tmObjectLastSeenTime;

@@ -43,8 +43,10 @@ namespace statemachine
         m_tmTagLastSeenTime          = std::chrono::system_clock::now();
 
         // Get tag detectors.
-        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
+        m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                              globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
+
+        m_eWinningDetector = TagDetectionHandler::TagDetectors::eHeadMainCam;
     }
 
     /******************************************************************************
@@ -95,6 +97,12 @@ namespace statemachine
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
         statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
+
+        // Check both cameras
+        tagdetectutils::ArucoTag stFrontAruco, stFrontTorch, stRearAruco, stRearTorch;
+        statemachine::IdentifyTargetMarker(std::vector<std::shared_ptr<TagDetector>>{m_vTagDetectors[0]}, stFrontAruco, stFrontTorch, m_stGoalWaypoint.nID);
+        statemachine::IdentifyTargetMarker(std::vector<std::shared_ptr<TagDetector>>{m_vTagDetectors[1]}, stRearAruco, stRearTorch, m_stGoalWaypoint.nID);
+
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmTagVerificationStartTime).count() / 1000.0;
@@ -105,6 +113,22 @@ namespace statemachine
             If we consistently detect a marker for a certain amount of time, we can assume that we are in fact in front of the marker.
             At this point, we can also assume we are close enough for the pointcloud to be usable and for aruco to pick up the tag.
         */
+
+        bool bFrontValid   = (stFrontAruco.nID != -1 || stFrontTorch.dConfidence > 0.0);
+        bool bRearValid    = (stRearAruco.nID != -1 || stRearTorch.dConfidence > 0.0);
+
+        stBestArucoTag     = stFrontAruco;
+        stBestTorchTag     = stFrontTorch;
+        m_eWinningDetector = TagDetectionHandler::TagDetectors::eHeadMainCam;
+
+        // If only the rear camera sees it, or if it has a better view, use the rear
+        if (bRearValid && !bFrontValid)
+        {
+            stBestArucoTag     = stRearAruco;
+            stBestTorchTag     = stRearTorch;
+            m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
+        }
+
         // Check if ArUco tag is detected.
         if (stBestArucoTag.nID == -1 && stBestTorchTag.dConfidence == 0.0)
         {
@@ -183,7 +207,7 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
                 // Request the snapshot from the handler
-                cv::Mat cvSnapshot = globals::g_pTagDetectionHandler->RequestDetectionOverlayFrame();
+                cv::Mat cvSnapshot = globals::g_pTagDetectionHandler->RequestDetectionOverlayFrame(m_eWinningDetector);
 
                 if (!cvSnapshot.empty())
                 {

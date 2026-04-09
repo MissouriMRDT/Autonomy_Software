@@ -47,6 +47,8 @@ namespace statemachine
         // Get object detectors.
         m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
                               globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
+
+        m_eWinningDetector = ObjectDetectionHandler::ObjectDetectors::eHeadMainCam;
     }
 
     /******************************************************************************
@@ -97,6 +99,18 @@ namespace statemachine
         // Identify target object.
         objectdetectutils::Object stBestObject;
         statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
+
+        // Setup individual detector vectors
+        std::vector<std::shared_ptr<ObjectDetector>> vFrontDetector = {
+            globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
+        std::vector<std::shared_ptr<ObjectDetector>> vRearDetector = {
+            globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
+
+        // Check both cameras
+        objectdetectutils::Object stFrontObject, stRearObject;
+        statemachine::IdentifyTargetObject(vFrontDetector, stFrontObject, m_stGoalWaypoint.eType);
+        statemachine::IdentifyTargetObject(vRearDetector, stRearObject, m_stGoalWaypoint.eType);
+
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectVerificationStartTime).count() / 1000.0;
@@ -107,6 +121,17 @@ namespace statemachine
             If we consistently detect an object for a certain amount of time, we can assume that we are in fact in front of the object.
             At this point, we can also assume we are close enough for the pointcloud to be usable and pick up the object.
         */
+
+        // Determine which camera has the best view (highest confidence)
+        stBestObject       = stFrontObject;
+        m_eWinningDetector = ObjectDetectionHandler::ObjectDetectors::eHeadMainCam;
+
+        if (stRearObject.dConfidence > stFrontObject.dConfidence)
+        {
+            stBestObject       = stRearObject;
+            m_eWinningDetector = ObjectDetectionHandler::ObjectDetectors::eRearCam;
+        }
+
         // Check if object is detected.
         if (stBestObject.dConfidence == 0.0)
         {
@@ -178,7 +203,7 @@ namespace statemachine
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
                 // Request the snapshot from the object detection handler
-                cv::Mat cvSnapshot = globals::g_pObjectDetectionHandler->RequestDetectionOverlayFrame();
+                cv::Mat cvSnapshot = globals::g_pObjectDetectionHandler->RequestDetectionOverlayFrame(m_eWinningDetector);
 
                 if (!cvSnapshot.empty())
                 {
