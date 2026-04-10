@@ -82,7 +82,8 @@ namespace statemachine
             // Declare public class methods.
             /////////////////////////////////////////
             std::vector<geoops::Waypoint> GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeltonPath);
-            std::vector<geoops::Waypoint> RemoveRedZonePoints(const std::vector<geoops::Waypoint>& skeltonPath);
+            void SplitPathIntoLayers(const std::vector<geoops::Waypoint>& searchPath);
+            void RemoveRedZonePoints(std::vector<geoops::Waypoint>& skeltonPath);
             SearchPatternState();
             void Run() override;
             States TriggerEvent(Event eEvent) override;

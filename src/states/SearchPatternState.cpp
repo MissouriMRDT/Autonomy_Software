@@ -48,14 +48,15 @@ namespace statemachine
         // Calculate the search path.
         m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
-                                                                       m_stSearchPatternCenter.dRadius,
+                                                                       15.0,
+                                                                       // m_stSearchPatternCenter.dRadius,
                                                                        stCurrentRoverPose.GetCompassHeading(),
                                                                        constants::SEARCH_SPIRAL_SPACING);
-        m_vSearchPath = RemoveRedZonePoints(m_vSearchPath);
+        RemoveRedZonePoints(m_vSearchPath);
         m_vSearchPath = GeoPlanSearchPattern(m_vSearchPath);
 
         // Add the search and rover path layers to the plot.
-        m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
+        // m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
         m_pRoverPathPlot->CreatePathLayer("ReverseSpiralSearchPattern", "-o");
         m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
@@ -64,12 +65,14 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("PurePursuitTargetIndex", "or");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
         // Plot the search path on the rover path.
-        m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
+        // m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
         // Plot the search path in the visualizer.
         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
 
         // Set the path of the pure pursuit controller.
         m_pPursuitController->SetReferencePath(m_vSearchPath);
+        m_pPursuitController->SetLookaheadDistance(1.0);
+        SplitPathIntoLayers(m_vSearchPath);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
@@ -94,27 +97,51 @@ namespace statemachine
         globals::g_pDriveBoard->SendStop();
     }
 
-    std::vector<geoops::Waypoint> SearchPatternState::RemoveRedZonePoints(const std::vector<geoops::Waypoint>& skeletonPath)
+    void SearchPatternState::SplitPathIntoLayers(const std::vector<geoops::Waypoint>& searchPath)
     {
-        std::vector<geoops::Waypoint> adjustedPath = skeletonPath;
-        for (long unsigned int i = 0; i < skeletonPath.size(); i++)
+        std::vector<geoops::Waypoint> splitPath;
+        std::string layerFormat[5] = {"-or", "-og", "-oc", "-om", "-oy"};
+        int count                  = 0;
+        for (size_t i = 0; i < searchPath.size(); i++)
         {
-            std::vector<LiDARHandler::PointRow> vLidarData = globals::g_pLiDARHandler->GetLiDARData(
-                LiDARHandler::PointFilter{skeletonPath[i].GetUTMCoordinate().dEasting, skeletonPath[i].GetUTMCoordinate().dNorthing, skeletonPath[i].dRadius});
-            for (long unsigned int j = 0; j < vLidarData.size(); j++)
+            splitPath.push_back(searchPath[i]);
+            if ((i + 1) % (searchPath.size() / 4) == 0 || i == searchPath.size() - 1)
             {
-                LOG_NOTICE(logging::g_qSharedLogger, "Lidar Traverse Score: {}", vLidarData[j].dTraversalScore);
-                if (vLidarData[j].dTraversalScore >= 2)
-                {
-                    adjustedPath.erase(adjustedPath.begin() + static_cast<long int>(i));
-                    i--;
-                    break;
-                }
+                m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern" + std::to_string(i / 4), layerFormat[count]);
+                m_pRoverPathPlot->AddPathPoints(splitPath, "SpiralSearchPattern" + std::to_string(i / 4), 0);
+                splitPath.clear();
+                count++;
             }
         }
+    }
 
-        return adjustedPath;
-    };
+    void SearchPatternState::RemoveRedZonePoints(std::vector<geoops::Waypoint>& skeletonPath)
+    {
+        for (long unsigned int i = 0; i < skeletonPath.size();)
+        {
+            int nTileX = static_cast<int>(std::floor(skeletonPath[i].GetUTMCoordinate().dEasting / 5.0));
+            int nTileY = static_cast<int>(std::floor(skeletonPath[i].GetUTMCoordinate().dNorthing / 5.0));
+            LiDARHandler::PointFilter stFilter;
+            stFilter.dEasting        = (nTileX + 0.5) * 5.0;                                  // Center of the tile in easting.
+            stFilter.dNorthing       = (nTileY + 0.5) * 5.0;                                  // Center of the tile in northing.
+            stFilter.dRadius         = std::sqrt(2) * (5.0 / 2.0);                            // Radius to cover the entire tile
+            stFilter.dTraversalScore = LiDARHandler::PointFilter::Range<double>{0.5, 1.0};    // Only load points with sufficient traversal
+            LOG_NOTICE(logging::g_qSharedLogger, "---------Happens----------- {} * {} * {}", stFilter.dEasting, stFilter.dNorthing, stFilter.dRadius);
+
+            std::vector<LiDARHandler::PointRow> vLidarData = globals::g_pLiDARHandler->GetLiDARData(stFilter);
+            LOG_NOTICE(logging::g_qSharedLogger, "---------Lidar Data Size----------- {}", vLidarData.size());
+
+            LOG_NOTICE(logging::g_qSharedLogger, "Lidar Traverse Score: {}", vLidarData.empty() ? -1.0 : vLidarData[0].dTraversalScore);
+            if (vLidarData.empty())
+            {
+                skeletonPath.erase(skeletonPath.begin() + static_cast<long int>(i));
+            }
+            else
+            {
+                ++i;
+            }
+        }
+    }
 
     std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeletonPath)
     {
@@ -353,10 +380,8 @@ namespace statemachine
     States SearchPatternState::TriggerEvent(Event eEvent)
     {
         // Create instance variables.
-        States eNextState = States::eSearchPattern;
-        // Get the current rover pose.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
-        bool bCompleteStateExit              = true;
+        States eNextState       = States::eSearchPattern;
+        bool bCompleteStateExit = true;
 
         switch (eEvent)
         {
@@ -399,13 +424,7 @@ namespace statemachine
                     {
                         // Submit logger message.
                         LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying reverse spiral...");
-                        // Generate vertical reverse spiral pattern.
 
-                        // m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
-                        //                                                                -constants::SEARCH_ANGULAR_STEP_DEGREES,
-                        //                                                                m_stSearchPatternCenter.dRadius,
-                        //                                                                stCurrentRoverPose.GetCompassHeading(),
-                        //                                                                constants::SEARCH_SPIRAL_SPACING);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
