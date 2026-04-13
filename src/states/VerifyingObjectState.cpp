@@ -98,18 +98,10 @@ namespace statemachine
 
         // Identify target object.
         objectdetectutils::Object stBestObject;
-        statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
-
-        // Setup individual detector vectors
-        std::vector<std::shared_ptr<ObjectDetector>> vFrontDetector = {
-            globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam)};
-        std::vector<std::shared_ptr<ObjectDetector>> vRearDetector = {
-            globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
-
         // Check both cameras
         objectdetectutils::Object stFrontObject, stRearObject;
-        statemachine::IdentifyTargetObject(vFrontDetector, stFrontObject, m_stGoalWaypoint.eType);
-        statemachine::IdentifyTargetObject(vRearDetector, stRearObject, m_stGoalWaypoint.eType);
+        statemachine::IdentifyTargetObject({m_vObjectDetectors[0]}, stFrontObject, m_stGoalWaypoint.eType);
+        statemachine::IdentifyTargetObject({m_vObjectDetectors[1]}, stRearObject, m_stGoalWaypoint.eType);
 
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();

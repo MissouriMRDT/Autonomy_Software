@@ -14,6 +14,7 @@
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../vision/objects/ObjectDetector.h"
+#include "../vision/objects/ObjectDetectionHandler.h"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.

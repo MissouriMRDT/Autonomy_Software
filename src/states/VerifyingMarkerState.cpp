@@ -96,12 +96,11 @@ namespace statemachine
 
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
-        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
 
         // Check both cameras
         tagdetectutils::ArucoTag stFrontAruco, stFrontTorch, stRearAruco, stRearTorch;
-        statemachine::IdentifyTargetMarker(std::vector<std::shared_ptr<TagDetector>>{m_vTagDetectors[0]}, stFrontAruco, stFrontTorch, m_stGoalWaypoint.nID);
-        statemachine::IdentifyTargetMarker(std::vector<std::shared_ptr<TagDetector>>{m_vTagDetectors[1]}, stRearAruco, stRearTorch, m_stGoalWaypoint.nID);
+        statemachine::IdentifyTargetMarker({m_vTagDetectors[0]}, stFrontAruco, stFrontTorch, m_stGoalWaypoint.nID);
+        statemachine::IdentifyTargetMarker({m_vTagDetectors[1]}, stRearAruco, stRearTorch, m_stGoalWaypoint.nID);
 
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
@@ -117,16 +116,58 @@ namespace statemachine
         bool bFrontValid   = (stFrontAruco.nID != -1 || stFrontTorch.dConfidence > 0.0);
         bool bRearValid    = (stRearAruco.nID != -1 || stRearTorch.dConfidence > 0.0);
 
+        // Default to front camera
         stBestArucoTag     = stFrontAruco;
         stBestTorchTag     = stFrontTorch;
         m_eWinningDetector = TagDetectionHandler::TagDetectors::eHeadMainCam;
 
-        // If only the rear camera sees it, or if it has a better view, use the rear
+        // If only the rear camera sees it, use the rear
         if (bRearValid && !bFrontValid)
         {
             stBestArucoTag     = stRearAruco;
             stBestTorchTag     = stRearTorch;
             m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
+        }
+        // If both cameras detect the tag, select the one with the better detection
+        else if (bFrontValid && bRearValid)
+        {
+            bool bFrontArucoDetected = (stFrontAruco.nID != -1);
+            bool bRearArucoDetected  = (stRearAruco.nID != -1);
+
+            // If both have ArUco detections, compare distances
+            if (bFrontArucoDetected && bRearArucoDetected)
+            {
+                if (stRearAruco.dStraightLineDistance < stFrontAruco.dStraightLineDistance)
+                {
+                    stBestArucoTag     = stRearAruco;
+                    stBestTorchTag     = stRearTorch;
+                    m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
+                }
+            }
+            // If only rear has ArUco detection, use rear
+            else if (!bFrontArucoDetected && bRearArucoDetected)
+            {
+                stBestArucoTag     = stRearAruco;
+                stBestTorchTag     = stRearTorch;
+                m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
+            }
+            // If both have Torch detections (and no ArUco), compare confidences
+            else if (stFrontTorch.dConfidence > 0.0 && stRearTorch.dConfidence > 0.0)
+            {
+                if (stRearTorch.dConfidence > stFrontTorch.dConfidence)
+                {
+                    stBestArucoTag     = stRearAruco;
+                    stBestTorchTag     = stRearTorch;
+                    m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
+                }
+            }
+            // If only rear has Torch detection, use rear
+            else if (stFrontTorch.dConfidence == 0.0 && stRearTorch.dConfidence > 0.0)
+            {
+                stBestArucoTag     = stRearAruco;
+                stBestTorchTag     = stRearTorch;
+                m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
+            }
         }
 
         // Check if ArUco tag is detected.
