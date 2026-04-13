@@ -395,6 +395,8 @@ namespace constants
     const bool NAVIGATING_VERIFY_POSITION       = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
     const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
+    const float GROUND_CLEARANCE_METERS         = 0.15;     // The amount of ground clearance we have when driving/what we can safely drive over.
+    const float ROVER_HEIGHT_METERS             = 1.7;      // The height of the rover in meters.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

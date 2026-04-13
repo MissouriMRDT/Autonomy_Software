@@ -51,6 +51,11 @@ namespace statemachine
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
             std::vector<geoops::Waypoint> m_vPathCoordinates;
 
+            /////////////////////////////////////////
+            // Declare private member methods.
+            /////////////////////////////////////////
+            std::vector<geoops::UTMCoordinate> ExtractObstaclesFromZED(const cv::Mat& cvPointCloud, sl::Plane& slFloorPlane, const geoops::RoverPose& stCurrentPose);
+
         protected:
             /////////////////////////////////////////
             // Declare protected class methods.

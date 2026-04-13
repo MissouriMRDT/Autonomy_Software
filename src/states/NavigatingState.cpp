@@ -99,6 +99,81 @@ namespace statemachine
     }
 
     /******************************************************************************
+     * @brief This method processes the ZED LiDAR data to look for obstacles in the camera view.
+     *
+     * @param cvPointCloud - The ZED point cloud.
+     * @param slFloorPlane - The floor that we see through the ZED camera.
+     * @param stCurrentPose - The current RoverPose.
+     * @return std::vector<geoops::UTMCoordinate> - A vector of coordinates where obstacles are.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2026-04-13
+     ******************************************************************************/
+    std::vector<geoops::UTMCoordinate> NavigatingState::ExtractObstaclesFromZED(const cv::Mat& cvPointCloud,
+                                                                                sl::Plane& slFloorPlane,
+                                                                                const geoops::RoverPose& stCurrentPose)
+    {
+        // The vector to hold the coordinates of the obstacles.
+        std::vector<geoops::UTMCoordinate> vObstacles;
+
+        // Get the plane equation A, B, C, D where Ax + By + Cz + D = 0
+        sl::float4 slEquation = slFloorPlane.getPlaneEquation();
+        float slA             = slEquation.x;
+        float slB             = slEquation.y;
+        float slC             = slEquation.z;
+        float slD             = slEquation.w;
+
+        // The denominator for the math.
+        float fDenominator = std::sqrt(slA * slA + slB * slB + slC * slC);
+
+        // Calculate the heading transformation.
+        double dAdjustedHeading                 = numops::InputAngleModulus((stCurrentPose.GetCompassHeading() * -1.0) + 90.0, 0.0, 360.0);
+        double dHeadingRad                      = dAdjustedHeading * M_PI / 180.0;
+        const geoops::UTMCoordinate& stRoverUTM = stCurrentPose.GetUTMCoordinate();
+
+        // Iterating through the points in the pointcloud.
+        for (int nY = 0; nY < cvPointCloud.rows; nY += 5)
+        {
+            for (int nX = 0; nX < cvPointCloud.cols; nX += 5)
+            {
+                // Extract the local XYZ coordinates from the pixel.
+                cv::Vec4f cvPoint = cvPointCloud.at<cv::Vec4f>(nY, nX);
+
+                // Ignore invalid/NaN points.
+                if (std::isnan(cvPoint[2]) || cvPoint[2] <= 0)
+                {
+                    continue;
+                }
+
+                // Calculate orthogonal distance from the point to the floor plane.
+                float fDistanceToFloor = std::abs(slA * cvPoint[0] + slB * cvPoint[1] + slC * cvPoint[2] + slD) / fDenominator;
+
+                // Checking if the point is an obstacle.
+                if (fDistanceToFloor > constants::GROUND_CLEARANCE_METERS && fDistanceToFloor < constants::ROVER_HEIGHT_METERS)
+                {
+                    // Extract local coordinates.
+                    float fLocalX = cvPoint[0];
+                    float fLocalY = cvPoint[1];
+                    float fLocalZ = cvPoint[2];
+
+                    // Transform camera coordinates to global UTM coordinates.
+                    double dEasting  = stRoverUTM.dEasting + (fLocalZ * cos(dHeadingRad) + fLocalX * sin(dHeadingRad));
+                    double dNorthing = stRoverUTM.dNorthing + (fLocalZ * sin(dHeadingRad) - fLocalX * cos(dHeadingRad));
+                    double dAltitude = stRoverUTM.dAltitude + fLocalY;
+
+                    // Create the global UTM coordinate.
+                    geoops::UTMCoordinate stGlobalObstaclePoint(dEasting, dNorthing, stRoverUTM.nZone, stRoverUTM.bWithinNorthernHemisphere, dAltitude);
+
+                    // Add the obstacle point into the obstacle vector.
+                    vObstacles.push_back(stGlobalObstaclePoint);
+                }
+            }
+        }
+
+        return vObstacles;
+    }
+
+    /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
      * @author Eli Byrd (edbgkk@mst.edu)
@@ -242,7 +317,49 @@ namespace statemachine
         /* --- Detect Obstacles --- */
         //////////////////////////////
 
-        // TODO: Add obstacle detection to Navigating state
+        std::shared_ptr<ZEDCamera> pZED = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        if (pZED)
+        {
+            cv::Mat cvPointCloud;
+            sl::Plane slFloorPlane;
+
+            // Request point cloud and floor plane.
+            std::future<bool> fuCloudStatus = pZED->RequestPointCloudCopy(cvPointCloud);
+            std::future<bool> fuPlaneStatus = pZED->RequestFloorPlaneCopy(slFloorPlane);
+
+            if (fuCloudStatus.get() && fuPlaneStatus.get() && !cvPointCloud.empty())
+            {
+                std::vector<geoops::UTMCoordinate> vNewObstacles = this->ExtractObstaclesFromZED(cvPointCloud, slFloorPlane, stCurrentRoverPose);
+
+                if (!vNewObstacles.empty())
+                {
+                    LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Extracted {} virtual obstacles from ZED.", vNewObstacles.size());
+
+                    // TODO: Put in method to place the points in database
+                    // place method here
+
+                    // Dynamically replan the path around the new obstacles using the GeoPlanner.
+                    m_vPathCoordinates =
+                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+
+                    if (!m_vPathCoordinates.empty())
+                    {
+                        // Update the visualizer with the new path.
+                        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
+                        m_pRoverPathPlot->ClearLayer("GeoPath");
+                        m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
+
+                        // Pass the new avoidance path to the controller.
+                        m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+                    }
+                    else
+                    {
+                        // If no safe path, might be stuck in some way. After logging, this will continue to stuck state code if stuck.
+                        LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe path around the obstacle!");
+                    }
+                }
+            }
+        }
 
         ///////////////////////////////////////
         /* --- Navigate to goal waypoint --- */
