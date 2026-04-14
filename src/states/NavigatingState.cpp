@@ -335,27 +335,40 @@ namespace statemachine
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Extracted {} virtual obstacles from ZED.", vNewObstacles.size());
 
-                    // TODO: Put in method to place the points in database
-                    // place method here
-
-                    // Dynamically replan the path around the new obstacles using the GeoPlanner.
-                    m_vPathCoordinates =
-                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-
-                    if (!m_vPathCoordinates.empty())
+                    // 1. Add the new points to the WaypointHandler's global obstacle list
+                    for (const geoops::UTMCoordinate& stPoint : vNewObstacles)
                     {
-                        // Update the visualizer with the new path.
-                        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
-                        m_pRoverPathPlot->ClearLayer("GeoPath");
-                        m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
+                        globals::g_pWaypointHandler->AddObstacle(stPoint, 0.5);    // Assign a 0.5m radius
+                    }
 
-                        // Pass the new avoidance path to the controller.
+                    // --- DYNAMIC LOCAL AVOIDANCE SPLICING (USING GEOPLANNER) ---
+                    size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
+                    size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
+                    geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
+
+                    // 2. Clear the GeoPlanner's cache so it is forced to look at the new obstacles
+                    globals::g_pGeoPlanner->ClearGeoCache();
+
+                    // 3. Plan the detour
+                    std::vector<geoops::Waypoint> vDetour = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
+                                                                                             stCurrentRoverPose.GetUTMCoordinate(),
+                                                                                             stLocalRejoinGoal,
+                                                                                             2.0,       // Search Radius
+                                                                                             5.0,       // Max Search Time
+                                                                                             false);    // Plot Path
+
+                    if (!vDetour.empty())
+                    {
+                        // 4. Splice the detour into the global path
+                        m_vPathCoordinates.erase(m_vPathCoordinates.begin() + nCurrentIndex, m_vPathCoordinates.begin() + nRejoinIndex);
+                        m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nCurrentIndex, vDetour.begin(), vDetour.end());
+
+                        // Pass the updated path back to the controller
                         m_pStanleyController->SetReferencePath(m_vPathCoordinates);
                     }
                     else
                     {
-                        // If no safe path, might be stuck in some way. After logging, this will continue to stuck state code if stuck.
-                        LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe path around the obstacle!");
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
                     }
                 }
             }

@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "GeoPlanner.h"
+#include "../../AutonomyGlobals.h"
 #include "../../AutonomyNetworking.h"
 
 /******************************************************************************
@@ -284,6 +285,45 @@ namespace pathplanners
         m_usKDTreeInsertedTiles.clear();
         m_pKDTree->clear();
 
+        // Grab all obstacles from the waypoint handler.
+        std::vector<geoops::Waypoint> vDynamicObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+        // Negative IDs for ZED points so they don't conflict with real LiDAR database IDs.
+        int nDynamicObsID = -1;
+
+        // Loop through the obstacle vector.
+        for (size_t i = 0; i < vDynamicObstacles.size(); ++i)
+        {
+            // Grab the obstacle and its UTM coordinate.
+            const geoops::Waypoint& stObstacle = vDynamicObstacles[i];
+            const geoops::UTMCoordinate& stUTM = stObstacle.GetUTMCoordinate();
+
+            // Setting the information for the obstacle.
+            LiDARHandler::PointRow stZEDPoint;
+            stZEDPoint.nID             = nDynamicObsID--;
+            stZEDPoint.dEasting        = stUTM.dEasting;
+            stZEDPoint.dNorthing       = stUTM.dNorthing;
+            stZEDPoint.dAltitude       = stUTM.dAltitude;
+            stZEDPoint.szZone          = std::to_string(stUTM.nZone) + (stUTM.bWithinNorthernHemisphere ? "N" : "S");
+            stZEDPoint.dTraversalScore = 0.0;    // Mark as untraversable.
+
+            // Insert directly into the planner's spatial KD-Tree.
+            m_pKDTree->insert(stZEDPoint);
+
+            // Explicitly declare and populate the PlannerState.
+            PlannerState stNewState;
+            stNewState.nID                   = stZEDPoint.nID;
+            stNewState.dEasting              = stZEDPoint.dEasting;
+            stNewState.dNorthing             = stZEDPoint.dNorthing;
+            stNewState.dAltitude             = stZEDPoint.dAltitude;
+            stNewState.nZone                 = stUTM.nZone;
+            stNewState.bInNorthernHemisphere = stUTM.bWithinNorthernHemisphere;
+            stNewState.dGCost                = std::numeric_limits<double>::infinity();
+            stNewState.dHCost                = 0.0;
+
+            // Register the state.
+            m_umAllStates[stZEDPoint.nID] = stNewState;
+        }
+
         // Cache the start and end tiles and update ID values.
         PlannerState stStartState = FindClosestLiDARPoint(stStart);
         PlannerState stEndState   = FindClosestLiDARPoint(stEnd);
@@ -548,6 +588,43 @@ namespace pathplanners
                 // Log warning message.
                 LOG_WARNING(logging::g_qSharedLogger, "No LiDAR points found in tile ({}, {}).", nTileX, nTileY);
                 return;
+            }
+
+            // Grab all the obstacle from the waypoint handler.
+            std::vector<geoops::Waypoint> vDynamicObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+
+            // If it's populated, loop through it.
+            if (!vDynamicObstacles.empty())
+            {
+                for (size_t i = 0; i < vTilePoints.size(); ++i)
+                {
+                    // Get the LiDAR point.
+                    LiDARHandler::PointRow& stLiDARPoint = vTilePoints[i];
+
+                    // Loop through the obstacles.
+                    for (size_t j = 0; j < vDynamicObstacles.size(); ++j)
+                    {
+                        // Grab the obstacle and its UTM coordinate.
+                        const geoops::Waypoint& stObstacle    = vDynamicObstacles[j];
+                        const geoops::UTMCoordinate& stObsUTM = stObstacle.GetUTMCoordinate();
+
+                        // Check if this LiDAR point is close to a ZED obstacle.
+                        double dDist = this->EuclideanDistance(stLiDARPoint.dEasting,
+                                                               stLiDARPoint.dNorthing,
+                                                               stLiDARPoint.dAltitude,
+                                                               stObsUTM.dEasting,
+                                                               stObsUTM.dNorthing,
+                                                               stObsUTM.dAltitude);
+
+                        // If the LiDAR point is inside the obstacle's radius, make it untraversable.
+                        if (dDist <= stObstacle.dRadius)
+                        {
+                            stLiDARPoint.dTraversalScore = 0.0;
+                            // Stop checking other obstacles for this point, it's already blocked.
+                            break;
+                        }
+                    }
+                }
             }
 
             // First, we insert the points into the tile cache.
