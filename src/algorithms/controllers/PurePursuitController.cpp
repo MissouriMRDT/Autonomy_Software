@@ -146,6 +146,19 @@ namespace controllers
     }
 
     /******************************************************************************
+     * @brief This will allow us to set the max amount of indices to lookahead.
+     *
+     * @param nLookAheadIndex - How many waypoints/indices we can look ahead.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2026-04-14
+     ******************************************************************************/
+    void PurePursuitController::SetLookaheadIndex(const int nLookAheadIndex)
+    {
+        m_nLookaheadIndex = nLookAheadIndex;
+    }
+
+    /******************************************************************************
      * @brief Get the Reference Path object
      *
      * @return std::vector<geoops::Waypoint> - The current reference path.
@@ -247,7 +260,7 @@ namespace controllers
 
         // Search forward from the current closest point to find the carrot.
         // Limit the search so it tracks strictly along the path and does not jump rings.
-        size_t nSearchLimit = std::min(siWaypoints, static_cast<size_t>(m_nCurrentReferencePathTargetIndex + 50));
+        size_t nSearchLimit = std::min(siWaypoints, static_cast<size_t>(m_nCurrentReferencePathTargetIndex + m_nLookaheadIndex));
 
         for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < nSearchLimit; ++siIter)
         {

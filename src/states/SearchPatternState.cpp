@@ -71,7 +71,8 @@ namespace statemachine
 
         // Set the path of the pure pursuit controller.
         m_pPursuitController->SetReferencePath(m_vSearchPath);
-        m_pPursuitController->SetLookaheadDistance(1.0);
+        m_pPursuitController->SetLookaheadDistance(5.0);
+        m_pPursuitController->SetLookaheadIndex(5);
         SplitPathIntoLayers(m_vSearchPath);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),

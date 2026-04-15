@@ -79,6 +79,7 @@ namespace controllers
 
             void SetReferencePath(const std::vector<geoops::Waypoint>& vReferencePath);
             void SetLookaheadDistance(const double dLookaheadDistance);
+            void SetLookaheadIndex(const int nLookaheadIndex);
 
             /////////////////////////////////////////
             // Getters.
@@ -101,6 +102,7 @@ namespace controllers
             /////////////////////////////////////////
 
             double m_dLookaheadDistance;
+            int m_nLookaheadIndex;
             int m_nCurrentReferencePathTargetIndex;
             std::vector<geoops::Waypoint> m_vReferencePath;
     };
