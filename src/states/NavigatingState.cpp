@@ -13,6 +13,7 @@
 #include "../AutonomyNetworking.h"
 #include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/states/TagDetectionChecker.hpp"
+#include "../util/vision/ObjectDetectionUtility.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -96,81 +97,6 @@ namespace statemachine
             Start();
             m_bInitialized = true;
         }
-    }
-
-    /******************************************************************************
-     * @brief This method processes the ZED LiDAR data to look for obstacles in the camera view.
-     *
-     * @param cvPointCloud - The ZED point cloud.
-     * @param slFloorPlane - The floor that we see through the ZED camera.
-     * @param stCurrentPose - The current RoverPose.
-     * @return std::vector<geoops::UTMCoordinate> - A vector of coordinates where obstacles are.
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2026-04-13
-     ******************************************************************************/
-    std::vector<geoops::UTMCoordinate> NavigatingState::ExtractObstaclesFromZED(const cv::Mat& cvPointCloud,
-                                                                                sl::Plane& slFloorPlane,
-                                                                                const geoops::RoverPose& stCurrentPose)
-    {
-        // The vector to hold the coordinates of the obstacles.
-        std::vector<geoops::UTMCoordinate> vObstacles;
-
-        // Get the plane equation A, B, C, D where Ax + By + Cz + D = 0
-        sl::float4 slEquation = slFloorPlane.getPlaneEquation();
-        float slA             = slEquation.x;
-        float slB             = slEquation.y;
-        float slC             = slEquation.z;
-        float slD             = slEquation.w;
-
-        // The denominator for the math.
-        float fDenominator = std::sqrt(slA * slA + slB * slB + slC * slC);
-
-        // Calculate the heading transformation.
-        double dAdjustedHeading                 = numops::InputAngleModulus((stCurrentPose.GetCompassHeading() * -1.0) + 90.0, 0.0, 360.0);
-        double dHeadingRad                      = dAdjustedHeading * M_PI / 180.0;
-        const geoops::UTMCoordinate& stRoverUTM = stCurrentPose.GetUTMCoordinate();
-
-        // Iterating through the points in the pointcloud.
-        for (int nY = 0; nY < cvPointCloud.rows; nY += 5)
-        {
-            for (int nX = 0; nX < cvPointCloud.cols; nX += 5)
-            {
-                // Extract the local XYZ coordinates from the pixel.
-                cv::Vec4f cvPoint = cvPointCloud.at<cv::Vec4f>(nY, nX);
-
-                // Ignore invalid/NaN points.
-                if (std::isnan(cvPoint[2]) || cvPoint[2] <= 0)
-                {
-                    continue;
-                }
-
-                // Calculate orthogonal distance from the point to the floor plane.
-                float fDistanceToFloor = std::abs(slA * cvPoint[0] + slB * cvPoint[1] + slC * cvPoint[2] + slD) / fDenominator;
-
-                // Checking if the point is an obstacle.
-                if (fDistanceToFloor > constants::GROUND_CLEARANCE_METERS && fDistanceToFloor < constants::ROVER_HEIGHT_METERS)
-                {
-                    // Extract local coordinates.
-                    float fLocalX = cvPoint[0];
-                    float fLocalY = cvPoint[1];
-                    float fLocalZ = cvPoint[2];
-
-                    // Transform camera coordinates to global UTM coordinates.
-                    double dEasting  = stRoverUTM.dEasting + (fLocalZ * cos(dHeadingRad) + fLocalX * sin(dHeadingRad));
-                    double dNorthing = stRoverUTM.dNorthing + (fLocalZ * sin(dHeadingRad) - fLocalX * cos(dHeadingRad));
-                    double dAltitude = stRoverUTM.dAltitude + fLocalY;
-
-                    // Create the global UTM coordinate.
-                    geoops::UTMCoordinate stGlobalObstaclePoint(dEasting, dNorthing, stRoverUTM.nZone, stRoverUTM.bWithinNorthernHemisphere, dAltitude);
-
-                    // Add the obstacle point into the obstacle vector.
-                    vObstacles.push_back(stGlobalObstaclePoint);
-                }
-            }
-        }
-
-        return vObstacles;
     }
 
     /******************************************************************************
@@ -329,27 +255,28 @@ namespace statemachine
 
             if (fuCloudStatus.get() && fuPlaneStatus.get() && !cvPointCloud.empty())
             {
-                std::vector<geoops::UTMCoordinate> vNewObstacles = this->ExtractObstaclesFromZED(cvPointCloud, slFloorPlane, stCurrentRoverPose);
+                std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesFromZED(cvPointCloud, stCurrentRoverPose);
 
                 if (!vNewObstacles.empty())
                 {
                     LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Extracted {} virtual obstacles from ZED.", vNewObstacles.size());
 
-                    // 1. Add the new points to the WaypointHandler's global obstacle list
+                    // Add the new points to the WaypointHandler's global obstacle list
                     for (const geoops::UTMCoordinate& stPoint : vNewObstacles)
                     {
-                        globals::g_pWaypointHandler->AddObstacle(stPoint, 0.5);    // Assign a 0.5m radius
+                        // Assign a 0.5m radius.
+                        globals::g_pWaypointHandler->AddObstacle(stPoint, 0.5);
                     }
 
-                    // --- DYNAMIC LOCAL AVOIDANCE SPLICING (USING GEOPLANNER) ---
+                    // Dynamic local avoidance splicing using GeoPlanner.
                     size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
                     size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
                     geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
 
-                    // 2. Clear the GeoPlanner's cache so it is forced to look at the new obstacles
+                    // Clear the GeoPlanner's cache so it is forced to look at the new obstacles.
                     globals::g_pGeoPlanner->ClearGeoCache();
 
-                    // 3. Plan the detour
+                    // Plan the detour.
                     std::vector<geoops::Waypoint> vDetour = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
                                                                                              stCurrentRoverPose.GetUTMCoordinate(),
                                                                                              stLocalRejoinGoal,
@@ -359,11 +286,11 @@ namespace statemachine
 
                     if (!vDetour.empty())
                     {
-                        // 4. Splice the detour into the global path
+                        // Splice the detour into the global path.
                         m_vPathCoordinates.erase(m_vPathCoordinates.begin() + nCurrentIndex, m_vPathCoordinates.begin() + nRejoinIndex);
                         m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nCurrentIndex, vDetour.begin(), vDetour.end());
 
-                        // Pass the updated path back to the controller
+                        // Pass the updated path back to the controller.
                         m_pStanleyController->SetReferencePath(m_vPathCoordinates);
                     }
                     else

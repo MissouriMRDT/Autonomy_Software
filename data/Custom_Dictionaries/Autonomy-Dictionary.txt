@@ -707,6 +707,7 @@ structs
 STUCKSTATE
 Styleguides
 SUBPIX
+subsamples
 Subteam
 Subteams
 superres
@@ -757,6 +758,7 @@ Undervoltage
 uninit
 unquantized
 unstuckith
+untraversable
 UNVALIDATED
 upsample
 Upsampled
