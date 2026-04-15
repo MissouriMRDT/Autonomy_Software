@@ -255,7 +255,12 @@ namespace statemachine
 
             if (fuCloudStatus.get() && fuPlaneStatus.get() && !cvPointCloud.empty())
             {
-                std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesFromZED(cvPointCloud, stCurrentRoverPose);
+                // Populate the obstacle vector.
+                std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesFromZED(cvPointCloud,
+                                                                                                              stCurrentRoverPose,
+                                                                                                              constants::NAVIGATING_POINTCLOUD_SUBSAMPLES,
+                                                                                                              constants::NAVIGATING_GRID_CELL_SIZE_METERS,
+                                                                                                              constants::NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD);
 
                 if (!vNewObstacles.empty())
                 {
@@ -264,7 +269,7 @@ namespace statemachine
                     // Add the new points to the WaypointHandler's global obstacle list
                     for (const geoops::UTMCoordinate& stPoint : vNewObstacles)
                     {
-                        // Assign a 0.5m radius.
+                        // Assign a 1m radius.
                         globals::g_pWaypointHandler->AddObstacle(stPoint, 0.5);
                     }
 

@@ -194,19 +194,26 @@ namespace objectdetectutils
      *
      * @param cvPointCloud - The ZED point cloud.
      * @param stCurrentPose - The current RoverPose.
+     * @param nPointCloudSubsample - 1/subsamples amount of points to look at through ZED.
+     * @param dGridCellSize - The size of each grid cell for global points.
+     * @param dObstacleVarianceThreshold - How different a point needs to be to be considered an obstacle.
      * @return std::vector<geoops::UTMCoordinate> - A vector of coordinates where obstacles are.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2026-04-13
      ******************************************************************************/
-    inline std::vector<geoops::UTMCoordinate> ExtractObstaclesFromZED(const cv::Mat& cvPointCloud, const geoops::RoverPose& stCurrentPose)
+    inline std::vector<geoops::UTMCoordinate> ExtractObstaclesFromZED(const cv::Mat& cvPointCloud,
+                                                                      const geoops::RoverPose& stCurrentPose,
+                                                                      const int& nPointCloudSubsample,
+                                                                      const double& dGridCellSize,
+                                                                      const double& dObstacleVarianceThreshold)
     {
         // Declaring a temporary map to act as a 2.5D elevation grid.
         std::unordered_map<std::string, std::pair<double, double>> umElevationGrid;
 
         // Storing the raw global coordinates here so we don't have to recalculate the trig later.
         std::vector<geoops::UTMCoordinate> vAllGlobalPoints;
-        vAllGlobalPoints.reserve(cvPointCloud.rows * cvPointCloud.cols / constants::POINTCLOUD_SUBSAMPLES);
+        vAllGlobalPoints.reserve(cvPointCloud.rows * cvPointCloud.cols / nPointCloudSubsample);
 
         // Calculate heading once.
         double dAdjustedHeading                 = numops::InputAngleModulus((stCurrentPose.GetCompassHeading() * -1.0) + 90.0, 0.0, 360.0);
@@ -243,8 +250,8 @@ namespace objectdetectutils
                 vAllGlobalPoints.emplace_back(dEasting, dNorthing, stRoverUTM.nZone, stRoverUTM.bWithinNorthernHemisphere, dAltitude);
 
                 // Determine which grid bucket this point falls into.
-                int nGridX            = static_cast<int>(std::floor(dEasting / constants::GRID_CELL_SIZE_METERS));
-                int nGridY            = static_cast<int>(std::floor(dNorthing / constants::GRID_CELL_SIZE_METERS));
+                int nGridX            = static_cast<int>(std::floor(dEasting / dGridCellSize));
+                int nGridY            = static_cast<int>(std::floor(dNorthing / dGridCellSize));
                 std::string szGridKey = std::to_string(nGridX) + "_" + std::to_string(nGridY);
 
                 // Update the min and max altitude for this grid cell.
@@ -269,15 +276,15 @@ namespace objectdetectutils
             const geoops::UTMCoordinate& stPoint = vAllGlobalPoints[i];
 
             // Re-calculate the grid key to check the cell's final variance
-            int nGridX            = static_cast<int>(std::floor(stPoint.dEasting / constants::GRID_CELL_SIZE_METERS));
-            int nGridY            = static_cast<int>(std::floor(stPoint.dNorthing / constants::GRID_CELL_SIZE_METERS));
+            int nGridX            = static_cast<int>(std::floor(stPoint.dEasting / dGridCellSize));
+            int nGridY            = static_cast<int>(std::floor(stPoint.dNorthing / dGridCellSize));
             std::string szGridKey = std::to_string(nGridX) + "_" + std::to_string(nGridY);
 
             double dMinAlt        = umElevationGrid[szGridKey].first;
             double dMaxAlt        = umElevationGrid[szGridKey].second;
 
             // If the height difference in this cell exceeds our threshold, it's an obstacle
-            if ((dMaxAlt - dMinAlt) > constants::OBSTACLE_VARIANCE_THRESHOLD)
+            if ((dMaxAlt - dMinAlt) > dObstacleVarianceThreshold)
             {
                 vObstacles.push_back(stPoint);
             }

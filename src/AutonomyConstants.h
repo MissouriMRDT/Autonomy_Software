@@ -405,9 +405,9 @@ namespace constants
     extern const bool NAVIGATING_VERIFY_POSITION;
     extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
     extern const bool NAVIGATING_ENABLE_STUCK_DETECT;
-    extern const int POINTCLOUD_SUBSAMPLES;
-    extern const float GRID_CELL_SIZE_METERS;
-    extern const float OBSTACLE_VARIANCE_THRESHOLD;
+    extern const int NAVIGATING_POINTCLOUD_SUBSAMPLES;
+    extern const float NAVIGATING_GRID_CELL_SIZE_METERS;
+    extern const float NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD;
 
     ///////////////////////////////////////////////////////////////////////////
 
