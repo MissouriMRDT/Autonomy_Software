@@ -123,14 +123,12 @@ namespace statemachine
             int nTileX = static_cast<int>(std::floor(skeletonPath[i].GetUTMCoordinate().dEasting / 5.0));
             int nTileY = static_cast<int>(std::floor(skeletonPath[i].GetUTMCoordinate().dNorthing / 5.0));
             LiDARHandler::PointFilter stFilter;
-            stFilter.dEasting        = (nTileX + 0.5) * 5.0;                                  // Center of the tile in easting.
-            stFilter.dNorthing       = (nTileY + 0.5) * 5.0;                                  // Center of the tile in northing.
-            stFilter.dRadius         = std::sqrt(2) * (5.0 / 2.0);                            // Radius to cover the entire tile
-            stFilter.dTraversalScore = LiDARHandler::PointFilter::Range<double>{0.5, 1.0};    // Only load points with sufficient traversal
-            LOG_NOTICE(logging::g_qSharedLogger, "---------Happens----------- {} * {} * {}", stFilter.dEasting, stFilter.dNorthing, stFilter.dRadius);
+            stFilter.dEasting                              = (nTileX + 0.5) * 5.0;                                  // Center of the tile in easting.
+            stFilter.dNorthing                             = (nTileY + 0.5) * 5.0;                                  // Center of the tile in northing.
+            stFilter.dRadius                               = std::sqrt(2) * (5.0 / 2.0);                            // Radius to cover the entire tile
+            stFilter.dTraversalScore                       = LiDARHandler::PointFilter::Range<double>{0.5, 1.0};    // Only load points with sufficient traversal
 
             std::vector<LiDARHandler::PointRow> vLidarData = globals::g_pLiDARHandler->GetLiDARData(stFilter);
-            LOG_NOTICE(logging::g_qSharedLogger, "---------Lidar Data Size----------- {}", vLidarData.size());
 
             LOG_NOTICE(logging::g_qSharedLogger, "Lidar Traverse Score: {}", vLidarData.empty() ? -1.0 : vLidarData[0].dTraversalScore);
             if (vLidarData.empty())
@@ -351,6 +349,8 @@ namespace statemachine
             stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
             stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
         }
+        LOG_NOTICE(logging::g_qSharedLogger, "---------searchPathIndex----------- {}", m_nSearchPathIdx);
+
         // NOTE: Optional - Uncomment the above code and comment out the below code to use pure pursuit control to navigate to the goal waypoint.
         // Use pure pursuit to calculate drive move/powers.
         controllers::PurePursuitController::DriveVector stDriveVector = m_pPursuitController->Calculate(stCurrentRoverPose, constants::SEARCH_MOTOR_POWER);
@@ -431,7 +431,7 @@ namespace statemachine
                         // Update current search pattern
                         m_eCurrentSearchPatternType = SearchPatternType::END;
 
-                        m_vSearchPath               = GeoPlanSearchPattern(m_vSearchPath);
+                        // m_vSearchPath               = GeoPlanSearchPattern(m_vSearchPath);
                         std::reverse(m_vSearchPath.begin(), m_vSearchPath.end());
 
                         // Add the search and rover path layers to the plot.

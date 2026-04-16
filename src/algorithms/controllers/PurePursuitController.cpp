@@ -225,8 +225,11 @@ namespace controllers
             return 0;
         }
 
+        // Limit search window using lookahead index
+        size_t nSearchLimit = std::min(siWaypoints, static_cast<size_t>(m_nCurrentReferencePathTargetIndex + m_nLookaheadIndex));
+
         // Step through path to find next carrot on a stick point.
-        for (size_t siIter = static_cast<size_t>(m_nCurrentReferencePathTargetIndex); siIter < siWaypoints - 1; ++siIter)
+        for (size_t siIter = static_cast<size_t>(m_nCurrentReferencePathTargetIndex); siIter < nSearchLimit - 1; ++siIter)
         {
             const geoops::UTMCoordinate& stA = m_vReferencePath[siIter].GetUTMCoordinate();
 
@@ -261,6 +264,7 @@ namespace controllers
         // Search forward from the current closest point to find the carrot.
         // Limit the search so it tracks strictly along the path and does not jump rings.
         size_t nSearchLimit = std::min(siWaypoints, static_cast<size_t>(m_nCurrentReferencePathTargetIndex + m_nLookaheadIndex));
+        LOG_NOTICE(logging::g_qSharedLogger, "---------searchLimit----------- {} {} {}", nSearchLimit, siWaypoints, m_nCurrentReferencePathTargetIndex);
 
         for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < nSearchLimit; ++siIter)
         {
