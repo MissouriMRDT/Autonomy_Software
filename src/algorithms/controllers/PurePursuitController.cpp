@@ -31,15 +31,17 @@ namespace controllers
     /******************************************************************************
      * @brief Construct a new Pure Pursuit Controller:: Pure Pursuit Controller object.
      *
-     * @param dLookaheadDistance - The number of waypoints the rover will look ahead.
+     * @param dLookaheadDistance - The distance in meters to look ahead of current position.
+     * @param dLookaheadIndex - The number of waypoints the rover will look ahead.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2026-03-15
      ******************************************************************************/
-    PurePursuitController::PurePursuitController(const double dLookaheadDistance)
+    PurePursuitController::PurePursuitController(const double dLookaheadDistance, const int nLookaheadIndex)
     {
         // Initialize member variables.
         m_dLookaheadDistance               = dLookaheadDistance;
+        m_nLookaheadIndex                  = nLookaheadIndex;
         m_nCurrentReferencePathTargetIndex = 0;
     }
 
@@ -263,10 +265,7 @@ namespace controllers
 
         // Search forward from the current closest point to find the carrot.
         // Limit the search so it tracks strictly along the path and does not jump rings.
-        size_t nSearchLimit = std::min(siWaypoints, static_cast<size_t>(m_nCurrentReferencePathTargetIndex + m_nLookaheadIndex));
-        LOG_NOTICE(logging::g_qSharedLogger, "---------searchLimit----------- {} {} {}", nSearchLimit, siWaypoints, m_nCurrentReferencePathTargetIndex);
-
-        for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < nSearchLimit; ++siIter)
+        for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < siWaypoints; ++siIter)
         {
             const geoops::UTMCoordinate& stTarget = m_vReferencePath[siIter].GetUTMCoordinate();
 
@@ -281,7 +280,7 @@ namespace controllers
             }
         }
 
-        // If no point is far enough ahead, return the last point checked.
-        return m_vReferencePath[nSearchLimit - 1];
+        // If no point is far enough ahead, return the last point.
+        return m_vReferencePath.back();
     }
 }    // namespace controllers

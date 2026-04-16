@@ -71,8 +71,6 @@ namespace statemachine
 
         // Set the path of the pure pursuit controller.
         m_pPursuitController->SetReferencePath(m_vSearchPath);
-        m_pPursuitController->SetLookaheadDistance(5.0);
-        m_pPursuitController->SetLookaheadIndex(5);
         SplitPathIntoLayers(m_vSearchPath);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
@@ -331,25 +329,18 @@ namespace statemachine
             return;
         }
 
-        // Have we reached the current waypoint?
-        geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
-        geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
-        bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
+        // Have we reached the final waypoint of the search pattern?
+        geoops::GPSCoordinate stFinalTargetGPS    = m_vSearchPath.back().GetGPSCoordinate();
+        geoops::GeoMeasurement stRelToFinalTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stFinalTargetGPS);
+        double dCompletionRadius                  = std::max(constants::SEARCH_WAYPOINT_PROXIMITY, 5.0);
+        bool bReachedFinalTarget                  = stRelToFinalTarget.dDistanceMeters <= dCompletionRadius;
 
         // If the entire search pattern has been completed without seeing tags or objects, try different search pattern.
-        if (bReachedTarget && m_nSearchPathIdx >= int(m_vSearchPath.size() - 1))
+        if (bReachedFinalTarget)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
             return;
         }
-        // Move on to the next waypoint in the search path.
-        else if (bReachedTarget)
-        {
-            ++m_nSearchPathIdx;
-            stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
-            stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
-        }
-        LOG_NOTICE(logging::g_qSharedLogger, "---------searchPathIndex----------- {}", m_nSearchPathIdx);
 
         // NOTE: Optional - Uncomment the above code and comment out the below code to use pure pursuit control to navigate to the goal waypoint.
         // Use pure pursuit to calculate drive move/powers.
