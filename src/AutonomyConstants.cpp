@@ -378,7 +378,7 @@ namespace constants
 
     // Reverse State.
     const double REVERSE_MOTOR_POWER       = DRIVE_MAX_SAFE_POWER * 0.6;    // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;                           // The distance to reverse in meters.
+    const double REVERSE_DISTANCE          = 5.0;                           // The distance to reverse in meters.
     const double REVERSE_TIMEOUT_PER_METER = 5.0;                           // Reverse state timeout in seconds for each meter reversed.
     const bool REVERSE_MAINTAIN_HEADING    = true;                          // Whether or not the rover should maintain heading while reversing.
 
