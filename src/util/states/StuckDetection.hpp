@@ -138,6 +138,15 @@ namespace statemachine
                 // Return if stuck or not.
                 return bStuck;
             }
+
+            /******************************************************************************
+             * @brief Reset stuck variables so rover does not go into stuck-state next check of CheckIfStuck
+             *
+             *
+             * @author Sam Nolte (samnolte0302@gmail.com)
+             * @date 2026-04-17
+             ******************************************************************************/
+            void ResetStuckChecks() { m_unStuckChecksSoFar = 0; }
     };
 }    // namespace statemachine
 
