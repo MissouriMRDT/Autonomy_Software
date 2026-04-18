@@ -589,6 +589,8 @@ namespace statemachine
         geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex - 1).GetUTMCoordinate();
         LOG_INFO(logging::g_qSharedLogger, "Retrieved Obstacle: ({}, {})", stObstaclePosition.dEasting, stObstaclePosition.dNorthing);
 
+        globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS + 5);
+
         // Get radian heading from rover to obstacle
         double dx                 = stCurrentRoverPose.GetUTMCoordinate().dEasting - stObstaclePosition.dEasting;
         double dy                 = stCurrentRoverPose.GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
@@ -613,8 +615,8 @@ namespace statemachine
 
         geoops::UTMCoordinate stStartCoordinate = stCurrentRoverPose.GetUTMCoordinate();
         geoops::UTMCoordinate stGoalCoordinate  = stObstaclePosition;    // Point at rim of obstacle closest to rover
-        stGoalCoordinate.dEasting -= std::cos(dRadiansToObstacle) * constants::STUCK_OBSTACLE_RADIUS;
-        stGoalCoordinate.dNorthing -= std::sin(dRadiansToObstacle) * constants::STUCK_OBSTACLE_RADIUS;
+        stGoalCoordinate.dEasting -= std::cos(dRadiansToObstacle) * constants::STUCK_OBSTACLE_RADIUS + 5;
+        stGoalCoordinate.dNorthing -= std::sin(dRadiansToObstacle) * constants::STUCK_OBSTACLE_RADIUS + 5;
 
         std::vector<geoops::Waypoint> vSplicePathCoordinates;
         std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin();
@@ -627,7 +629,7 @@ namespace statemachine
                                      pow(m_vPathCoordinates.back().GetUTMCoordinate().dNorthing - stGoalCoordinate.dNorthing, 2));
         double dDistToGoal    = sqrt(pow(m_vPathCoordinates.back().GetUTMCoordinate().dEasting - m_vPathCoordinates.front().GetUTMCoordinate().dEasting, 2) +
                                      pow(m_vPathCoordinates.back().GetUTMCoordinate().dNorthing - m_vPathCoordinates.front().GetUTMCoordinate().dNorthing, 2));
-        while (dDistToGoal > dMaxDistToGoal)
+        while (dDistToGoal > dMaxDistToGoal)    // + constants::STUCK_BACKUP_DISTANCE
         {
             it = m_vPathCoordinates.erase(it);
             ++pointsRemoved;
@@ -636,7 +638,7 @@ namespace statemachine
         }
 
         // If rover is in the obstacle path it out first and connect it to previous path
-        if (sqrt(dx * dx + dy * dy) <= constants::STUCK_OBSTACLE_RADIUS)
+        if (sqrt(dx * dx + dy * dy) <= constants::STUCK_OBSTACLE_RADIUS + 5)
         {
             geoops::UTMCoordinate stFirstNodeOfOriginalPath = m_vPathCoordinates.front().GetUTMCoordinate();
 
@@ -670,8 +672,8 @@ namespace statemachine
         while (it != std::prev(m_vPathCoordinates.end()))
         {
             // If path coord is inside stuck zone, then remove it
-            if (abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
-                abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS)
+            if (abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS + 5 &&
+                abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS + 5)
             {
                 lastDeleted = true;
                 it          = m_vPathCoordinates.erase(it);
@@ -705,6 +707,8 @@ namespace statemachine
         }
 
         LOG_INFO(logging::g_qSharedLogger, "Stuck state modified rover path: {} nodes added, {} nodes removed", pointsAdded, pointsRemoved);
+
+        globals::g_pWaypointHandler->DeleteObstacle(nObstacleIndex);
 
         count = 0;
         LOG_INFO(logging::g_qSharedLogger, "Path after modification:");
