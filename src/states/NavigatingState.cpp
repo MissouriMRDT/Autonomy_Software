@@ -110,231 +110,22 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
-        // Get Current rover pose.
-        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
-
-        // If navigating was previously stuck, then re-path plan
+        // If navigating was previously stuck, then re-path plan stuck area
         if (m_bWasStuck)
         {
-            // Get the obstacle's origin and radians from rover to obstacle
-            int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount();
-            geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex - 1).GetUTMCoordinate();
-            LOG_INFO(logging::g_qSharedLogger, "Retrieved Obstacle: ({}, {})", stObstaclePosition.dEasting, stObstaclePosition.dNorthing);
+            ModifyPathAfterStuckState();
+            m_StuckDetector.ResetStuckChecks();
 
-            // Get radian heading from rover to obstacle
-            double dx                 = stCurrentRoverPose.GetUTMCoordinate().dEasting - stObstaclePosition.dEasting;
-            double dy                 = stCurrentRoverPose.GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
-            double dRadiansToObstacle = atan2(dy, dx);
-            if (dRadiansToObstacle < 0)
-                dRadiansToObstacle += 2 * M_PI;
-            LOG_INFO(logging::g_qSharedLogger, "Retrieved angle: {} degrees", dRadiansToObstacle);
-
-            // Reload saved path planner LiDAR data
-            globals::g_pGeoPlanner->UnloadLiDARTiles(stObstaclePosition.dEasting - constants::STUCK_OBSTACLE_RADIUS,
-                                                     stObstaclePosition.dEasting + constants::STUCK_OBSTACLE_RADIUS,
-                                                     stObstaclePosition.dNorthing - constants::STUCK_OBSTACLE_RADIUS,
-                                                     stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
-
-            geoops::UTMCoordinate stStartCoordinate = stCurrentRoverPose.GetUTMCoordinate();
-            geoops::UTMCoordinate stGoalCoordinate  = stObstaclePosition;    // Point at rim of obstacle closest to rover
-            stGoalCoordinate.dEasting -= std::cos(dRadiansToObstacle) * constants::STUCK_OBSTACLE_RADIUS;
-            stGoalCoordinate.dNorthing -= std::sin(dRadiansToObstacle) * constants::STUCK_OBSTACLE_RADIUS;
-            std::vector<geoops::Waypoint> vSplicePathCoordinates;
-            std::vector<geoops::Waypoint>::iterator it;
-
-            int pointsAdded        = 0;
-            int pointsRemoved      = 0;
-
-            bool findPathDirection = false;
-            bool bRoverTurnLeft    = true;
-            geoops::UTMCoordinate stLeftTangent;
-            geoops::UTMCoordinate stRightTangent;
-            double dTangentOffset;
-            double closestDistToLeftTangent  = 10e6;
-            double closestDistToRightTangent = 10e6;
-
-            // If rover is in the obstacle path it out first and connect it to previous path
-            if (sqrt(dx * dx + dy * dy) <= constants::STUCK_OBSTACLE_RADIUS)
-            {
-                geoops::UTMCoordinate stFirstNodeOfOriginalPath = m_vPathCoordinates.front().GetUTMCoordinate();
-
-                // Splice in a new path from rover's current location to outside of the obstacle
-                vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-                it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), vSplicePathCoordinates.end());
-                it += vSplicePathCoordinates.size();
-                pointsAdded += vSplicePathCoordinates.size();
-
-                // Splice in a new path from outside of the obstacle to the end of the previous path
-                stStartCoordinate      = std::prev(vSplicePathCoordinates.end())->GetUTMCoordinate();
-                vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stFirstNodeOfOriginalPath);
-                it                     = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                pointsAdded += vSplicePathCoordinates.size() - 2;
-            }
-            // Rover is not inside obstacle so just connect it to previous path
-            else
-            {
-                // Splice in a new path from rover's current location to the end of the previous path
-                stGoalCoordinate       = m_vPathCoordinates.front().GetUTMCoordinate();
-                vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-                it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), std::prev(vSplicePathCoordinates.end()));
-                pointsAdded += vSplicePathCoordinates.size() - 1;
-
-                // Find both tangent coordinates
-                double dDistToCenter  = sqrt(dx * dx + dy * dy);
-                dTangentOffset        = asin(constants::STUCK_OBSTACLE_RADIUS / dDistToCenter);
-                double dDistToTangent = sqrt(dDistToCenter * dDistToCenter - constants::STUCK_OBSTACLE_RADIUS * constants::STUCK_OBSTACLE_RADIUS);
-
-                stLeftTangent         = stCurrentRoverPose.GetUTMCoordinate();
-                stLeftTangent.dEasting += dDistToTangent * cos(dRadiansToObstacle + dTangentOffset);
-                stLeftTangent.dNorthing += dDistToTangent * sin(dRadiansToObstacle + dTangentOffset);
-
-                stRightTangent = stCurrentRoverPose.GetUTMCoordinate();
-                stRightTangent.dEasting += dDistToTangent * cos(dRadiansToObstacle - dTangentOffset);
-                stRightTangent.dNorthing += dDistToTangent * sin(dRadiansToObstacle - dTangentOffset);
-
-                findPathDirection = true;
-            }
-
-            // Remove all points that are in stuck zone
-            bool lastDeleted = false;
-            while (it != std::prev(m_vPathCoordinates.end()))
-            {
-                // If path coord is inside stuck zone, then remove it
-                if (abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
-                    abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS)
-                {
-                    lastDeleted = true;
-                    it          = m_vPathCoordinates.erase(it);
-                    ++pointsRemoved;
-                }
-                // If the previous node was deleted, then connect the dots correctly by splicing a new path in between
-                else if (lastDeleted)
-                {
-                    //  Plan a new path to the next remaining path node
-                    stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
-                    stGoalCoordinate       = it->GetUTMCoordinate();
-                    vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-                    it                     = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                    lastDeleted            = false;
-                    it += vSplicePathCoordinates.size() - 1;    // Move iterator to one after the inserted elements
-                    pointsAdded += vSplicePathCoordinates.size() - 2;
-
-                    // Determine relative path direction for rover turn later
-                    if (findPathDirection && !vSplicePathCoordinates.empty())
-                    {
-                        for (int i = 1; i < (int) vSplicePathCoordinates.size() - 1; ++i)    // from [1 -> size-1]
-                        {
-                            geoops::UTMCoordinate stCurrCoord = vSplicePathCoordinates[i].GetUTMCoordinate();
-
-                            double dXLeft                     = stCurrCoord.dEasting - stLeftTangent.dEasting;
-                            double dYLeft                     = stCurrCoord.dNorthing - stLeftTangent.dNorthing;
-                            double dDistToLeftTangent         = sqrt(dXLeft * dXLeft + dYLeft * dYLeft);
-                            if (dDistToLeftTangent < closestDistToLeftTangent)
-                                closestDistToLeftTangent = dDistToLeftTangent;
-
-                            double dXRight             = stCurrCoord.dEasting - stRightTangent.dEasting;
-                            double dYRight             = stCurrCoord.dNorthing - stRightTangent.dNorthing;
-                            double dDistToRightTangent = sqrt(dXRight * dXRight + dYRight * dYRight);
-                            if (dDistToRightTangent < closestDistToRightTangent)
-                                closestDistToRightTangent = dDistToRightTangent;
-                        }
-
-                        if (closestDistToLeftTangent < closestDistToRightTangent)
-                            bRoverTurnLeft = true;
-                        else
-                            bRoverTurnLeft = false;
-                    }
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-            if (lastDeleted)
-            {
-                // Plan a new path to the next remaining path node
-                stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
-                stGoalCoordinate       = it->GetUTMCoordinate();
-                vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-                m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                pointsAdded += vSplicePathCoordinates.size() - 2;
-            }
-
-            LOG_INFO(logging::g_qSharedLogger, "Stuck state modified rover path: {} nodes added, {} nodes removed", pointsAdded, pointsRemoved);
-
-            // TODO: stanley does not turn fast enough and just shoot through the obstacle anyway so start it off correct
-            // TODO: committing crimes for the sake of testing but I would've thought if reverse gets its own state point turning would too
-            // TODO: If turning is the accepted solution then this would be made a state probably idk
-            // Manually turn rover to face towards the path
-
-            // If rover is in the obstacle, turn rover tangent to the circle
-            if (sqrt(dx * dx + dy * dy) <= constants::STUCK_OBSTACLE_RADIUS)
-            {
-                LOG_INFO(logging::g_qSharedLogger, "1");
-                // Calculate the goal realignment heading.
-                double dGoalHeading = 90.0 - ((dRadiansToObstacle + M_PI) * 180.0 / M_PI);
-                dGoalHeading        = numops::InputAngleModulus<double>(dGoalHeading, 0, 360);
-                // Calculate total rotation degrees.
-                double dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
-                LOG_INFO(logging::g_qSharedLogger, "2");
-
-                while (std::abs(dRealignmentDegrees) > 5)
-                {
-                    LOG_INFO(logging::g_qSharedLogger, "3");
-                    // Align drivetrain to a certain heading with 0 forward/reverse power.
-                    diffdrive::DrivePowers stTurnPowers = globals::g_pDriveBoard->CalculateMove(0.0,
-                                                                                                dGoalHeading,
-                                                                                                stCurrentRoverPose.GetCompassHeading(),
-                                                                                                diffdrive::DifferentialControlMethod::eArcadeDrive);
-                    // Send drive powers.
-                    globals::g_pDriveBoard->SendDrive(stTurnPowers);
-
-                    // Calculate total rotation degrees so far.
-                    dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
-                }
-                globals::g_pDriveBoard->SendStop();    // no idea if I have to do this
-            }
-            // If rover is outside obstacle, turn rover tangent to the circle with the path
-            else
-            {
-                LOG_INFO(logging::g_qSharedLogger, "4");
-                double dGoalHeading;
-                if (bRoverTurnLeft)
-                    dGoalHeading = dRadiansToObstacle + dTangentOffset;
-                else
-                    dGoalHeading = dRadiansToObstacle - dTangentOffset;
-
-                dGoalHeading = 90.0 - (dGoalHeading * 180.0 / M_PI);
-                dGoalHeading = numops::InputAngleModulus<double>(dGoalHeading, 0, 360);
-                // Calculate total rotation degrees.
-                double dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
-                LOG_INFO(logging::g_qSharedLogger, "5");
-
-                while (std::abs(dRealignmentDegrees) > 5)
-                {
-                    LOG_INFO(logging::g_qSharedLogger, "6");
-                    // Align drivetrain to a certain heading with 0 forward/reverse power.
-                    diffdrive::DrivePowers stTurnPowers = globals::g_pDriveBoard->CalculateMove(0.0,
-                                                                                                dGoalHeading,
-                                                                                                stCurrentRoverPose.GetCompassHeading(),
-                                                                                                diffdrive::DifferentialControlMethod::eArcadeDrive);
-                    // Send drive powers.
-                    globals::g_pDriveBoard->SendDrive(stTurnPowers);
-
-                    // Calculate total rotation degrees so far.
-                    dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
-                }
-                globals::g_pDriveBoard->SendStop();    // no idea if I have to do this
-            }
-            LOG_INFO(logging::g_qSharedLogger, "7");
-
-            stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+            // TODO: Does not update visualizer path
             globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
             m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
             m_pStanleyController->SetReferencePath(m_vPathCoordinates);
 
             m_bWasStuck = false;
         }
+
+        // Get Current rover pose.
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Check if we should get a new goal waypoint and that the waypoint handler has one for us.
         if (m_bFetchNewWaypoint && globals::g_pWaypointHandler->GetWaypointCount() > 0)
@@ -774,5 +565,259 @@ namespace statemachine
         }
 
         return eNextState;
+    }
+
+    /******************************************************************************
+     * @brief Modify path after stuck state to avoid the stuck obstacle
+     *
+     * 1) Filter out any points that are a specific distance away from the obstacle
+     * 2) Connect the rover position to the path to the first node of the vector by path-planning. If the rover is inside the obstacle, then first path plan it to
+     *      the close edge of the obstacle.
+     * 3) Iteratively go through the points of the path vector. If the point is inside the obstacle remove it. If the next point isn't being removed then
+     *      connect the "hole" in the path by path-planning
+     *
+     *
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2026-04-13
+     ******************************************************************************/
+    void NavigatingState::ModifyPathAfterStuckState()
+    {
+        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+
+        // Get the obstacle's origin and radians from rover to obstacle
+        int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount();
+        geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex - 1).GetUTMCoordinate();
+        LOG_INFO(logging::g_qSharedLogger, "Retrieved Obstacle: ({}, {})", stObstaclePosition.dEasting, stObstaclePosition.dNorthing);
+
+        // Get radian heading from rover to obstacle
+        double dx                 = stCurrentRoverPose.GetUTMCoordinate().dEasting - stObstaclePosition.dEasting;
+        double dy                 = stCurrentRoverPose.GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
+        double dRadiansToObstacle = atan2(dy, dx);
+        if (dRadiansToObstacle < 0)
+            dRadiansToObstacle += 2 * M_PI;
+        LOG_INFO(logging::g_qSharedLogger, "Retrieved angle: {} degrees", dRadiansToObstacle);
+
+        int count = 0;
+        LOG_INFO(logging::g_qSharedLogger, "Path before modification:");
+        for (std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
+        {
+            LOG_INFO(logging::g_qSharedLogger, "({}, {})", it->GetUTMCoordinate().dEasting, it->GetUTMCoordinate().dNorthing);
+            ++count;
+        }
+
+        // Reload saved path planner LiDAR data
+        globals::g_pGeoPlanner->UnloadLiDARTiles(stObstaclePosition.dEasting - constants::STUCK_OBSTACLE_RADIUS,
+                                                 stObstaclePosition.dEasting + constants::STUCK_OBSTACLE_RADIUS,
+                                                 stObstaclePosition.dNorthing - constants::STUCK_OBSTACLE_RADIUS,
+                                                 stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
+
+        geoops::UTMCoordinate stStartCoordinate = stCurrentRoverPose.GetUTMCoordinate();
+        geoops::UTMCoordinate stGoalCoordinate  = stObstaclePosition;    // Point at rim of obstacle closest to rover
+        stGoalCoordinate.dEasting -= std::cos(dRadiansToObstacle) * constants::STUCK_OBSTACLE_RADIUS;
+        stGoalCoordinate.dNorthing -= std::sin(dRadiansToObstacle) * constants::STUCK_OBSTACLE_RADIUS;
+
+        std::vector<geoops::Waypoint> vSplicePathCoordinates;
+        std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin();
+
+        int pointsAdded                            = 0;
+        int pointsRemoved                          = 0;
+
+        // Delete all points in path past certain threshold for new path
+        double dMaxDistToGoal = sqrt(pow(m_vPathCoordinates.back().GetUTMCoordinate().dEasting - stGoalCoordinate.dEasting, 2) +
+                                     pow(m_vPathCoordinates.back().GetUTMCoordinate().dNorthing - stGoalCoordinate.dNorthing, 2));
+        double dDistToGoal    = sqrt(pow(m_vPathCoordinates.back().GetUTMCoordinate().dEasting - m_vPathCoordinates.front().GetUTMCoordinate().dEasting, 2) +
+                                     pow(m_vPathCoordinates.back().GetUTMCoordinate().dNorthing - m_vPathCoordinates.front().GetUTMCoordinate().dNorthing, 2));
+        while (dDistToGoal > dMaxDistToGoal)
+        {
+            it = m_vPathCoordinates.erase(it);
+            ++pointsRemoved;
+            dDistToGoal = sqrt(pow(m_vPathCoordinates.back().GetUTMCoordinate().dEasting - m_vPathCoordinates.front().GetUTMCoordinate().dEasting, 2) +
+                               pow(m_vPathCoordinates.back().GetUTMCoordinate().dNorthing - m_vPathCoordinates.front().GetUTMCoordinate().dNorthing, 2));
+        }
+
+        bool findPathDirection = false;
+        bool bRoverTurnLeft    = true;
+        geoops::UTMCoordinate stLeftTangent;
+        geoops::UTMCoordinate stRightTangent;
+        double dTangentOffset;
+        double closestDistToLeftTangent  = 10e6;
+        double closestDistToRightTangent = 10e6;
+
+        // If rover is in the obstacle path it out first and connect it to previous path
+        if (sqrt(dx * dx + dy * dy) <= constants::STUCK_OBSTACLE_RADIUS)
+        {
+            geoops::UTMCoordinate stFirstNodeOfOriginalPath = m_vPathCoordinates.front().GetUTMCoordinate();
+
+            // Splice in a new path from rover's current location to outside of the obstacle
+            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
+            it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), vSplicePathCoordinates.end());
+            it += vSplicePathCoordinates.size();
+            pointsAdded += vSplicePathCoordinates.size();
+
+            // Splice in a new path from outside of the obstacle to the end of the previous path
+            stStartCoordinate      = std::prev(vSplicePathCoordinates.end())->GetUTMCoordinate();
+            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stFirstNodeOfOriginalPath);
+            if (vSplicePathCoordinates.size() >= 3)
+            {
+                it = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
+                pointsAdded += vSplicePathCoordinates.size() - 2;
+            }
+        }
+        // Rover is not inside obstacle so just connect it to previous path
+        else
+        {
+            // Splice in a new path from rover's current location to the end of the previous path
+            stGoalCoordinate       = m_vPathCoordinates.front().GetUTMCoordinate();
+            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
+            it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), std::prev(vSplicePathCoordinates.end()));
+            pointsAdded += vSplicePathCoordinates.size() - 1;
+
+            // Find both tangent coordinates
+            double dDistToCenter  = sqrt(dx * dx + dy * dy);
+            dTangentOffset        = asin(constants::STUCK_OBSTACLE_RADIUS / dDistToCenter);
+            double dDistToTangent = sqrt(dDistToCenter * dDistToCenter - constants::STUCK_OBSTACLE_RADIUS * constants::STUCK_OBSTACLE_RADIUS);
+
+            stLeftTangent         = stCurrentRoverPose.GetUTMCoordinate();
+            stLeftTangent.dEasting += dDistToTangent * cos(dRadiansToObstacle + dTangentOffset);
+            stLeftTangent.dNorthing += dDistToTangent * sin(dRadiansToObstacle + dTangentOffset);
+
+            stRightTangent = stCurrentRoverPose.GetUTMCoordinate();
+            stRightTangent.dEasting += dDistToTangent * cos(dRadiansToObstacle - dTangentOffset);
+            stRightTangent.dNorthing += dDistToTangent * sin(dRadiansToObstacle - dTangentOffset);
+
+            findPathDirection = true;
+        }
+
+        // Remove all points that are in stuck zone
+        bool lastDeleted = false;
+        while (it != std::prev(m_vPathCoordinates.end()))
+        {
+            // If path coord is inside stuck zone, then remove it
+            if (abs(it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting) <= constants::STUCK_OBSTACLE_RADIUS &&
+                abs(it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing) <= constants::STUCK_OBSTACLE_RADIUS)
+            {
+                lastDeleted = true;
+                it          = m_vPathCoordinates.erase(it);
+                ++pointsRemoved;
+            }
+            // If the previous node was deleted, then connect the dots correctly by splicing a new path in between
+            else if (lastDeleted)
+            {
+                //  Plan a new path to the next remaining path node
+                stStartCoordinate      = (it != m_vPathCoordinates.begin()) ? std::prev(it)->GetUTMCoordinate() : stCurrentRoverPose.GetUTMCoordinate();
+                stGoalCoordinate       = it->GetUTMCoordinate();
+                vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
+                it                     = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
+                lastDeleted            = false;
+                it += vSplicePathCoordinates.size() - 1;    // Move iterator to one after the inserted elements
+                pointsAdded += vSplicePathCoordinates.size() - 2;
+
+                // Determine relative path direction for rover turn later
+                if (findPathDirection && !vSplicePathCoordinates.empty())
+                {
+                    for (int i = 1; i < (int) vSplicePathCoordinates.size() - 1; ++i)    // from [1 -> size-1]
+                    {
+                        geoops::UTMCoordinate stCurrCoord = vSplicePathCoordinates[i].GetUTMCoordinate();
+
+                        double dXLeft                     = stCurrCoord.dEasting - stLeftTangent.dEasting;
+                        double dYLeft                     = stCurrCoord.dNorthing - stLeftTangent.dNorthing;
+                        double dDistToLeftTangent         = sqrt(dXLeft * dXLeft + dYLeft * dYLeft);
+                        if (dDistToLeftTangent < closestDistToLeftTangent)
+                            closestDistToLeftTangent = dDistToLeftTangent;
+
+                        double dXRight             = stCurrCoord.dEasting - stRightTangent.dEasting;
+                        double dYRight             = stCurrCoord.dNorthing - stRightTangent.dNorthing;
+                        double dDistToRightTangent = sqrt(dXRight * dXRight + dYRight * dYRight);
+                        if (dDistToRightTangent < closestDistToRightTangent)
+                            closestDistToRightTangent = dDistToRightTangent;
+                    }
+
+                    if (closestDistToLeftTangent < closestDistToRightTangent)
+                        bRoverTurnLeft = true;
+                    else
+                        bRoverTurnLeft = false;
+                }
+            }
+            else
+            {
+                ++it;
+            }
+        }
+        if (lastDeleted)
+        {
+            // Plan a new path to the next remaining path node
+            stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
+            stGoalCoordinate       = it->GetUTMCoordinate();
+            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
+            m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
+            pointsAdded += vSplicePathCoordinates.size() - 2;
+        }
+
+        LOG_INFO(logging::g_qSharedLogger, "Stuck state modified rover path: {} nodes added, {} nodes removed", pointsAdded, pointsRemoved);
+
+        // TODO: stanley does not turn fast enough and just shoot through the obstacle anyway so start it off correct
+        // TODO: committing crimes for the sake of testing but I would've thought if reverse gets its own state point turning would too
+        // TODO: If turning is the accepted solution then this would be made a state probably idk
+        // Manually turn rover to face towards the path
+
+        count = 0;
+        LOG_INFO(logging::g_qSharedLogger, "Path after modification:");
+        for (it = m_vPathCoordinates.begin(); it != m_vPathCoordinates.end(); ++it)
+        {
+            LOG_INFO(logging::g_qSharedLogger, "({}, {})", it->GetUTMCoordinate().dEasting, it->GetUTMCoordinate().dNorthing);
+            ++count;
+        }
+
+        // If rover is in the obstacle, turn rover tangent to the circle
+        if (sqrt(dx * dx + dy * dy) <= constants::STUCK_OBSTACLE_RADIUS)
+        {
+            // Calculate the goal realignment heading.
+            double dGoalHeading = 90.0 - ((dRadiansToObstacle + M_PI) * 180.0 / M_PI);
+            dGoalHeading        = numops::InputAngleModulus<double>(dGoalHeading, 0, 360);
+            // Calculate total rotation degrees.
+            double dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
+
+            while (std::abs(dRealignmentDegrees) > 5)
+            {
+                LOG_INFO(logging::g_qSharedLogger, "heading diff: {}", dRealignmentDegrees);
+                // Align drivetrain to a certain heading with 0 forward/reverse power.
+                diffdrive::DrivePowers stTurnPowers =
+                    globals::g_pDriveBoard->CalculateMove(0.0, dGoalHeading, stCurrentRoverPose.GetCompassHeading(), diffdrive::DifferentialControlMethod::eArcadeDrive);
+                // Send drive powers.
+                globals::g_pDriveBoard->SendDrive(stTurnPowers);
+
+                // Calculate total rotation degrees so far.
+                dRealignmentDegrees = numops::AngularDifference<double>(globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetCompassHeading(), dGoalHeading);
+            }
+            globals::g_pDriveBoard->SendStop();
+        }
+        // If rover is outside obstacle, turn rover tangent to the circle with the path
+        else
+        {
+            double dGoalHeading;
+            if (bRoverTurnLeft)
+                dGoalHeading = dRadiansToObstacle + dTangentOffset;
+            else
+                dGoalHeading = dRadiansToObstacle - dTangentOffset;
+
+            dGoalHeading = 90.0 - (dGoalHeading * 180.0 / M_PI);
+            dGoalHeading = numops::InputAngleModulus<double>(dGoalHeading, 0, 360);
+            // Calculate total rotation degrees.
+            double dRealignmentDegrees = numops::AngularDifference<double>(stCurrentRoverPose.GetCompassHeading(), dGoalHeading);
+
+            while (std::abs(dRealignmentDegrees) > 5)
+            {
+                LOG_INFO(logging::g_qSharedLogger, "heading diff: {}", dRealignmentDegrees);
+                // Align drivetrain to a certain heading with 0 forward/reverse power.
+                diffdrive::DrivePowers stTurnPowers =
+                    globals::g_pDriveBoard->CalculateMove(0.0, dGoalHeading, stCurrentRoverPose.GetCompassHeading(), diffdrive::DifferentialControlMethod::eArcadeDrive);
+                // Send drive powers.
+                globals::g_pDriveBoard->SendDrive(stTurnPowers);
+
+                // Calculate total rotation degrees so far.
+                dRealignmentDegrees = numops::AngularDifference<double>(globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetCompassHeading(), dGoalHeading);
+            }
+            globals::g_pDriveBoard->SendStop();
+        }
     }
 }    // namespace statemachine

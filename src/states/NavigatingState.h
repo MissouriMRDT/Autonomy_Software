@@ -52,6 +52,11 @@ namespace statemachine
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
             std::vector<geoops::Waypoint> m_vPathCoordinates;
 
+            /////////////////////////////////////////
+            // Declare private class methods.
+            /////////////////////////////////////////
+            void ModifyPathAfterStuckState();
+
         protected:
             /////////////////////////////////////////
             // Declare protected class methods.

@@ -28,13 +28,13 @@ namespace constants
 #if defined(__AUTONOMY_SIM_MODE__) && __AUTONOMY_SIM_MODE__ == 1
     const bool MODE_SIM = true;    // SIM MODE ENABLED: Toggle RoveComm and Cameras to use local data from the SIM.
 #else
-    const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
+    const bool MODE_SIM = true;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS   = "127.0.0.1";    // The IP address to use for simulation mode.
-    const uint SIM_WEBSOCKET_PORT      = 80;             // The port to use for the WebSocket in simulation mode.
-    const uint SIM_WEBRTC_QP           = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
-    const std::string SIM_MAINCAM_NAME = "ZEDFront";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
-    const std::string SIM_REARCAM_NAME = "ZEDRear";      // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
+    const std::string SIM_IP_ADDRESS   = "192.168.1.229";    // The IP address to use for simulation mode.
+    const uint SIM_WEBSOCKET_PORT      = 80;                 // The port to use for the WebSocket in simulation mode.
+    const uint SIM_WEBRTC_QP           = 25;            // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
+    const std::string SIM_MAINCAM_NAME = "ZEDFront";    // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
+    const std::string SIM_REARCAM_NAME = "ZEDRear";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
@@ -348,12 +348,12 @@ namespace constants
 
     // Approaching Marker State
     const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the marker.
-    const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
-    const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
-    const bool APPROACH_MARKER_VERIFY_POSITION        = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
-    const double APPROACH_MARKER_VERIFY_TIME          = 5.0;      // The time in seconds to watch the tag before moving on.
-    const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;      // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
-    const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = false;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
+    const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;     // How close in meters the rover must be to the target marker before completing its approach.
+    const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
+    const bool APPROACH_MARKER_VERIFY_POSITION        = true;    // Whether or not the rover should sit and watch the tag for a while before moving on.
+    const double APPROACH_MARKER_VERIFY_TIME          = 5.0;     // The time in seconds to watch the tag before moving on.
+    const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME = 2.0;     // The time in seconds to wait before considering the tag lost. This is used to prevent false negatives.
+    const bool APPROACH_MARKER_ENABLE_STUCK_DETECT    = true;    // Whether or not to enable the stuck detection algorithm when approaching a marker.
 
     // Approaching Object State
     const double APPROACH_OBJECT_MOTOR_POWER         = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the object.
@@ -389,14 +389,14 @@ namespace constants
     const double SEARCH_ZIGZAG_SPACING       = 4.0;                           // The spacing between successive points in the zigzag (meters).
     const double SEARCH_SNAKE_SLITHERS       = 2.0;                           // The number of slithers in the snake pattern.
     const double SEARCH_WAYPOINT_PROXIMITY   = 2.0;                           // How close a rover must be to a point to have it count as visited.
-    const bool SEARCH_ENABLE_STUCK_DETECT    = false;                         // Whether or not to enable the stuck detection algorithm when searching for a marker.
+    const bool SEARCH_ENABLE_STUCK_DETECT    = true;                          // Whether or not to enable the stuck detection algorithm when searching for a marker.
 
     // Navigating State.
     const double NAVIGATING_MOTOR_POWER         = DRIVE_MAX_SAFE_POWER * 0.9;    // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
-    const bool NAVIGATING_VERIFY_POSITION       = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
-    const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
-    const bool NAVIGATING_ENABLE_STUCK_DETECT   = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
+    const bool NAVIGATING_VERIFY_POSITION       = true;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
+    const double NAVIGATING_VERIFY_SAMPLE_TIME  = 30.0;    // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const bool NAVIGATING_ENABLE_STUCK_DETECT   = true;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
