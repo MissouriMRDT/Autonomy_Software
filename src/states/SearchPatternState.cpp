@@ -71,6 +71,8 @@ namespace statemachine
 
         // Set the path of the pure pursuit controller.
         m_pPursuitController->SetReferencePath(m_vSearchPath);
+        m_pPursuitController->SetLookaheadDistance(1.25);
+        m_pPursuitController->SetLookaheadIndex(5);
         SplitPathIntoLayers(m_vSearchPath);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
@@ -128,7 +130,6 @@ namespace statemachine
 
             std::vector<LiDARHandler::PointRow> vLidarData = globals::g_pLiDARHandler->GetLiDARData(stFilter);
 
-            LOG_NOTICE(logging::g_qSharedLogger, "Lidar Traverse Score: {}", vLidarData.empty() ? -1.0 : vLidarData[0].dTraversalScore);
             if (vLidarData.empty())
             {
                 skeletonPath.erase(skeletonPath.begin() + static_cast<long int>(i));
@@ -142,7 +143,6 @@ namespace statemachine
 
     std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeletonPath)
     {
-        LOG_NOTICE(logging::g_qSharedLogger, "Starting GeoPlanSearchPattern Path length: {}", skeletonPath.size());
         std::vector<geoops::Waypoint> m_vSearchPath;
         for (long unsigned int i = 0; i < skeletonPath.size() - 1; i++)
         {
@@ -332,7 +332,7 @@ namespace statemachine
         // Have we reached the final waypoint of the search pattern?
         geoops::GPSCoordinate stFinalTargetGPS    = m_vSearchPath.back().GetGPSCoordinate();
         geoops::GeoMeasurement stRelToFinalTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stFinalTargetGPS);
-        double dCompletionRadius                  = std::max(constants::SEARCH_WAYPOINT_PROXIMITY, 5.0);
+        double dCompletionRadius                  = constants::SEARCH_WAYPOINT_PROXIMITY;
         bool bReachedFinalTarget                  = stRelToFinalTarget.dDistanceMeters <= dCompletionRadius;
 
         // If the entire search pattern has been completed without seeing tags or objects, try different search pattern.
