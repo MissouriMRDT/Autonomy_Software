@@ -239,22 +239,13 @@ namespace controllers
             double dy                        = stCurrentPosition.dNorthing - stA.dNorthing;
             double dDistSq                   = dx * dx + dy * dy;
 
-            // TODO: move to appropriate location
+            // TODO: move to appropriate location.
             double kCloseRangePenalty = 0.2;
 
             if (dDistSq < dClosestDistanceSq)
             {
-                if (dDistSq < kCloseRangePenalty)
-                {
-                    dClosestDistanceSq = dDistSq + kCloseRangePenalty;
-                }
-
-                else
-                {
-                    dClosestDistanceSq = dDistSq;
-                }
-
-                nBestSegmentIndex = static_cast<int>(siIter);
+                dClosestDistanceSq = std::max(dDistSq, kCloseRangePenalty);
+                nBestSegmentIndex  = static_cast<int>(siIter);
             }
         }
 
