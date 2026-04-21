@@ -297,6 +297,7 @@ namespace pathplanners
 
             int m_nStartID, m_nEndID;                                        // Unique identifiers for the start and end points.
             double m_dBeta;                                                  // Bias factor for travel scores.
+            double m_dHeuristicWeight;                                       // Weighting factor for the heuristic in A*.
             double m_dMinTravScore;                                          // Minimum travel score threshold for path planning.
             double m_dTileSize;                                              // Size of the grid tiles in meters.
             double m_dSearchRadius;                                          // Search radius for finding neighbors.
