@@ -43,10 +43,8 @@ namespace statemachine
         m_tmTagLastSeenTime          = std::chrono::system_clock::now();
 
         // Get tag detectors.
-        m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                              globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
-
-        m_eWinningDetector = TagDetectionHandler::TagDetectors::eHeadMainCam;
+        m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                           globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
     }
 
     /******************************************************************************
@@ -96,11 +94,7 @@ namespace statemachine
 
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
-
-        // Check both cameras
-        tagdetectutils::ArucoTag stFrontAruco, stFrontTorch, stRearAruco, stRearTorch;
-        statemachine::IdentifyTargetMarker({m_vTagDetectors[0]}, stFrontAruco, stFrontTorch, m_stGoalWaypoint.nID);
-        statemachine::IdentifyTargetMarker({m_vTagDetectors[1]}, stRearAruco, stRearTorch, m_stGoalWaypoint.nID);
+        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
 
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
@@ -112,64 +106,6 @@ namespace statemachine
             If we consistently detect a marker for a certain amount of time, we can assume that we are in fact in front of the marker.
             At this point, we can also assume we are close enough for the pointcloud to be usable and for aruco to pick up the tag.
         */
-
-        bool bFrontValid   = (stFrontAruco.nID != -1 || stFrontTorch.dConfidence > 0.0);
-        bool bRearValid    = (stRearAruco.nID != -1 || stRearTorch.dConfidence > 0.0);
-
-        // Default to front camera
-        stBestArucoTag     = stFrontAruco;
-        stBestTorchTag     = stFrontTorch;
-        m_eWinningDetector = TagDetectionHandler::TagDetectors::eHeadMainCam;
-
-        // If only the rear camera sees it, use the rear
-        if (bRearValid && !bFrontValid)
-        {
-            stBestArucoTag     = stRearAruco;
-            stBestTorchTag     = stRearTorch;
-            m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
-        }
-        // If both cameras detect the tag, select the one with the better detection
-        else if (bFrontValid && bRearValid)
-        {
-            bool bFrontArucoDetected = (stFrontAruco.nID != -1);
-            bool bRearArucoDetected  = (stRearAruco.nID != -1);
-
-            // If both have ArUco detections, compare distances
-            if (bFrontArucoDetected && bRearArucoDetected)
-            {
-                if (stRearAruco.dStraightLineDistance < stFrontAruco.dStraightLineDistance)
-                {
-                    stBestArucoTag     = stRearAruco;
-                    stBestTorchTag     = stRearTorch;
-                    m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
-                }
-            }
-            // If only rear has ArUco detection, use rear
-            else if (!bFrontArucoDetected && bRearArucoDetected)
-            {
-                stBestArucoTag     = stRearAruco;
-                stBestTorchTag     = stRearTorch;
-                m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
-            }
-            // If both have Torch detections (and no ArUco), compare confidences
-            else if (stFrontTorch.dConfidence > 0.0 && stRearTorch.dConfidence > 0.0)
-            {
-                if (stRearTorch.dConfidence > stFrontTorch.dConfidence)
-                {
-                    stBestArucoTag     = stRearAruco;
-                    stBestTorchTag     = stRearTorch;
-                    m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
-                }
-            }
-            // If only rear has Torch detection, use rear
-            else if (stFrontTorch.dConfidence == 0.0 && stRearTorch.dConfidence > 0.0)
-            {
-                stBestArucoTag     = stRearAruco;
-                stBestTorchTag     = stRearTorch;
-                m_eWinningDetector = TagDetectionHandler::TagDetectors::eRearCam;
-            }
-        }
-
         // Check if ArUco tag is detected.
         if (stBestArucoTag.nID == -1 && stBestTorchTag.dConfidence == 0.0)
         {
@@ -202,6 +138,10 @@ namespace statemachine
 
             // Update time last seen.
             m_tmTagLastSeenTime = std::chrono::system_clock::now();
+
+            // Update best tags.
+            m_stBestArucoTag = stBestArucoTag;
+            m_stBestTorchTag = stBestTorchTag;
 
             // Check if we have been in this state long enough to verify the marker.
             if (dElapsedTime >= constants::APPROACH_MARKER_VERIFY_TIME)
@@ -247,9 +187,23 @@ namespace statemachine
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
-                // Request the snapshot from the handler
-                cv::Mat cvSnapshot = globals::g_pTagDetectionHandler->RequestDetectionOverlayFrame(m_eWinningDetector);
+                // Loop through the detectors vector and find which ones UUID matches the winning tag's UUID.
+                // If a match is found, request the snapshot from that detector and save it to disk with a unique filename.
+                cv::Mat cvSnapshot;
+                for (const std::shared_ptr<TagDetector>& pTagDetector : m_vTagDetectors)
+                {
+                    if (pTagDetector->GetThreadUUID() == m_stBestArucoTag.szDetectorUUID || pTagDetector->GetThreadUUID() == m_stBestTorchTag.szDetectorUUID)
+                    {
+                        std::future<bool> fuFrame = pTagDetector->RequestDetectionOverlayFrame(cvSnapshot);
+                        if (!fuFrame.get())
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: Failed to request detection overlay frame.");
+                        }
+                        break;
+                    }
+                }
 
+                // Make sure the snapshot is not empty before trying to save it.
                 if (!cvSnapshot.empty())
                 {
                     // Ensure the directory exists
@@ -268,7 +222,7 @@ namespace statemachine
 
                     if (bSuccess)
                     {
-                        LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Saved detection snapshot to {}", szFilename);
+                        LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Saved detection snapshot to {}", szFilename);
                     }
                     else
                     {

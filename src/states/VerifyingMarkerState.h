@@ -36,7 +36,8 @@ namespace statemachine
         private:
             bool m_bInitialized;
             geoops::Waypoint m_stGoalWaypoint;
-            TagDetectionHandler::TagDetectors m_eWinningDetector;
+            tagdetectutils::ArucoTag m_stBestArucoTag;
+            tagdetectutils::ArucoTag m_stBestTorchTag;
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
             std::chrono::system_clock::time_point m_tmTagVerificationStartTime;
             std::chrono::system_clock::time_point m_tmTagLastSeenTime;

@@ -31,7 +31,7 @@ namespace constants
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
     const std::string SIM_IP_ADDRESS   = "127.0.0.1";    // The IP address to use for simulation mode.
-    const uint SIM_WEBSOCKET_PORT      = 80;             // The port to use for the WebSocket in simulation mode.
+    const uint SIM_WEBSOCKET_PORT      = 8080;           // The port to use for the WebSocket in simulation mode.
     const uint SIM_WEBRTC_QP           = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
     const std::string SIM_MAINCAM_NAME = "ZEDFront";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
     const std::string SIM_REARCAM_NAME = "ZEDRear";      // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.

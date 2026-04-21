@@ -311,6 +311,13 @@ void ObjectDetector::ThreadedContinuousCode()
             // Detect objects in the image.
             std::vector<objectdetectutils::Object> vNewTorchObjects =
                 torchobject::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+
+            // Loop through the newly detected Torch objects and set their detector UUID to this ObjectDetector's camera name so we can associate them with this detector.
+            for (objectdetectutils::Object& stObject : vNewTorchObjects)
+            {
+                stObject.szDetectorUUID = this->GetThreadUUID();
+            }
+
             // Add Torch objects to the list of newly detected objects.
             m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
         }
