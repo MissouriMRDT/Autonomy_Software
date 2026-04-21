@@ -1141,18 +1141,26 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         .hud-btn.active { background: #00aa00; border-color: #00ff00; }
         .key { color: #fff; font-weight: bold; border: 1px solid #666; padding: 2px 5px; border-radius: 3px; background: #333; }
         h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 5px; }
-        #detection-panel { position: absolute; top: 10px; right: 280px; width: 250px; max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 10; }
+        
+        #detection-panel { position: absolute; top: 10px; right: 280px; width: 250px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 10; }
         #detection-panel h3 { color: #0f0; margin-top: 0; }
-        .gallery-item { margin-bottom: 8px; cursor: pointer; }
+        .gallery-item { cursor: pointer; }
         .gallery-item img { width: 100%; border: 2px solid #666; border-radius: 4px; transition: border-color 0.2s; }
         .gallery-item img:hover { border-color: #0f0; }
+        
         #detection-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; }
         #detection-modal img { max-width: 90%; max-height: 90%; border: 3px solid #0f0; }
         #modal-caption { position: absolute; bottom: 80px; color: #0f0; font-size: 18px; text-align: center; width: 100%; }
         #modal-open-btn { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 10px 30px; background: #444; color: white; border: 2px solid #0f0; cursor: pointer; font-size: 16px; border-radius: 5px; }
         #modal-open-btn:hover { background: #00aa00; }
+        
         .modal-close { position: absolute; top: 20px; right: 40px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; }
         .modal-close:hover { color: #0f0; }
+        
+        .modal-nav { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 60px; font-weight: bold; cursor: pointer; padding: 20px; user-select: none; z-index: 1001; transition: color 0.2s; }
+        .modal-nav:hover { color: #0f0; }
+        .modal-nav.left { left: 20px; }
+        .modal-nav.right { right: 20px; }
     </style>
     <script type="importmap">
     { 
@@ -1165,21 +1173,23 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 </head>
 <body>
     <div id="ui-layer">
-        <h3>Settings</h3>
-        <div class="control-group">
-            <label>Load Radius (m) <span id="val-rad" class="val-disp">50</span></label>
-            <input type="range" id="sl-rad" min="10" max="200" value="50" step="10">
+        <h3 id="settings-toggle" style="cursor: pointer; pointer-events: auto; margin: 0; border: none; padding: 0; user-select: none;">Settings &#9654;</h3>
+        <div id="settings-content" style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+            <div class="control-group">
+                <label>Load Radius (m) <span id="val-rad" class="val-disp">50</span></label>
+                <input type="range" id="sl-rad" min="10" max="200" value="50" step="10">
+            </div>
+            <div class="control-group">
+                <label>Border Tol. (m) <span id="val-tol" class="val-disp">10</span></label>
+                <input type="range" id="sl-tol" min="5" max="50" value="10" step="1">
+            </div>
+            <div class="control-group">
+                <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
+                <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
+            </div>
+            <div id="status" style="margin-top:10px; color: #fff;">Status: Free Cam</div>
+            <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
         </div>
-        <div class="control-group">
-            <label>Border Tol. (m) <span id="val-tol" class="val-disp">10</span></label>
-            <input type="range" id="sl-tol" min="5" max="50" value="10" step="1">
-        </div>
-        <div class="control-group">
-            <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
-            <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
-        </div>
-        <div id="status" style="margin-top:10px; color: #fff;">Status: Free Cam</div>
-        <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
     </div>
 
     <div id="eta-box">ETA: Calculating...</div>
@@ -1194,13 +1204,15 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     </div>
     
     <div id="detection-panel">
-        <h3>Detection Images</h3>
+        <h3>Latest Detection</h3>
         <div id="detection-gallery-items"></div>
     </div>
     
     <div id="detection-modal" onclick="closeDetectionModal()">
         <span class="modal-close" onclick="closeDetectionModal()">&times;</span>
+        <div class="modal-nav left" onclick="prevDetection(event)">&#10094;</div>
         <img id="modal-image" src="" alt="Detection" onclick="event.stopPropagation()">
+        <div class="modal-nav right" onclick="nextDetection(event)">&#10095;</div>
         <div id="modal-caption"></div>
         <button id="modal-open-btn" onclick="event.stopPropagation()">Open in New Tab</button>
     </div>
@@ -1241,6 +1253,10 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     let pathDistance = 0.0;
     const speedHistory = [];
     let lastPathPoint = null;
+    
+    // Detection Gallery Tracking
+    let detectionFilenames = [];
+    let currentModalIndex = 0;
     
     const typeColors = {};
     const typeNames = {};
@@ -1360,6 +1376,19 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             checkBoundary(true); 
         };
 
+        // UI Layer Collapsible Toggle
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingsContent = document.getElementById('settings-content');
+        settingsToggle.addEventListener('click', () => {
+            if (settingsContent.style.display === 'none') {
+                settingsContent.style.display = 'block';
+                settingsToggle.innerHTML = 'Settings &#9660;';
+            } else {
+                settingsContent.style.display = 'none';
+                settingsToggle.innerHTML = 'Settings &#9654;';
+            }
+        });
+
         window.addEventListener('keydown', (e) => onKey(e, true));
         window.addEventListener('keyup', (e) => onKey(e, false));
         window.addEventListener('resize', onWindowResize);
@@ -1433,33 +1462,56 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     }
     
     function updateDetectionGallery(filenames) {
+        detectionFilenames = filenames;
         const gallery = document.getElementById('detection-gallery-items');
         if (!gallery) return;
         
         gallery.innerHTML = '';
-        filenames.forEach(filename => {
-            const item = document.createElement('div');
-            item.className = 'gallery-item';
-            
-            const img = document.createElement('img');
-            img.src = `/detections/${filename}`;
-            img.alt = filename;
-            img.addEventListener('click', () => showDetectionModal(img.src, filename));
-            
-            item.appendChild(img);
-            gallery.appendChild(item);
-        });
+        
+        if (filenames.length === 0) {
+            gallery.innerHTML = '<div style="color:#aaa; font-size:12px; padding:10px; text-align:center;">No detections yet.</div>';
+            return;
+        }
+
+        // Get the latest detection (assumed to be the last one in the array)
+        const latestIndex = filenames.length - 1;
+        const filename = filenames[latestIndex];
+
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        
+        const img = document.createElement('img');
+        img.src = `/detections/${filename}`;
+        img.alt = filename;
+        img.title = "Click to view full gallery";
+        img.addEventListener('click', () => showDetectionModal(latestIndex));
+        
+        const info = document.createElement('div');
+        info.style.color = '#fff';
+        info.style.fontSize = '14px';
+        info.style.textAlign = 'center';
+        info.style.marginTop = '8px';
+        info.innerText = `View all ${filenames.length} images`;
+        
+        item.appendChild(img);
+        item.appendChild(info);
+        gallery.appendChild(item);
     }
     
-    window.showDetectionModal = function(src, filename) {
+    window.showDetectionModal = function(index) {
         const modal = document.getElementById('detection-modal');
         const img = document.getElementById('modal-image');
         const caption = document.getElementById('modal-caption');
         const openBtn = document.getElementById('modal-open-btn');
         
-        if (modal && img && caption) {
+        if (modal && img && caption && detectionFilenames.length > 0) {
+            currentModalIndex = index;
+            const filename = detectionFilenames[currentModalIndex];
+            const src = `/detections/${filename}`;
+
             img.src = src;
-            caption.innerText = filename;
+            caption.innerText = `${filename} (${currentModalIndex + 1} of ${detectionFilenames.length})`;
+            
             if (openBtn) {
                 openBtn.onclick = () => window.open(src, '_blank');
             }
@@ -1470,6 +1522,22 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     window.closeDetectionModal = function() {
         const modal = document.getElementById('detection-modal');
         if (modal) modal.style.display = 'none';
+    }
+
+    window.nextDetection = function(e) {
+        e.stopPropagation();
+        if (detectionFilenames.length === 0) return;
+        let newIdx = currentModalIndex + 1;
+        if (newIdx >= detectionFilenames.length) newIdx = 0;
+        showDetectionModal(newIdx);
+    }
+
+    window.prevDetection = function(e) {
+        e.stopPropagation();
+        if (detectionFilenames.length === 0) return;
+        let newIdx = currentModalIndex - 1;
+        if (newIdx < 0) newIdx = detectionFilenames.length - 1;
+        showDetectionModal(newIdx);
     }
     
     function updateArrow(arrow, power) {
@@ -1934,12 +2002,14 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
 </head>
 <body>
     <div id="ui-layer">
-        <h3>Static Export</h3>
-        <div class="control-group">
-            <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
-            <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
+        <h3 id="settings-toggle" style="cursor: pointer; pointer-events: auto; margin: 0; border: none; padding: 0; user-select: none;">Static Export &#9654;</h3>
+        <div id="settings-content" style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+            <div class="control-group">
+                <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
+                <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
+            </div>
+            <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
         </div>
-        <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
     </div>
     <div id="legend-layer">
         <div class="legend-section" id="det-legend"><strong>Detections</strong></div>
@@ -2161,6 +2231,19 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
             document.getElementById('val-score').innerText = cfgMinScore.toFixed(2);
             loadStaticLidar(cfgMinScore);
         };
+
+        // UI Layer Collapsible Toggle
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingsContent = document.getElementById('settings-content');
+        settingsToggle.addEventListener('click', () => {
+            if (settingsContent.style.display === 'none') {
+                settingsContent.style.display = 'block';
+                settingsToggle.innerHTML = 'Static Export &#9660;';
+            } else {
+                settingsContent.style.display = 'none';
+                settingsToggle.innerHTML = 'Static Export &#9654;';
+            }
+        });
 
         window.addEventListener('keydown', (e) => onKey(e, true));
         window.addEventListener('keyup', (e) => onKey(e, false));

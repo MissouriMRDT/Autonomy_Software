@@ -102,7 +102,7 @@ namespace objectdetectutils
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
                        eDetectionMethod == stOther.eDetectionMethod && eDetectionType == stOther.eDetectionType && cvImageResolution == stOther.cvImageResolution &&
-                       dHorizontalFOV == stOther.dHorizontalFOV && stGeolocatedPosition == stOther.stGeolocatedPosition;
+                       dHorizontalFOV == stOther.dHorizontalFOV && stGeolocatedPosition == stOther.stGeolocatedPosition && szDetectorUUID == stOther.szDetectorUUID;
             }
 
             /******************************************************************************
@@ -145,6 +145,7 @@ namespace objectdetectutils
                     cvImageResolution     = stOther.cvImageResolution;
                     dHorizontalFOV        = stOther.dHorizontalFOV;
                     stGeolocatedPosition  = stOther.stGeolocatedPosition;
+                    szDetectorUUID        = stOther.szDetectorUUID;
                 }
                 return *this;
             }

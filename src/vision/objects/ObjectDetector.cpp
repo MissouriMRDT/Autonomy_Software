@@ -312,12 +312,6 @@ void ObjectDetector::ThreadedContinuousCode()
             std::vector<objectdetectutils::Object> vNewTorchObjects =
                 torchobject::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
 
-            // Loop through the newly detected Torch objects and set their detector UUID to this ObjectDetector's camera name so we can associate them with this detector.
-            for (objectdetectutils::Object& stObject : vNewTorchObjects)
-            {
-                stObject.szDetectorUUID = this->GetThreadUUID();
-            }
-
             // Add Torch objects to the list of newly detected objects.
             m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
         }
@@ -325,6 +319,8 @@ void ObjectDetector::ThreadedContinuousCode()
         // Set the FOV of the camera in the object structs for this detector's camera.
         for (objectdetectutils::Object& stObject : m_vNewlyDetectedObjects)
         {
+            // Set the UUID of the detector that detected this object to this ObjectDetector's camera name so we can associate it with this detector.
+            stObject.szDetectorUUID = this->GetThreadUUID();
             // Set object FOV parameter to this object detectors camera's FOV.
             stObject.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
         }

@@ -254,7 +254,7 @@ namespace constants
     const bool TAGDETECT_MAINCAM_ENABLE_TRACKING        = true;                             // Whether or not to use the tracking algorithm to track tags.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
-    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.7f;                             // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.6f;                             // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH      = 0.4f;                             // The threshold for non-max suppression filtering.
 
     // Rear ZED Camera.
@@ -267,7 +267,7 @@ namespace constants
     const bool TAGDETECT_REARCAM_ENABLE_TRACKING        = true;                             // Whether or not to use the tracking algorithm to track tags.
     const int TAGDETECT_REARCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_REARCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
-    const float TAGDETECT_REARCAM_TORCH_CONFIDENCE      = 0.7f;                             // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_REARCAM_TORCH_CONFIDENCE      = 0.6f;                             // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_REARCAM_TORCH_NMS_THRESH      = 0.4f;                             // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////
@@ -301,7 +301,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/Flat_SIM.db";    // The path to the LiDAR database file.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/Rolla_SIM.db";    // The path to the LiDAR database file.
 
     ///////////////////////////////////////////////////////////////////////////
 
