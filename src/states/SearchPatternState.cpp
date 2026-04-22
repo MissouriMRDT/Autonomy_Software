@@ -73,7 +73,6 @@ namespace statemachine
         m_pPursuitController->SetReferencePath(m_vSearchPath);
         m_pPursuitController->SetLookaheadDistance(1.25);
         m_pPursuitController->SetLookaheadIndex(5);
-        SplitPathIntoLayers(m_vSearchPath);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
@@ -96,31 +95,6 @@ namespace statemachine
 
         // Stop drive.
         globals::g_pDriveBoard->SendStop();
-    }
-
-    /******************************************************************************
-     * @brief Breaks path into chunks and plots each as a layer.
-     *
-     *
-     * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
-     * @date 2026-04-20
-     ******************************************************************************/
-    void SearchPatternState::SplitPathIntoLayers(const std::vector<geoops::Waypoint>& searchPath)
-    {
-        std::vector<geoops::Waypoint> splitPath;
-        std::string layerFormat[5] = {"-or", "-og", "-oc", "-om", "-oy"};
-        int count                  = 0;
-        for (size_t i = 0; i < searchPath.size(); i++)
-        {
-            splitPath.push_back(searchPath[i]);
-            if ((i + 1) % (searchPath.size() / 4) == 0 || i == searchPath.size() - 1)
-            {
-                m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern" + std::to_string(i / 4), layerFormat[count]);
-                m_pRoverPathPlot->AddPathPoints(splitPath, "SpiralSearchPattern" + std::to_string(i / 4), 0);
-                splitPath.clear();
-                count++;
-            }
-        }
     }
 
     /******************************************************************************
