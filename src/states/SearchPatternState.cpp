@@ -98,6 +98,13 @@ namespace statemachine
         globals::g_pDriveBoard->SendStop();
     }
 
+    /******************************************************************************
+     * @brief Breaks path into chunks and plots each as a layer.
+     *
+     *
+     * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
+     * @date 2026-04-20
+     ******************************************************************************/
     void SearchPatternState::SplitPathIntoLayers(const std::vector<geoops::Waypoint>& searchPath)
     {
         std::vector<geoops::Waypoint> splitPath;
@@ -116,6 +123,13 @@ namespace statemachine
         }
     }
 
+    /******************************************************************************
+     * @brief Deletes waypoints with no valid LiDAR data.
+     *
+     *
+     * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
+     * @date 2026-04-20
+     ******************************************************************************/
     void SearchPatternState::RemoveRedZonePoints(std::vector<geoops::Waypoint>& skeletonPath)
     {
         for (long unsigned int i = 0; i < skeletonPath.size();)
@@ -141,6 +155,13 @@ namespace statemachine
         }
     }
 
+    /******************************************************************************
+     * @brief Connects waypoints with planned paths into one path.
+     *
+     *
+     * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
+     * @date 2026-04-20
+     ******************************************************************************/
     std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeletonPath)
     {
         std::vector<geoops::Waypoint> m_vSearchPath;
