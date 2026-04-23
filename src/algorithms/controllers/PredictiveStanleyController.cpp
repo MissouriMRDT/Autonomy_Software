@@ -18,8 +18,8 @@
 
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs that are used to
- *      implement different controllers that implement advanced control systems
- *      used for accurate and precise robotic control.
+ * implement different controllers that implement advanced control systems
+ * used for accurate and precise robotic control.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -66,7 +66,7 @@ namespace controllers
 
     /******************************************************************************
      * @brief Calculate an updated steering angle for the rover based on the current pose
-     *      using the predictive stanley controller.
+     * using the predictive stanley controller.
      *
      * @param stCurrentPose - The current pose of the rover.
      * @param dMaxSpeed - The maximum speed the rover can travel.
@@ -88,6 +88,13 @@ namespace controllers
             LOG_WARNING(logging::g_qSharedLogger, "PredictiveStanleyController::Calculate: Reference path is empty. Cannot calculate drive powers.");
 
             return DriveVector{0.0, 0.0};
+        }
+
+        // First, update the controller's true index based on the actual current physical position.
+        auto [stActualClosestWaypoint, nActualIndex] = FindClosestWaypointInPath(stCurrentPose.GetUTMCoordinate(), m_nCurrentReferencePathTargetIndex);
+        if (nActualIndex >= 0)
+        {
+            m_nCurrentReferencePathTargetIndex = nActualIndex;
         }
 
         // Check if we are at the end of the path. Normally stanley would continue driving in the last direction of the calculated path
@@ -133,6 +140,9 @@ namespace controllers
         // Predict the future state of the model.
         m_UnicycleModel.Predict(m_dPredictionTimeStep, m_nPredictionHorizon, vPredictions);
 
+        // Keep a running search index for the prediction loop to ensure we smoothly track ahead.
+        int nPredSearchIndex = m_nCurrentReferencePathTargetIndex;
+
         // Loop through all the predicted future states to compute the steering angle.
         for (size_t nIter = 0; nIter < vPredictions.size(); ++nIter)
         {
@@ -145,11 +155,18 @@ namespace controllers
             geoops::UTMCoordinate stPredictedPosition = stCurrentPose.GetUTMCoordinate();
             stPredictedPosition.dEasting              = dPredictedXPosition;
             stPredictedPosition.dNorthing             = dPredictedYPosition;
-            // Find the closest point to the reference path.
-            geoops::Waypoint stClosestWaypoint = FindClosestWaypointInPath(stPredictedPosition);
 
-            // Compute the path forward vector from the segment start -> next waypoint (use index set by FindClosestWaypointInPath).
-            int nIdx                                    = m_nCurrentReferencePathTargetIndex;
+            // Find the closest point to the reference path for this prediction step.
+            std::pair<geoops::Waypoint, int> closestPointResult = FindClosestWaypointInPath(stPredictedPosition, nPredSearchIndex);
+            geoops::Waypoint stClosestWaypoint                  = closestPointResult.first;
+            int nBestIndex                                      = closestPointResult.second;
+            if (nBestIndex >= 0)
+            {
+                nPredSearchIndex = nBestIndex;
+            }
+
+            // Compute the path forward vector from the segment start -> next waypoint.
+            int nIdx                                    = nPredSearchIndex;
             int nNextIdx                                = std::min(nIdx + 1, static_cast<int>(m_vReferencePath.size() - 1));
             const geoops::UTMCoordinate& stSegmentStart = m_vReferencePath[nIdx].GetUTMCoordinate();
             const geoops::UTMCoordinate& stSegmentEnd   = m_vReferencePath[nNextIdx].GetUTMCoordinate();
@@ -362,17 +379,18 @@ namespace controllers
     }
 
     /******************************************************************************
-     * @brief Given the current position of the rover, find the point on the reference
-     *      path that is closest to the rover's front axle position (based on the wheelbase).
-     *      This is what makes sure the rover progresses forward in indexes along the path.
+     * @brief Given a position, find the point on the reference path that is closest.
+     * Returns both the mapped waypoint projection and the segment start index.
+     * Now bounds the search window for O(1) loop speed and is marked const
+     * to avoid modifying internal object state during predictions.
      *
-     * @param stCurrentPosition - The current position of the rover.
-     * @param dCurrentHeading - The current heading of the rover in degrees from 0-360.
+     * @param stCurrentPosition - The position to project onto the path.
+     * @param nStartIndex - The index to start searching from.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-01-10
      ******************************************************************************/
-    geoops::Waypoint PredictiveStanleyController::FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition)
+    std::pair<geoops::Waypoint, int> PredictiveStanleyController::FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition, const int nStartIndex) const
     {
         // Create instance variables.
         geoops::Waypoint stClosestWaypoint;
@@ -382,21 +400,25 @@ namespace controllers
         // Check for empty path.
         if (nWaypoints == 0)
         {
-            return stClosestWaypoint;
+            return {stClosestWaypoint, -1};
         }
 
         // If only a single waypoint, return it directly.
         if (nWaypoints == 1)
         {
-            m_nCurrentReferencePathTargetIndex = 0;
-            return m_vReferencePath.front();
+            return {m_vReferencePath.front(), 0};
         }
 
-        // We'll search across path segments (i -> i+1) and compute the closest point on each segment.
+        // Setup the search window bounds to avoid O(N) exhaustive loops
+        const size_t nMaxLookahead = 50;
+        size_t nStart              = static_cast<size_t>(std::max(0, nStartIndex));
+        size_t nEnd                = std::min(nWaypoints - 1, nStart + nMaxLookahead);
+
+        // We'll search across bounded path segments (i -> i+1) and compute the closest point on each segment.
         int nBestSegmentIndex = -1;
         geoops::UTMCoordinate stBestProjection;
 
-        for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < nWaypoints - 1; ++siIter)
+        for (size_t siIter = nStart; siIter < nEnd; ++siIter)
         {
             const geoops::UTMCoordinate& stA = m_vReferencePath[siIter].GetUTMCoordinate();
             const geoops::UTMCoordinate& stB = m_vReferencePath[siIter + 1].GetUTMCoordinate();
@@ -447,17 +469,20 @@ namespace controllers
         if (nBestSegmentIndex < 0)
         {
             double dClosestDist = std::numeric_limits<double>::max();
-            for (size_t siIter = 0; siIter < nWaypoints; ++siIter)
+            int nFallbackIndex  = -1;
+
+            // Note we search up to <= nEnd here to include the vertex at the very end of the search window
+            for (size_t siIter = nStart; siIter <= nEnd; ++siIter)
             {
                 double dDistance = geoops::CalculateGeoMeasurement(stCurrentPosition, m_vReferencePath[siIter].GetUTMCoordinate()).dDistanceMeters;
                 if (dDistance < dClosestDist)
                 {
-                    dClosestDist                       = dDistance;
-                    stClosestWaypoint                  = m_vReferencePath[siIter];
-                    m_nCurrentReferencePathTargetIndex = static_cast<int>(siIter);
+                    dClosestDist      = dDistance;
+                    stClosestWaypoint = m_vReferencePath[siIter];
+                    nFallbackIndex    = static_cast<int>(siIter);
                 }
             }
-            return stClosestWaypoint;
+            return {stClosestWaypoint, nFallbackIndex};
         }
 
         // Build a waypoint for the projected point.
@@ -476,9 +501,6 @@ namespace controllers
                                                                   stSegmentStart.GetUTMCoordinate().bIsDifferential);
         stClosestWaypoint                 = geoops::Waypoint(stBestCoord);
 
-        // Update the controller's current reference index to the segment start index so callers can use (index + 1).
-        m_nCurrentReferencePathTargetIndex = nBestSegmentIndex;
-
-        return stClosestWaypoint;
+        return {stClosestWaypoint, nBestSegmentIndex};
     }
 }    // namespace controllers

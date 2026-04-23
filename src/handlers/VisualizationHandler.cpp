@@ -1081,7 +1081,8 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         #eta-box {
             position: absolute;
             top: 10px;
-            right: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             color: #0f0;
             background: rgba(0,0,0,0.5);
             padding: 10px;
@@ -1142,7 +1143,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         .key { color: #fff; font-weight: bold; border: 1px solid #666; padding: 2px 5px; border-radius: 3px; background: #333; }
         h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 5px; }
         
-        #detection-panel { position: absolute; top: 10px; right: 280px; width: 250px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 10; }
+        #detection-panel { position: absolute; top: 10px; right: 10px; width: auto; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 10; transition: width 0.2s; }
         #detection-panel h3 { color: #0f0; margin-top: 0; }
         .gallery-item { cursor: pointer; }
         .gallery-item img { width: 100%; border: 2px solid #666; border-radius: 4px; transition: border-color 0.2s; }
@@ -1463,15 +1464,22 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     
     function updateDetectionGallery(filenames) {
         detectionFilenames = filenames;
+        const panel = document.getElementById('detection-panel');
         const gallery = document.getElementById('detection-gallery-items');
+        const header = panel ? panel.querySelector('h3') : null;
         if (!gallery) return;
         
         gallery.innerHTML = '';
         
         if (filenames.length === 0) {
-            gallery.innerHTML = '<div style="color:#aaa; font-size:12px; padding:10px; text-align:center;">No detections yet.</div>';
+            if (panel) panel.style.width = 'auto';
+            if (header) header.style.display = 'none';
+            gallery.innerHTML = '<div style="color:#aaa; font-size:12px; text-align:center;">No detections</div>';
             return;
         }
+
+        if (panel) panel.style.width = '250px';
+        if (header) header.style.display = 'block';
 
         // Get the latest detection (assumed to be the last one in the array)
         const latestIndex = filenames.length - 1;

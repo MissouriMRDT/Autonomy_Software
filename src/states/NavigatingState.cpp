@@ -41,15 +41,6 @@ namespace statemachine
                                globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
         m_vObjectDetectors  = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
                                globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
-
-        // Create rover path layers.
-        m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
-        m_pRoverPathPlot->CreatePathLayer("GeoPath", "-m");
-        m_pRoverPathPlot->CreateDotLayer("StanleyTargetIndex", "or");
-        m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
-        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "green");
-        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "red");
     }
 
     /******************************************************************************
@@ -84,7 +75,6 @@ namespace statemachine
                                                                             constants::STUCK_CHECK_INTERVAL,
                                                                             constants::STUCK_CHECK_VEL_THRESH,
                                                                             constants::STUCK_CHECK_ROT_THRESH);
-        m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
                                                                                           constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
                                                                                           constants::STANLEY_PREDICTION_HORIZON,
@@ -121,22 +111,11 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         // Calculate distance and bearing from goal waypoint.
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-        // Add the current rover pose to the path plot.
-        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath", 1);
-
-        // Place a dot on the stanley target index.
-        geoops::Waypoint stStanleyTargetCoordinate =
-            m_pStanleyController->GetReferencePath().at(static_cast<size_t>(m_pStanleyController->GetReferencePathTargetIndex()));
-        m_pRoverPathPlot->ClearLayer("StanleyTargetIndex");
-        m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 1);
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
         if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
         {
-            // Get raw Navboard GPS position.
-            geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
-
             // Assemble the error metrics into a single string. We are going to include the distance and bearing to the goal waypoint and
             // the error between the rover pose and the GPS position. The rover pose could be from VIO or GNSS fusion, or just GPS.
             std::string szErrorMetrics =
@@ -179,20 +158,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
-
-                // Check if the OpenCV tag has a good absolute position.
-                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-                // Check if the torch tag has a good absolute position.
-                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
                 // Don't execute the rest of the state.
@@ -219,13 +184,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target object!");
-
-                // Check if the object has a good absolute position.
-                if (stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
-                {
-                    // Add the object to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
-                }
 
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eObjectSeen, true);
@@ -436,14 +394,6 @@ namespace statemachine
                     LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
                     // Get and store new goal waypoint.
                     m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
-                    // Clear the old path plot and add the new path.
-                    m_pRoverPathPlot->ClearLayer("NavPath");
-                    // Add starting point and goal point to path plot.
-                    m_pRoverPathPlot->AddPathPoint(globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
-                    m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
-
-                    // Update our plot with the new path.
-                    m_pRoverPathPlot->ClearLayer("GeoPath");
                     // Plan a new path using the GeoPlanner.
                     std::vector<geoops::Waypoint> m_vPathCoordinates =
                         globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
@@ -451,15 +401,11 @@ namespace statemachine
                                                          m_stGoalWaypoint.GetUTMCoordinate());
                     // Add the path to the waypoint handler for reference by other states or handlers.
                     globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
-                    // Add the new path to the plot.
-                    m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
                     // Set the path of the stanley controller.
                     m_pStanleyController->SetReferencePath(m_vPathCoordinates);
 
                     // Get all obstacles from the obstacle handler.
                     std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
-                    m_pRoverPathPlot->ClearLayer("ObstaclesLocation");
-                    m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
 
                     // Check if the path is empty. If it is, go to idle state.
                     if (m_vPathCoordinates.empty())
