@@ -91,10 +91,10 @@ namespace controllers
         }
 
         // First, update the controller's true index based on the actual current physical position.
-        auto [stActualClosestWaypoint, nActualIndex] = FindClosestWaypointInPath(stCurrentPose.GetUTMCoordinate(), m_nCurrentReferencePathTargetIndex);
-        if (nActualIndex >= 0)
+        std::pair<geoops::Waypoint, int> stClosestPointResult = FindClosestWaypointInPath(stCurrentPose.GetUTMCoordinate(), m_nCurrentReferencePathTargetIndex);
+        if (stClosestPointResult.second >= 0)
         {
-            m_nCurrentReferencePathTargetIndex = nActualIndex;
+            m_nCurrentReferencePathTargetIndex = stClosestPointResult.second;
         }
 
         // Check if we are at the end of the path. Normally stanley would continue driving in the last direction of the calculated path
@@ -157,9 +157,9 @@ namespace controllers
             stPredictedPosition.dNorthing             = dPredictedYPosition;
 
             // Find the closest point to the reference path for this prediction step.
-            std::pair<geoops::Waypoint, int> closestPointResult = FindClosestWaypointInPath(stPredictedPosition, nPredSearchIndex);
-            geoops::Waypoint stClosestWaypoint                  = closestPointResult.first;
-            int nBestIndex                                      = closestPointResult.second;
+            std::pair<geoops::Waypoint, int> stdClosestPointResult = FindClosestWaypointInPath(stPredictedPosition, nPredSearchIndex);
+            geoops::Waypoint stClosestWaypoint                     = stdClosestPointResult.first;
+            int nBestIndex                                         = stdClosestPointResult.second;
             if (nBestIndex >= 0)
             {
                 nPredSearchIndex = nBestIndex;
