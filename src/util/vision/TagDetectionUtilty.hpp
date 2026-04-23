@@ -70,6 +70,7 @@ namespace tagdetectutils
             cv::Size cvImageResolution                       = cv::Size(0, 0);                      // The resolution of the image used to detect the tag.
             double dHorizontalFOV                            = 0.0;                                 // The horizontal field of view of the camera used to detect the tag.
             geoops::Waypoint stGeolocatedPosition            = geoops::Waypoint();                  // The geolocated position of the tag.
+            std::string szDetectorUUID = "";    // The UUID of the detector that detected the tag. This is used to associate tags with their detectors.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -86,7 +87,7 @@ namespace tagdetectutils
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
                        eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV &&
-                       stGeolocatedPosition == stOther.stGeolocatedPosition;
+                       stGeolocatedPosition == stOther.stGeolocatedPosition && szDetectorUUID == stOther.szDetectorUUID;
             }
 
             /******************************************************************************
@@ -129,6 +130,7 @@ namespace tagdetectutils
                     cvImageResolution     = stOther.cvImageResolution;
                     dHorizontalFOV        = stOther.dHorizontalFOV;
                     stGeolocatedPosition  = stOther.stGeolocatedPosition;
+                    szDetectorUUID        = stOther.szDetectorUUID;
                 }
                 return *this;
             }

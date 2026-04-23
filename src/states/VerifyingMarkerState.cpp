@@ -95,6 +95,7 @@ namespace statemachine
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
         statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
+
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmTagVerificationStartTime).count() / 1000.0;
@@ -137,6 +138,10 @@ namespace statemachine
 
             // Update time last seen.
             m_tmTagLastSeenTime = std::chrono::system_clock::now();
+
+            // Update best tags.
+            m_stBestArucoTag = stBestArucoTag;
+            m_stBestTorchTag = stBestTorchTag;
 
             // Check if we have been in this state long enough to verify the marker.
             if (dElapsedTime >= constants::APPROACH_MARKER_VERIFY_TIME)
@@ -182,9 +187,23 @@ namespace statemachine
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
-                // Request the snapshot from the handler
-                cv::Mat cvSnapshot = globals::g_pTagDetectionHandler->RequestDetectionOverlayFrame();
+                // Loop through the detectors vector and find which ones UUID matches the winning tag's UUID.
+                // If a match is found, request the snapshot from that detector and save it to disk with a unique filename.
+                cv::Mat cvSnapshot;
+                for (const std::shared_ptr<TagDetector>& pTagDetector : m_vTagDetectors)
+                {
+                    if (pTagDetector->GetThreadUUID() == m_stBestArucoTag.szDetectorUUID || pTagDetector->GetThreadUUID() == m_stBestTorchTag.szDetectorUUID)
+                    {
+                        std::future<bool> fuFrame = pTagDetector->RequestDetectionOverlayFrame(cvSnapshot);
+                        if (!fuFrame.get())
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: Failed to request detection overlay frame.");
+                        }
+                        break;
+                    }
+                }
 
+                // Make sure the snapshot is not empty before trying to save it.
                 if (!cvSnapshot.empty())
                 {
                     // Ensure the directory exists
@@ -203,7 +222,7 @@ namespace statemachine
 
                     if (bSuccess)
                     {
-                        LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Saved detection snapshot to {}", szFilename);
+                        LOG_NOTICE(logging::g_qSharedLogger, "VerifyingMarkerState: Saved detection snapshot to {}", szFilename);
                     }
                     else
                     {

@@ -97,6 +97,7 @@ namespace statemachine
         // Identify target object.
         objectdetectutils::Object stBestObject;
         statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
+
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectVerificationStartTime).count() / 1000.0;
@@ -107,6 +108,7 @@ namespace statemachine
             If we consistently detect an object for a certain amount of time, we can assume that we are in fact in front of the object.
             At this point, we can also assume we are close enough for the pointcloud to be usable and pick up the object.
         */
+
         // Check if object is detected.
         if (stBestObject.dConfidence == 0.0)
         {
@@ -132,6 +134,9 @@ namespace statemachine
 
             // Update time last seen.
             m_tmObjectLastSeenTime = std::chrono::system_clock::now();
+
+            // Update the best object.
+            m_stBestObject = stBestObject;
 
             // Check if we have been in this state long enough to verify the object.
             if (dElapsedTime >= constants::APPROACH_OBJECT_VERIFY_TIME)
@@ -177,9 +182,23 @@ namespace statemachine
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
-                // Request the snapshot from the object detection handler
-                cv::Mat cvSnapshot = globals::g_pObjectDetectionHandler->RequestDetectionOverlayFrame();
+                // Loop through the detectors vector and find which ones UUID matches the winning tag's UUID.
+                // If a match is found, request the snapshot from that detector and save it to disk with a unique filename.
+                cv::Mat cvSnapshot;
+                for (const std::shared_ptr<ObjectDetector>& pObjectDetector : m_vObjectDetectors)
+                {
+                    if (pObjectDetector->GetThreadUUID() == m_stBestObject.szDetectorUUID)
+                    {
+                        std::future<bool> fuFrame = pObjectDetector->RequestDetectionOverlayFrame(cvSnapshot);
+                        if (!fuFrame.get())
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Failed to request detection overlay frame.");
+                        }
+                        break;
+                    }
+                }
 
+                // Check if the snapshot is empty.
                 if (!cvSnapshot.empty())
                 {
                     std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
