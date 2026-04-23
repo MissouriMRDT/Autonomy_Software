@@ -786,8 +786,9 @@ std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string
     // Ensure the directory exists
     if (std::filesystem::exists(szDir) && std::filesystem::is_directory(szDir))
     {
-        bool bFirst = true;
-        // Iterate over files in the directory
+        std::vector<std::filesystem::directory_entry> vEntries;
+
+        // Iterate over files in the directory and collect them
         for (const std::filesystem::directory_entry& stEntry : std::filesystem::directory_iterator(szDir))
         {
             if (stEntry.is_regular_file())
@@ -798,13 +799,28 @@ std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string
                 // Simple filter for image extensions
                 if (szFilename.ends_with(".png") || szFilename.ends_with(".jpg"))
                 {
-                    if (!bFirst)
-                        szJson += ",";
-                    // Append escaped filename to JSON array
-                    szJson += "\"" + fnEscapeJson(szFilename) + "\"";
-                    bFirst = false;
+                    vEntries.push_back(stEntry);
                 }
             }
+        }
+
+        // Sort entries chronologically by last write time (oldest first, newest last)
+        std::sort(vEntries.begin(),
+                  vEntries.end(),
+                  [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b)
+                  { return std::filesystem::last_write_time(a) < std::filesystem::last_write_time(b); });
+
+        bool bFirst = true;
+        // Build JSON array using the sorted entries
+        for (const std::filesystem::directory_entry& stEntry : vEntries)
+        {
+            std::string szFilename = stEntry.path().filename().string();
+
+            if (!bFirst)
+                szJson += ",";
+            // Append escaped filename to JSON array
+            szJson += "\"" + fnEscapeJson(szFilename) + "\"";
+            bFirst = false;
         }
     }
 
@@ -1234,6 +1250,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     let markerLayer; 
     let activeWaypoints = []; 
     let leftArrow, rightArrow;
+    let beaconGeo, detectionTex;
 
     let mapCenter = { x: 0, y: 0 }; 
     let cfgRadius = 50;
@@ -1320,6 +1337,16 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         roverMesh.add(rightArrow);
         leftArrow.position.set(-0.6, 0, 0); 
         rightArrow.position.set(0.6, 0, 0);
+
+        beaconGeo = new THREE.BoxGeometry(0.5, 10000, 0.5);
+        const canvas = document.createElement('canvas');
+        canvas.width = 32; canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.arc(16,16,14,0,2*Math.PI);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        detectionTex = new THREE.CanvasTexture(canvas);
 
         waypointGroup = new THREE.Group();
         scene.add(waypointGroup);
@@ -1593,7 +1620,11 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
         const pathCount = view.getUint32(24, true); // Offset 24
         if (pathCount > 0) {
-            if (pathLine) scene.remove(pathLine);
+            if (pathLine) {
+                scene.remove(pathLine);
+                if (pathLine.geometry) pathLine.geometry.dispose();
+                if (pathLine.material) pathLine.material.dispose();
+            }
             const floats = new Float32Array(buffer, 28, pathCount * 4); // Offset 28
             const vertices = [];
             const colors = [];
@@ -1621,7 +1652,8 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         const count = view.getUint32(0, true);
         if (plannedPathLine) {
             scene.remove(plannedPathLine);
-            plannedPathLine.geometry.dispose();
+            if (plannedPathLine.geometry) plannedPathLine.geometry.dispose();
+            if (plannedPathLine.material) plannedPathLine.material.dispose();
             plannedPathLine = null;
         }
 
@@ -1660,7 +1692,9 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
     function updateWaypoints(buffer) {
         while(waypointGroup.children.length > 0){ 
-            waypointGroup.remove(waypointGroup.children[0]); 
+            const child = waypointGroup.children[0];
+            waypointGroup.remove(child); 
+            if (child.material) child.material.dispose();
         }
         markerLayer.innerHTML = '';
         activeWaypoints = [];
@@ -1670,7 +1704,6 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         if(count === 0) return;
 
         let offset = 4;
-        const beaconGeo = new THREE.BoxGeometry(0.5, 10000, 0.5); 
 
         for(let i=0; i<count; i++) {
             const x = view.getFloat32(offset, true);
@@ -1705,7 +1738,10 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
     function updateDetections(buffer) {
         while(detectionGroup.children.length > 0){ 
-            detectionGroup.remove(detectionGroup.children[0]); 
+            const child = detectionGroup.children[0];
+            detectionGroup.remove(child); 
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
         }
 
         const view = new DataView(buffer);
@@ -1713,15 +1749,6 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         if(count === 0) return;
 
         let offset = 4;
-        // Use a simple circle texture
-        const canvas = document.createElement('canvas');
-        canvas.width = 32; canvas.height = 32;
-        const ctx = canvas.getContext('2d');
-        ctx.beginPath();
-        ctx.arc(16,16,14,0,2*Math.PI);
-        ctx.fillStyle = 'white';
-        ctx.fill();
-        const tex = new THREE.CanvasTexture(canvas);
 
         for(let i=0; i<count; i++) {
             const x = view.getFloat32(offset, true);
@@ -1735,7 +1762,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
             const mat = new THREE.PointsMaterial({
                 color: col,
-                map: tex,
+                map: detectionTex,
                 size: 2.0, // Large persistent dot
                 sizeAttenuation: true,
                 alphaTest: 0.5,
