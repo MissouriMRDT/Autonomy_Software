@@ -48,7 +48,10 @@ class DriveBoard
                                              const double dGoalHeading,
                                              const double dActualHeading,
                                              const diffdrive::DifferentialControlMethod eKinematicsMethod = diffdrive::DifferentialControlMethod::eArcadeDrive,
-                                             const bool bAlwaysProgressForward                            = false);
+                                             const bool bDriveBackwards                                   = false,
+                                             const bool bAlwaysProgressForward                            = false,
+                                             const bool bSquareControlInput                               = false,
+                                             const bool bCurvatureDriveAllowTurningWhileStopped           = true);
         void SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bool bEnableVariableDriveEffort = true);
         void SendStop();
         float VariableDriveEffort();
