@@ -21,6 +21,8 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <random>
+#include <sstream>
 #include <vector>
 
 /// \endcond
@@ -78,6 +80,9 @@ class AutonomyThread
             m_bStopThreads                     = false;
             m_eThreadState                     = AutonomyThreadState::eStopped;
             m_nMainThreadMaxIterationPerSecond = 0;
+
+            // Generate a random UUID for this thread.
+            m_szThreadUUID = this->GenerateUUIDV4();
         }
 
         /******************************************************************************
@@ -232,6 +237,16 @@ class AutonomyThread
         AutonomyThreadState GetThreadState() const { return m_eThreadState; }
 
         /******************************************************************************
+         * @brief Accessor for the Thread U U I D private member.
+         *
+         * @return std::string - The randomly generated UUID for this thread, used for logging and debugging.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-04-21
+         ******************************************************************************/
+        std::string GetThreadUUID() const { return m_szThreadUUID; }
+
+        /******************************************************************************
          * @brief Accessor for the Frame I P S private member.
          *
          * @return IPS& - The iteration per second counter for the ThreadedContinuousCode()
@@ -338,7 +353,7 @@ class AutonomyThread
             }
 
             // Loop nNumThreads times and queue tasks.
-            for (unsigned int i = 0; i < nNumTasksToQueue; ++i)
+            for (unsigned int nIter = 0; nIter < nNumTasksToQueue; ++nIter)
             {
                 // Submit single task to pool queue.
                 m_vPoolReturns.emplace_back(m_thPool.submit_task(
@@ -410,7 +425,7 @@ class AutonomyThread
             }
 
             // Loop nNumThreads times and queue tasks.
-            for (unsigned int i = 0; i < nNumTasksToQueue; ++i)
+            for (unsigned int nIter = 0; nIter < nNumTasksToQueue; ++nIter)
             {
                 // Push single task to pool queue. No return value no control.
                 m_thPool.detach_task(
@@ -600,6 +615,7 @@ class AutonomyThread
         std::mutex m_muThreadRunningConditionMutex;
         std::condition_variable m_cdThreadRunningCondition;
         int m_nMainThreadMaxIterationPerSecond;
+        std::string m_szThreadUUID;
 
         /////////////////////////////////////////
         // Declare and/or define private methods.
@@ -671,6 +687,52 @@ class AutonomyThread
 
             // Notify waiting start method that thread is now stopping.
             m_cdThreadRunningCondition.notify_all();
+        }
+
+        /******************************************************************************
+         * @brief Generates a random UUID v4 string. This is useful for generating unique IDs for files, threads, or any other objects that need to be uniquely
+         * identified.
+         *
+         * @return std::string - A random UUID v4 string.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-04-21
+         ******************************************************************************/
+        std::string GenerateUUIDV4()
+        {
+            static std::random_device stdRandomDevice;
+            static std::mt19937 stdGen(stdRandomDevice());
+            static std::uniform_int_distribution<> stdDist1(0, 15);
+            static std::uniform_int_distribution<> stdDist2(8, 11);
+
+            std::stringstream stdStream;
+            stdStream << std::hex;
+            for (int nIter = 0; nIter < 8; nIter++)
+            {
+                stdStream << stdDist1(stdGen);
+            }
+            stdStream << "-";
+            for (int nIter = 0; nIter < 4; nIter++)
+            {
+                stdStream << stdDist1(stdGen);
+            }
+            stdStream << "-4";
+            for (int nIter = 0; nIter < 3; nIter++)
+            {
+                stdStream << stdDist1(stdGen);
+            }
+            stdStream << "-";
+            stdStream << stdDist2(stdGen);
+            for (int nIter = 0; nIter < 3; nIter++)
+            {
+                stdStream << stdDist1(stdGen);
+            }
+            stdStream << "-";
+            for (int nIter = 0; nIter < 12; nIter++)
+            {
+                stdStream << stdDist1(stdGen);
+            }
+            return stdStream.str();
         }
 };
 

@@ -85,6 +85,7 @@ namespace objectdetectutils
             cv::Size cvImageResolution                       = cv::Size(0, 0);                      // The resolution of the image used to detect the object.
             double dHorizontalFOV                            = 0.0;                   // The horizontal field of view of the camera used to detect the object.
             geoops::Waypoint stGeolocatedPosition            = geoops::Waypoint();    // The geolocated position of the object.
+            std::string szDetectorUUID = "";    // The UUID of the detector that detected the object. This is used to associate objects with their detectors.
 
             /******************************************************************************
              * @brief Overridden operator equals for Object struct.
@@ -101,7 +102,7 @@ namespace objectdetectutils
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
                        eDetectionMethod == stOther.eDetectionMethod && eDetectionType == stOther.eDetectionType && cvImageResolution == stOther.cvImageResolution &&
-                       dHorizontalFOV == stOther.dHorizontalFOV && stGeolocatedPosition == stOther.stGeolocatedPosition;
+                       dHorizontalFOV == stOther.dHorizontalFOV && stGeolocatedPosition == stOther.stGeolocatedPosition && szDetectorUUID == stOther.szDetectorUUID;
             }
 
             /******************************************************************************
@@ -144,6 +145,7 @@ namespace objectdetectutils
                     cvImageResolution     = stOther.cvImageResolution;
                     dHorizontalFOV        = stOther.dHorizontalFOV;
                     stGeolocatedPosition  = stOther.stGeolocatedPosition;
+                    szDetectorUUID        = stOther.szDetectorUUID;
                 }
                 return *this;
             }

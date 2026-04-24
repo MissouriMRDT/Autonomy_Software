@@ -31,7 +31,7 @@ namespace constants
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
     const std::string SIM_IP_ADDRESS   = "127.0.0.1";    // The IP address to use for simulation mode.
-    const uint SIM_WEBSOCKET_PORT      = 80;             // The port to use for the WebSocket in simulation mode.
+    const uint SIM_WEBSOCKET_PORT      = 8080;           // The port to use for the WebSocket in simulation mode.
     const uint SIM_WEBRTC_QP           = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
     const std::string SIM_MAINCAM_NAME = "ZEDFront";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
     const std::string SIM_REARCAM_NAME = "ZEDRear";      // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
@@ -254,7 +254,7 @@ namespace constants
     const bool TAGDETECT_MAINCAM_ENABLE_TRACKING        = true;                             // Whether or not to use the tracking algorithm to track tags.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
-    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.7f;                             // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.6f;                             // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_MAINCAM_TORCH_NMS_THRESH      = 0.4f;                             // The threshold for non-max suppression filtering.
 
     // Rear ZED Camera.
@@ -267,7 +267,7 @@ namespace constants
     const bool TAGDETECT_REARCAM_ENABLE_TRACKING        = true;                             // Whether or not to use the tracking algorithm to track tags.
     const int TAGDETECT_REARCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_REARCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
-    const float TAGDETECT_REARCAM_TORCH_CONFIDENCE      = 0.7f;                             // The minimum confidence to consider a viable AR tag detection.
+    const float TAGDETECT_REARCAM_TORCH_CONFIDENCE      = 0.6f;                             // The minimum confidence to consider a viable AR tag detection.
     const float TAGDETECT_REARCAM_TORCH_NMS_THRESH      = 0.4f;                             // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////

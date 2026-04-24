@@ -42,15 +42,6 @@ namespace statemachine
                                globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
         m_vObjectDetectors  = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
                                globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
-
-        // Create rover path layers.
-        m_pRoverPathPlot->CreatePathLayer("NavPath", "--b");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
-        m_pRoverPathPlot->CreatePathLayer("GeoPath", "-m");
-        m_pRoverPathPlot->CreateDotLayer("StanleyTargetIndex", "or");
-        m_pRoverPathPlot->CreateDotLayer("ObstaclesLocation", "o");
-        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "green");
-        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "red");
     }
 
     /******************************************************************************
@@ -85,7 +76,6 @@ namespace statemachine
                                                                             constants::STUCK_CHECK_INTERVAL,
                                                                             constants::STUCK_CHECK_VEL_THRESH,
                                                                             constants::STUCK_CHECK_ROT_THRESH);
-        m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("NavigatingRoverPath");
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
                                                                                           constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
                                                                                           constants::STANLEY_PREDICTION_HORIZON,
@@ -116,101 +106,92 @@ namespace statemachine
         // If navigating was previously stuck, then re-path plan.
         if (m_bWasStuck)
         {
-            // Get the obstacle's origin.
-            int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount();
-            geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex - 1).GetUTMCoordinate();
+            int nObstacleCount = globals::g_pWaypointHandler->GetObstaclesCount();
 
-            // Log the obstacle.
-            LOG_NOTICE(logging::g_qSharedLogger, "Retrieved Obstacle: ({}, {})", stObstaclePosition.dEasting, stObstaclePosition.dNorthing);
-
-            // Reload saved path planner LiDAR data.
-            globals::g_pGeoPlanner->UnloadLiDARTiles(stObstaclePosition.dEasting - constants::STUCK_OBSTACLE_RADIUS,
-                                                     stObstaclePosition.dEasting + constants::STUCK_OBSTACLE_RADIUS,
-                                                     stObstaclePosition.dNorthing - constants::STUCK_OBSTACLE_RADIUS,
-                                                     stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
-
-            // Calculate distance from obstacle center to goal to determine what is "past" the obstacle.
-            double dDistObsToGoal = geoops::CalculateGeoMeasurement(stObstaclePosition, m_stGoalWaypoint.GetUTMCoordinate()).dDistanceMeters;
-
-            // Trim the original path up until past the obstacle.
-            std::vector<geoops::Waypoint>::iterator itSafeNode = m_vPathCoordinates.begin();
-            int nPointsRemoved                                 = 0;
-
-            // Iterate through the path to find a good "safe" coordinate.
-            while (itSafeNode != m_vPathCoordinates.end())
+            // Ensure we actually have an obstacle to avoid before indexing array.
+            if (nObstacleCount > 0)
             {
-                // Get distance to object and to goal.
-                double dDistNodeToObs  = geoops::CalculateGeoMeasurement(itSafeNode->GetUTMCoordinate(), stObstaclePosition).dDistanceMeters;
-                double dDistNodeToGoal = geoops::CalculateGeoMeasurement(itSafeNode->GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate()).dDistanceMeters;
+                // Get the most recently recorded obstacle's origin.
+                geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleCount - 1).GetUTMCoordinate();
 
-                // Determine what is inside and before the obstacle.
-                bool bInsideObstacle = dDistNodeToObs <= (constants::STUCK_OBSTACLE_RADIUS * 1.5);
-                bool bBeforeObstacle = dDistNodeToGoal >= dDistObsToGoal;
+                LOG_NOTICE(logging::g_qSharedLogger, "Retrieved Obstacle: ({}, {})", stObstaclePosition.dEasting, stObstaclePosition.dNorthing);
 
-                // If a point is inside or before the obstacle, remove it.
-                if (bInsideObstacle || bBeforeObstacle)
+                // Calculate distance from obstacle center to goal to determine what is "past" the obstacle.
+                double dDistObsToGoal = geoops::CalculateGeoMeasurement(stObstaclePosition, m_stGoalWaypoint.GetUTMCoordinate()).dDistanceMeters;
+                int nPointsRemoved    = 0;
+
+                // Trim the original path up until safely past the obstacle.
+                std::vector<geoops::Waypoint>::iterator itSafeNode = m_vPathCoordinates.begin();
+                while (itSafeNode != m_vPathCoordinates.end())
                 {
-                    itSafeNode = m_vPathCoordinates.erase(itSafeNode);
-                    nPointsRemoved++;
+                    double dDistNodeToObs  = geoops::CalculateGeoMeasurement(itSafeNode->GetUTMCoordinate(), stObstaclePosition).dDistanceMeters;
+                    double dDistNodeToGoal = geoops::CalculateGeoMeasurement(itSafeNode->GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate()).dDistanceMeters;
+
+                    // Determine if the node is trapped inside the obstacle bounds, or geometrically "behind" it.
+                    bool bInsideObstacle = dDistNodeToObs <= (constants::STUCK_OBSTACLE_RADIUS * 1.5);
+                    bool bBeforeObstacle = dDistNodeToGoal >= dDistObsToGoal;
+
+                    // If a point is inside or before the obstacle, strip it from the current plan.
+                    if (bInsideObstacle || bBeforeObstacle)
+                    {
+                        itSafeNode = m_vPathCoordinates.erase(itSafeNode);
+                        nPointsRemoved++;
+                    }
+                    else
+                    {
+                        // Found the first node safely past the obstacle. Halt deletions.
+                        break;
+                    }
+                }
+
+                // Determine the geographic reconnection point. If the whole path was wiped, default to the goal.
+                geoops::UTMCoordinate stReconnectCoordinate =
+                    (itSafeNode != m_vPathCoordinates.end()) ? itSafeNode->GetUTMCoordinate() : m_stGoalWaypoint.GetUTMCoordinate();
+
+                // Store the original beta bias so we don't permanently mess up standard path planning later.
+                double dOriginalBeta = globals::g_pGeoPlanner->GetBetaBias();
+
+                // Increase beta bias to force the rover radically around the obstacle.
+                globals::g_pGeoPlanner->SetBetaBias(50.0);
+
+                // Plan a splice path around the obstacle from the current rover position to the reconnection point.
+                std::vector<geoops::Waypoint> vSplicePathCoordinates =
+                    globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stReconnectCoordinate);
+
+                // Restore the original beta bias after the bypass corridor is generated.
+                globals::g_pGeoPlanner->SetBetaBias(dOriginalBeta);
+
+                // Safely splice the new path into the remaining path
+                int nPointsAdded = 0;
+                if (!vSplicePathCoordinates.empty())
+                {
+                    // If we are reconnecting to an existing path, drop the final node of the splice.
+                    // Otherwise, we inject a back-to-back duplicate waypoint which causes controller stuttering.
+                    if (!m_vPathCoordinates.empty())
+                    {
+                        vSplicePathCoordinates.pop_back();
+                    }
+
+                    // Insert the newly computed bypass sequence at the beginning of the remaining original path.
+                    m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), vSplicePathCoordinates.end());
+                    nPointsAdded = vSplicePathCoordinates.size();
                 }
                 else
                 {
-                    // Found the first node safely past the obstacle. Stop deleting.
-                    break;
+                    LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to find a splice path around the obstacle!");
                 }
+
+                LOG_INFO(logging::g_qSharedLogger, "Stuck state modified rover path: {} nodes added, {} nodes removed", nPointsAdded, nPointsRemoved);
+
+                // Update controllers with the fused path sequence.
+                m_pStanleyController->SetReferencePath(m_vPathCoordinates);
             }
-
-            // Create variable for the reconnection point.
-            geoops::UTMCoordinate stReconnectCoordinate;
-
-            // Grab UTM coordinates for the reconnect coordinate.
-            if (itSafeNode != m_vPathCoordinates.end())
-            {
-                stReconnectCoordinate = itSafeNode->GetUTMCoordinate();
-            }
-
-            // Else, the entire remaining path was blocked or before the obstacle, so plan directly to the final waypoint.
             else
             {
-                stReconnectCoordinate = m_stGoalWaypoint.GetUTMCoordinate();
+                LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Rover marked as stuck, but the waypoint handler contains no obstacles!");
             }
 
-            // Store the original beta bias so we don't mess up normal path planning later.
-            double dOriginalBeta = globals::g_pGeoPlanner->GetBetaBias();
-
-            // Increase beta bias to force the rover around the obstacle.
-            globals::g_pGeoPlanner->SetBetaBias(50.0);
-
-            // Pass a 1.0m search radius to PlanPath to prevent the KD-Tree from "jumping" over the obstacle.
-            std::vector<geoops::Waypoint> vSplicePathCoordinates =
-                globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stReconnectCoordinate, 1.0);
-
-            // Restore the original beta bias after the splice is generated.
-            globals::g_pGeoPlanner->SetBetaBias(dOriginalBeta);
-
-            // Safely splice the new path into the remaining path
-            int nPointsAdded = 0;
-            if (!vSplicePathCoordinates.empty())
-            {
-                // Insert the new path at the beginning of the remaining original path.
-                m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), vSplicePathCoordinates.end());
-                nPointsAdded = vSplicePathCoordinates.size();
-            }
-
-            // If it fails, no successful splice can be made.
-            else
-            {
-                LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to find a splice path around the obstacle!");
-            }
-
-            // Log the modified path.
-            LOG_INFO(logging::g_qSharedLogger, "Stuck state modified rover path: {} nodes added, {} nodes removed", nPointsAdded, nPointsRemoved);
-
-            // Update controllers and visuals.
-            m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
-            m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-
-            // Set the stuck variable back to false.
+            // Always clear the stuck flag so we don't loop this logic indefinitely.
             m_bWasStuck = false;
         }
 
@@ -224,31 +205,16 @@ namespace statemachine
 
         // Calculate distance and bearing from goal waypoint.
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-        // Add the current rover pose to the path plot.
-        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath", 1);
-
-        // Place a dot on the stanley target index.
-        geoops::Waypoint stStanleyTargetCoordinate =
-            m_pStanleyController->GetReferencePath().at(static_cast<size_t>(m_pStanleyController->GetReferencePathTargetIndex()));
-        m_pRoverPathPlot->ClearLayer("StanleyTargetIndex");
-        m_pRoverPathPlot->AddDot(stStanleyTargetCoordinate.GetUTMCoordinate(), "StanleyTargetIndex", 1);
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
         if ((std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count() % 5) == 0 && !bAlreadyPrinted)
         {
-            // Get raw Navboard GPS position.
-            geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
-            // Calculate error between pose and GPS.
-            geoops::GeoMeasurement stErrorMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrentGPSPosition);
-
             // Assemble the error metrics into a single string. We are going to include the distance and bearing to the goal waypoint and
             // the error between the rover pose and the GPS position. The rover pose could be from VIO or GNSS fusion, or just GPS.
             std::string szErrorMetrics =
                 "--------[ Navigating Error Report ]--------\nDistance to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dDistanceMeters) + " meters\n" +
-                "Bearing to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dStartRelativeBearing) + " degrees\n" +
-                "GPS/VIO Position Error (UTM for easy reading):\n" + std::to_string(stErrorMeasurement.dDistanceMeters) + " (distance) " +
-                std::to_string(stErrorMeasurement.dStartRelativeBearing) + " (bearing)";
+                "Bearing to Goal Waypoint: " + std::to_string(stGoalWaypointMeasurement.dStartRelativeBearing) + " degrees\n";
             // Submit the error metrics to the logger.
             LOG_INFO(logging::g_qSharedLogger, "{}", szErrorMetrics);
 
@@ -286,20 +252,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target marker!");
-
-                // Check if the OpenCV tag has a good absolute position.
-                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-                // Check if the torch tag has a good absolute position.
-                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
                 // Don't execute the rest of the state.
@@ -326,13 +278,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has seen a target object!");
-
-                // Check if the object has a good absolute position.
-                if (stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
-                {
-                    // Add the object to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
-                }
 
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eObjectSeen, true);
@@ -544,29 +489,17 @@ namespace statemachine
                     LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
                     // Get and store new goal waypoint.
                     m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
-                    // Clear the old path plot and add the new path.
-                    m_pRoverPathPlot->ClearLayer("NavPath");
-                    // Add starting point and goal point to path plot.
-                    m_pRoverPathPlot->AddPathPoint(globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate(), "NavPath", 0);
-                    m_pRoverPathPlot->AddPathPoint(m_stGoalWaypoint, "NavPath", 0);
-
-                    // Update our plot with the new path.
-                    m_pRoverPathPlot->ClearLayer("GeoPath");
                     // Plan a new path using the GeoPlanner.
                     m_vPathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
                                                                           globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
                                                                           m_stGoalWaypoint.GetUTMCoordinate());
                     // Add the path to the waypoint handler for reference by other states or handlers.
                     globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
-                    // Add the new path to the plot.
-                    m_pRoverPathPlot->AddPathPoints(m_vPathCoordinates, "GeoPath", 0);
                     // Set the path of the stanley controller.
                     m_pStanleyController->SetReferencePath(m_vPathCoordinates);
 
                     // Get all obstacles from the obstacle handler.
                     std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
-                    m_pRoverPathPlot->ClearLayer("ObstaclesLocation");
-                    m_pRoverPathPlot->AddDots(vObstacles, "ObstaclesLocation", 0);
 
                     // Check if the path is empty. If it is, go to idle state.
                     if (m_vPathCoordinates.empty())

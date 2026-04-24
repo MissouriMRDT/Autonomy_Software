@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief Implementation file for the GeoPlanner class, which provides path planning
- *     functionality using LiDAR data and A* algorithm.
+ * functionality using LiDAR data and a highly optimized Hierarchical A* algorithm.
  *
  * @file GeoPlanner.cpp
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -14,9 +14,8 @@
 
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs that are used to
- *     implement different path planner algorithms used by the rover to determine
- *     the optimal path to take for any given situation.
- *
+ * implement different path planner algorithms used by the rover to determine
+ * the optimal path to take for any given situation.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2025-09-24
@@ -24,66 +23,102 @@
 namespace pathplanners
 {
     /******************************************************************************
-     * @brief Construct a new Geo Planner:: Geo Planner object.
+     * @brief Construct a new Geo Planner:: Geo Planner object. Initializes all
+     * complex algorithms and mathematical hyperparameters to avoid explicitly
+     * hardcoded magic numbers logic.
      *
-     * @param dTileSize - The size of each tile in meters. Default is 5.0 meters.
+     * @param dTileSize - The size of each database tile block loaded in meters.
+     * @param dGridResolution - Metric scale of an individual discrete costmap cell.
+     * @param dHeuristicWeight - The A* bias weight to accelerate goal seeking behaviors.
+     * @param dBetaBias - Baseline beta algorithmic multiplier for penalizing bad terrain.
+     * @param dMinTravScore - Absolute required lower bound on traversal values to be considered usable pathing terrain.
+     * @param nDilationPasses - Number of morphological loop passes executed to fill void structures in sparse point clouds.
+     * @param dSafeTravScoreThreshold - Baseline score requirement applied when attempting to snap stray origin coordinates.
+     * @param nMaxSpiralSearchRadius - Max concentric rings expanded when searching for safe origin snapping structures.
+     * @param siMaxPlotPointsPerTile - Rendering density constraint to prevent visualizer overload.
+     * @param dPenaltyScalingFactor - Multiplier intensifying standard penalty math strictly during node score resolution.
+     * @param dPenaltyPower - Exponential scaler applied universally to mathematically discourage steep or dangerous zones.
+     * @param dPathWaypointTolerance - Native radius value embedded into actively returned planned telemetry sequence nodes.
+     * @param dPlotWaypointTolerance - Native radius value embedded into path tracer debug telemetry parameters natively.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-09-24
      ******************************************************************************/
-    GeoPlanner::GeoPlanner(double dTileSize)
+    GeoPlanner::GeoPlanner(double dTileSize,
+                           double dGridResolution,
+                           double dHeuristicWeight,
+                           double dBetaBias,
+                           double dMinTravScore,
+                           int nDilationPasses,
+                           double dSafeTravScoreThreshold,
+                           int nMaxSpiralSearchRadius,
+                           size_t siMaxPlotPointsPerTile,
+                           double dPenaltyScalingFactor,
+                           double dPenaltyPower,
+                           double dPathWaypointTolerance,
+                           double dPlotWaypointTolerance)
     {
-        // Initialize member variables.
-        m_dTileSize             = dTileSize;
-        m_pLiDARHandler         = nullptr;
-        m_nStartID              = -1;
-        m_nEndID                = -1;
-        m_dBeta                 = 1.0;
-        m_dMinTravScore         = 0.0;
-        m_dSearchRadius         = 3.0;
-        m_dMaxSearchTimeSeconds = 120.0;
-        m_pPathTracer           = std::make_unique<logging::graphing::PathTracer>("GeoPlanner Path", false);
-        m_pKDTree               = std::make_unique<KDTree2D>(PointKDAccessor());
+        // Initialize member variables from constructor arguments.
+        m_dTileSize               = dTileSize;
+        m_dGridResolution         = dGridResolution;
+        m_dHeuristicWeight        = dHeuristicWeight;
+        m_dBeta                   = dBetaBias;
+        m_dMinTravScore           = dMinTravScore;
+        m_nDilationPasses         = nDilationPasses;
+        m_dSafeTravScoreThreshold = dSafeTravScoreThreshold;
+        m_nMaxSpiralSearchRadius  = nMaxSpiralSearchRadius;
+        m_siMaxPlotPointsPerTile  = siMaxPlotPointsPerTile;
+        m_dPenaltyScalingFactor   = dPenaltyScalingFactor;
+        m_dPenaltyPower           = dPenaltyPower;
+        m_dPathWaypointTolerance  = dPathWaypointTolerance;
+        m_dPlotWaypointTolerance  = dPlotWaypointTolerance;
 
-        // Create path plotter layers.
+        // Initialize resource pointers and request-specific variables.
+        m_pLiDARHandler         = nullptr;
+        m_dSearchRadius         = 0.0;
+        m_dMaxSearchTimeSeconds = 0.0;
+        m_dCorridorPadding      = 0.0;
+
+        // Setup path tracer for 3D visualization.
+        m_pPathTracer = std::make_unique<logging::graphing::PathTracer>("GeoPlanner Path", false);
+
+        // Create path plotter visual layers.
         m_pPathTracer->CreateDotLayer("TerrainPoints", "gray", false);
         m_pPathTracer->CreatePathLayer("RoverPath", "red");
 
-        // Make sure RoveComm UDP Node is initialized.
+        // Bind RoveComm UDP Node network callbacks if available.
         if (network::g_pRoveCommUDPNode != nullptr)
         {
-            // Set RoveComm Node callbacks.
-            network::g_pRoveCommUDPNode->AddUDPCallback<float>(MinTravScore, manifest::Autonomy::COMMANDS.find("SETMINTRAVSCORE")->second.DATA_ID);
-            network::g_pRoveCommUDPNode->AddUDPCallback<float>(BetaBias, manifest::Autonomy::COMMANDS.find("SETBETABIAS")->second.DATA_ID);
+            network::g_pRoveCommUDPNode->AddUDPCallback<float>(fnMinTravScoreCallback, manifest::Autonomy::COMMANDS.find("SETMINTRAVSCORE")->second.DATA_ID);
+            network::g_pRoveCommUDPNode->AddUDPCallback<float>(fnBetaBiasCallback, manifest::Autonomy::COMMANDS.find("SETBETABIAS")->second.DATA_ID);
         }
 
-        // Log initialization message.
-        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner initialized with tile size: {} meters", std::to_string(dTileSize));
+        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner initialized successfully with a defined tile fetch size of {} meters.", std::to_string(m_dTileSize));
     }
 
     /******************************************************************************
      * @brief Destroy the Geo Planner:: Geo Planner object.
-     *
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-09-27
      ******************************************************************************/
     GeoPlanner::~GeoPlanner()
     {
-        // Destructor
+        // Smart pointers and standard containers clean themselves up automatically.
     }
 
     /******************************************************************************
-     * @brief Plan a path from the start to the end UTM coordinates using A* algorithm.
+     * @brief Plan an optimal trajectory path from the start UTM to the end UTM
+     * coordinate utilizing a 2.5D hierarchical Costmap grid representation.
      *
-     * @param pLiDARHandler - Pointer to the LiDARHandler instance for fetching geospatial data.
-     * @param stStart - The starting UTM coordinate.
-     * @param stEnd - The ending UTM coordinate.
-     * @param dBeta - A bias factor for traversal score weighting. Higher values favor safer paths with better trav_scores.
-     * @param dSearchRadius - The radius in meters to search for neighboring points during path planning.
-     * @param dMaxSearchTimeSeconds - The maximum time in seconds to spend searching for a path.
-     * @param bPlotPath - Whether to plot the planned path and terrain in 3D.
-     * @return std::vector<geoops::Waypoint> - The planned path waypoints.
+     * @param pLiDARHandler - Pointer to the LiDARHandler database instance for fetching geospatial data.
+     * @param stStart - The desired starting UTM geographic coordinate representation.
+     * @param stEnd - The ultimate destination UTM geographic coordinate representation.
+     * @param dSearchRadius - Padding base radius used to compute bounds.
+     * @param dMaxSearchTimeSeconds - The absolute maximum CPU time in seconds allocated to search attempts.
+     * @param bPlotPath - Determines whether the path tracer visibly plots the result.
+     * @param dCorridorPadding - The extended corridor buffer dimension appended dynamically outside raw bounds.
+     * @return std::vector<geoops::Waypoint> - The sequentially planned traversal path configurations.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-09-28
@@ -93,98 +128,151 @@ namespace pathplanners
                                                        const geoops::UTMCoordinate& stEnd,
                                                        double dSearchRadius,
                                                        double dMaxSearchTimeSeconds,
-                                                       bool bPlotPath)
+                                                       bool bPlotPath,
+                                                       double dCorridorPadding)
     {
-        // Acquire a mutex lock so we don't try to plan multiple paths at the same time.
+        // Acquire a thread mutex lock to prevent concurrent path planning operations from corrupting internal state.
         std::lock_guard<std::mutex> lkPathLock(m_muPathGenMutex);
 
-        // Initialize member variables.
+        // Secure external variables into local class state for this search pass.
         m_pLiDARHandler         = pLiDARHandler;
         m_dSearchRadius         = dSearchRadius;
         m_dMaxSearchTimeSeconds = dMaxSearchTimeSeconds;
+        m_dCorridorPadding      = dCorridorPadding;
 
-        // Submit logger message.
         LOG_NOTICE(logging::g_qSharedLogger,
-                   "Starting GeoPlanner path planning from ({:.2f}, {:.2f}) to ({:.2f}, {:.2f}) with beta: {}, search radius: {} meters, min traversal score: {}.",
+                   "Starting GeoPlanner path planning from ({:.2f}, {:.2f}) to ({:.2f}, {:.2f}) with algorithmic beta: {}, minimum score threshold: {}.",
                    stStart.dEasting,
                    stStart.dNorthing,
                    stEnd.dEasting,
                    stEnd.dNorthing,
                    m_dBeta,
-                   m_dSearchRadius,
                    m_dMinTravScore);
 
-        // Validate beta to avoid accidental disabling.
+        // Sanity check the beta multiplier to avoid dividing by zero or disabling penalty tracking.
         if (m_dBeta <= 0.0)
         {
             m_dBeta = 0.001;
-            LOG_WARNING(logging::g_qSharedLogger, "GeoPlanner: supplied dBeta {} invalid; using fallback 0.001.", m_dBeta);
+            LOG_WARNING(logging::g_qSharedLogger, "GeoPlanner: supplied dBeta bias {} is mathematically invalid; utilizing fallback logic 0.001.", m_dBeta);
         }
 
-        // Store the start time.
+        // Store execution start time to profile algorithmic bottlenecks.
         std::chrono::time_point<std::chrono::high_resolution_clock> tmStartTime = std::chrono::high_resolution_clock::now();
 
-        // Initialize search for new start and end points.
-        this->InitializeSearch(stStart, stEnd);
-        // Track time taken to initialize search.
+        // Step 1: Preload the bounding box tiles and construct the dense high-res abstract costmap grid matrices.
+        if (!this->PreloadCorridorAndBuildGrid(stStart, stEnd))
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to initialize the search grid. Aborting pathfinding routine.");
+            return {};
+        }
+
         std::chrono::time_point<std::chrono::high_resolution_clock> tmAfterInit = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> dInitDuration                             = tmAfterInit - tmStartTime;
-        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner search initialization took {:.6f} seconds.", dInitDuration.count());
+        std::chrono::duration<double> dInitDurationSeconds                      = tmAfterInit - tmStartTime;
+        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner Grid Generation phase mapped within {:.6f} seconds.", dInitDurationSeconds.count());
 
-        // Run A* search algorithm.
+        // Step 2: Formally run the highly optimized Weighted A* search logic.
         this->SearchAStar();
-        // Track time taken to perform search.
+
         std::chrono::time_point<std::chrono::high_resolution_clock> tmAfterSearch = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> dSearchDuration                             = tmAfterSearch - tmAfterInit;
-        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner A* search took {:.6f} seconds.", dSearchDuration.count());
+        std::chrono::duration<double> dSearchDurationSeconds                      = tmAfterSearch - tmAfterInit;
+        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner A* Grid Node Expansion executed within {:.6f} seconds.", dSearchDurationSeconds.count());
 
-        // Reconstruct the path from the predecessor map.
-        std::vector<geoops::Waypoint> vPath = this->ReconstructPath();
-        // Track total time taken for path planning.
+        // Step 3: Integrate and rebuild exact geographic sequences tracking backwards from the goal.
+        std::vector<geoops::Waypoint> vPath                                   = this->ReconstructPath();
+
         std::chrono::time_point<std::chrono::high_resolution_clock> tmEndTime = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> dTotalDuration                          = tmEndTime - tmAfterSearch;
-        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner path reconstruction took {:.6f} seconds.", dTotalDuration.count());
+        std::chrono::duration<double> dOverallDurationSeconds                 = tmEndTime - tmStartTime;
+        LOG_NOTICE(logging::g_qSharedLogger,
+                   "GeoPlanner total end-to-end path routing executed within {:.6f} seconds rendering {} waypoints.",
+                   dOverallDurationSeconds.count(),
+                   vPath.size());
 
-        // Log the total time taken for path planning.
-        std::chrono::duration<double> dOverallDuration = tmEndTime - tmStartTime;
-        LOG_NOTICE(logging::g_qSharedLogger, "GeoPlanner total path planning took {:.6f} seconds. Path is {} waypoints long.", dOverallDuration.count(), vPath.size());
-
-        // Plot the path and terrain if requested.
+        // Plot the telemetry path mapping visibly if requested.
         if (bPlotPath && !vPath.empty())
         {
             this->PlotPathAndTerrain(vPath);
         }
         else if (bPlotPath && vPath.empty())
         {
-            LOG_WARNING(logging::g_qSharedLogger, "No path to plot.");
+            LOG_WARNING(logging::g_qSharedLogger, "GeoPlanner failed to configure waypoints. Plotting operation bypassed.");
         }
 
         return vPath;
     }
 
     /******************************************************************************
-     * @brief Clear all cached tiles and KD-Tree data.
-     *
+     * @brief Explicitly zeroes and reclaims internal spatial database mapping arrays.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-09-27
      ******************************************************************************/
     void GeoPlanner::ClearGeoCache()
     {
-        // Acquire a mutex lock so we don't try to clear cache while planning a path.
+        // Acquire a thread mutex lock to guarantee safety during cache wipes.
         std::lock_guard<std::mutex> lkResourceLock(m_muPathGenMutex);
-
-        // Clear all cached tiles and KD-Tree data.
         m_umTileMapCache.clear();
     }
 
     /******************************************************************************
-     * @brief Set the size of each tile in meters.
+     * @brief Unloads and clears specific LiDAR database tiles from the local cache
+     * based on a provided geographic bounding box to aggressively free up heap memory.
      *
-     * @param dTileSize - The new tile size in meters.
+     * @param dMinX - The minimum easting bounds (X) of the area to unload.
+     * @param dMaxX - The maximum easting bounds (X) of the area to unload.
+     * @param dMinY - The minimum northing bounds (Y) of the area to unload.
+     * @param dMaxY - The maximum northing bounds (Y) of the area to unload.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-10-28
+     * @date 2026-04-24
+     ******************************************************************************/
+    void GeoPlanner::UnloadLiDARTiles(double dMinX, double dMaxX, double dMinY, double dMaxY)
+    {
+        // Acquire a thread mutex lock to guarantee safety while modifying the underlying spatial map cache.
+        std::lock_guard<std::mutex> lkResourceLock(m_muPathGenMutex);
+
+        // Compute the discrete tile integer keys covering the designated geographic bounding box.
+        int nMinTileX     = static_cast<int>(std::floor(dMinX / m_dTileSize));
+        int nMaxTileX     = static_cast<int>(std::floor(dMaxX / m_dTileSize));
+        int nMinTileY     = static_cast<int>(std::floor(dMinY / m_dTileSize));
+        int nMaxTileY     = static_cast<int>(std::floor(dMaxY / m_dTileSize));
+
+        int nTilesRemoved = 0;
+
+        // Iterate strictly through the computed matrix block and purge resident memory instances.
+        for (int nX = nMinTileX; nX <= nMaxTileX; ++nX)
+        {
+            for (int nY = nMinTileY; nY <= nMaxTileY; ++nY)
+            {
+                TileKey stKey{nX, nY};
+
+                // Erase will return the number of elements removed (1 if found, 0 if not).
+                if (m_umTileMapCache.erase(stKey) > 0)
+                {
+                    nTilesRemoved++;
+                }
+            }
+        }
+
+        // Only log explicit memory operations if tiles were actually purged from the cache matrix.
+        if (nTilesRemoved > 0)
+        {
+            LOG_DEBUG(logging::g_qSharedLogger,
+                      "GeoPlanner: Successfully unloaded {} tiles from the spatial cache within bounding box X[{:.2f}, {:.2f}] Y[{:.2f}, {:.2f}].",
+                      nTilesRemoved,
+                      dMinX,
+                      dMaxX,
+                      dMinY,
+                      dMaxY);
+        }
+    }
+
+    /******************************************************************************
+     * @brief Sets the dimensional size of database tiles mapped during planning.
+     *
+     * @param dTileSize - The block size in meters.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-07-14
      ******************************************************************************/
     void GeoPlanner::SetTileSize(double dTileSize)
     {
@@ -192,12 +280,12 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Set the minimum traversal score for path planning.
+     * @brief Sets the absolute minimum travel score required for a valid cell.
      *
-     * @param dMinTravScore - The new minimum traversal score.
+     * @param dMinTravScore - Minimum permissible score limit.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-10-28
+     * @date 2025-07-14
      ******************************************************************************/
     void GeoPlanner::SetMinTravScore(double dMinTravScore)
     {
@@ -205,12 +293,12 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Set the beta bias for travel scores in path planning.
+     * @brief Sets the algorithm's penalty sensitivity bias multiplier.
      *
-     * @param dBetaBias - The new beta bias value.
+     * @param dBetaBias - Baseline beta algorithmic multiplier.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-10-28
+     * @date 2025-07-14
      ******************************************************************************/
     void GeoPlanner::SetBetaBias(double dBetaBias)
     {
@@ -218,12 +306,12 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Get the size of each tile in meters.
+     * @brief Retrieves the currently configured database tile size constraint.
      *
-     * @return double - The current tile size in meters.
+     * @return double - Tile size mapped dimension in meters.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-10-28
+     * @date 2025-07-14
      ******************************************************************************/
     double GeoPlanner::GetTileSize() const
     {
@@ -231,12 +319,12 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Get the minimum traversal score for path planning.
+     * @brief Retrieves the actively configured minimum travel score parameter limit.
      *
-     * @return double - The current minimum traversal score.
+     * @return double - The active lowest traversal score permissible.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-10-28
+     * @date 2025-07-14
      ******************************************************************************/
     double GeoPlanner::GetMinTravScore() const
     {
@@ -244,12 +332,12 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Get the beta bias for travel scores in path planning.
+     * @brief Retrieves the beta heuristic bias factor configured dynamically.
      *
-     * @return double - The current beta bias value.
+     * @return double - Scaler factor penalizing bad terrain paths mathematically.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-10-28
+     * @date 2025-07-14
      ******************************************************************************/
     double GeoPlanner::GetBetaBias() const
     {
@@ -257,551 +345,573 @@ namespace pathplanners
     }
 
     /******************************************************************************
-     * @brief Initialize the search by caching the start and end tiles and setting up initial states.
+     * @brief Calculates a bounding box based on Start and End coordinates, preloads
+     * LiDAR chunks, and structures them down into a contiguous 1D Costmap vector.
      *
-     * @param stStart - The starting UTM coordinate.
-     * @param stEnd - The ending UTM coordinate.
-     * @return true - Initialization successful.
-     * @return false - Initialization failed due to invalid start or end points.
+     * @param stStart - The designated starting UTM geographic coordinate.
+     * @param stEnd - The designated end UTM geographic coordinate.
+     * @return true - Grid initialization succeeded.
+     * @return false - Total structural invalidation or no usable terrain available.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-09-27
+     * @date 2025-07-14
      ******************************************************************************/
-    bool GeoPlanner::InitializeSearch(const geoops::UTMCoordinate& stStart, const geoops::UTMCoordinate& stEnd)
+    bool GeoPlanner::PreloadCorridorAndBuildGrid(const geoops::UTMCoordinate& stStart, const geoops::UTMCoordinate& stEnd)
     {
-        // Clear previous search data.
-        m_umAllStates.clear();
-        m_umPredecessors.clear();
-        m_usClosedSet.clear();
+        // Buffer the search bounds to allow the algorithm lateral space to circumvent large topographic obstructions.
+        double dPaddingMeters = m_dSearchRadius + m_dCorridorPadding;
+
+        // Establish spatial bounding box limits outlining the entire search corridor.
+        double dMinEasting  = std::min(stStart.dEasting, stEnd.dEasting) - dPaddingMeters;
+        double dMaxEasting  = std::max(stStart.dEasting, stEnd.dEasting) + dPaddingMeters;
+        double dMinNorthing = std::min(stStart.dNorthing, stEnd.dNorthing) - dPaddingMeters;
+        double dMaxNorthing = std::max(stStart.dNorthing, stEnd.dNorthing) + dPaddingMeters;
+
+        // Compute the tile keys needed to cover the bounding box.
+        int nMinTileX = static_cast<int>(std::floor(dMinEasting / m_dTileSize));
+        int nMaxTileX = static_cast<int>(std::floor(dMaxEasting / m_dTileSize));
+        int nMinTileY = static_cast<int>(std::floor(dMinNorthing / m_dTileSize));
+        int nMaxTileY = static_cast<int>(std::floor(dMaxNorthing / m_dTileSize));
+
+        // Preload all valid database tiles within this geographic block.
+        for (int nX = nMinTileX; nX <= nMaxTileX; ++nX)
+        {
+            for (int nY = nMinTileY; nY <= nMaxTileY; ++nY)
+            {
+                this->CheckAndLoadTile(nX, nY);
+            }
+        }
+
+        // Establish the matrix dimensions required for the granular abstract grid.
+        m_dGridOriginEasting  = dMinEasting;
+        m_dGridOriginNorthing = dMinNorthing;
+        m_nGridWidth          = static_cast<int>(std::ceil((dMaxEasting - dMinEasting) / m_dGridResolution));
+        m_nGridHeight         = static_cast<int>(std::ceil((dMaxNorthing - dMinNorthing) / m_dGridResolution));
+
+        // Pre-allocate the master costmap vector memory capacity and initialize to empty state (-1.0).
+        int nTotalCells = m_nGridWidth * m_nGridHeight;
+        m_vCostmap.assign(nTotalCells, GridCell());
+
+        // Overlay raw sparse LiDAR matrices onto the structured grid mapping.
+        for (int nX = nMinTileX; nX <= nMaxTileX; ++nX)
+        {
+            for (int nY = nMinTileY; nY <= nMaxTileY; ++nY)
+            {
+                TileKey stKey{nX, nY};
+
+                if (m_umTileMapCache.find(stKey) != m_umTileMapCache.end())
+                {
+                    for (const LiDARHandler::PointRow& stPoint : m_umTileMapCache[stKey])
+                    {
+                        int nGridX = static_cast<int>((stPoint.dEasting - m_dGridOriginEasting) / m_dGridResolution);
+                        int nGridY = static_cast<int>((stPoint.dNorthing - m_dGridOriginNorthing) / m_dGridResolution);
+
+                        // Ensure index bounds are safe before memory injection.
+                        if (nGridX >= 0 && nGridX < m_nGridWidth && nGridY >= 0 && nGridY < m_nGridHeight)
+                        {
+                            int nIdx = GetGridIndex(nGridX, nGridY);
+
+                            // Pessimistic Data Aggregation: We specifically want to take the worst (lowest) traversal score
+                            // to ensure obstacles like trees are not masked by overlapping ground returns.
+                            if (m_vCostmap[nIdx].dTravScore < 0.0 || stPoint.dTraversalScore < m_vCostmap[nIdx].dTravScore)
+                            {
+                                m_vCostmap[nIdx].dTravScore            = stPoint.dTraversalScore;
+                                m_vCostmap[nIdx].dAltitude             = stPoint.dAltitude;
+                                m_vCostmap[nIdx].nClosestPointID       = stPoint.nID;
+                                m_vCostmap[nIdx].nZone                 = std::stoi(stPoint.szZone.substr(0, 2));
+                                m_vCostmap[nIdx].bInNorthernHemisphere = (stPoint.dNorthing >= 0);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Dilate the existing valid cells to bridge structural void gaps in sparse clouds.
+        this->FillGridHoles();
+
+        // Calculate starting array indices based on geographic coordinate locations.
+        int nStartX = static_cast<int>((stStart.dEasting - m_dGridOriginEasting) / m_dGridResolution);
+        int nStartY = static_cast<int>((stStart.dNorthing - m_dGridOriginNorthing) / m_dGridResolution);
+        int nEndX   = static_cast<int>((stEnd.dEasting - m_dGridOriginEasting) / m_dGridResolution);
+        int nEndY   = static_cast<int>((stEnd.dNorthing - m_dGridOriginNorthing) / m_dGridResolution);
+
+        // Enforce strict clamping to prevent edge-case out of bounds index evaluation.
+        nStartX = std::clamp(nStartX, 0, m_nGridWidth - 1);
+        nStartY = std::clamp(nStartY, 0, m_nGridHeight - 1);
+        nEndX   = std::clamp(nEndX, 0, m_nGridWidth - 1);
+        nEndY   = std::clamp(nEndY, 0, m_nGridHeight - 1);
+
+        // Perform a safe-snap search to ensure origin/destination points don't land exactly in a red zone or void.
+        m_nStartIndex = this->FindNearestValidCell(GetGridIndex(nStartX, nStartY));
+        m_nEndIndex   = this->FindNearestValidCell(GetGridIndex(nEndX, nEndY));
+
+        // Abort if no viable terrain whatsoever exists near the required start/end points.
+        if (m_nStartIndex == -1 || m_nEndIndex == -1)
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "GeoPlanner explicit termination: Geographic endpoints have no safe nearby terrain data.");
+            return false;
+        }
+
+        // Reset fast A* memory trackers to prepare for the active search loop.
+        m_vPredecessors.assign(nTotalCells, -1);
+        m_vbClosedSet.assign(nTotalCells, false);
+        m_vdGCosts.assign(nTotalCells, std::numeric_limits<double>::infinity());
+
+        // Empty the priority queue cleanly.
         while (!m_pqOpenSetNextBest.empty())
         {
             m_pqOpenSetNextBest.pop();
         }
-        // Reset start and end IDs.
-        m_nStartID = -1;
-        m_nEndID   = -1;
-        // Clear KD-Tree.
-        m_usKDTreeInsertedTiles.clear();
-        m_pKDTree->clear();
 
-        // Cache the start and end tiles and update ID values.
-        PlannerState stStartState = FindClosestLiDARPoint(stStart);
-        PlannerState stEndState   = FindClosestLiDARPoint(stEnd);
-        m_nStartID                = stStartState.nID;
-        m_nEndID                  = stEndState.nID;
-
-        // Check if valid start and end points were found.
-        if (m_nStartID == -1 || m_nEndID == -1)
-        {
-            LOG_ERROR(logging::g_qSharedLogger, "Invalid start or end point for path planning. Start ID: {}, End ID: {}.", m_nStartID, m_nEndID);
-            return false;
-        }
-
-        // Log the chosen start and end UTM positions.
         LOG_INFO(logging::g_qSharedLogger,
-                 "GeoPlanner initialized search with Start ID: {} at ({:.2f}, {:.2f}), End ID: {} at ({:.2f}, {:.2f}).",
-                 m_nStartID,
-                 stStartState.dEasting,
-                 stStartState.dNorthing,
-                 m_nEndID,
-                 stEndState.dEasting,
-                 stEndState.dNorthing);
-
+                 "Abstract Search Grid Built. Width {} x Height {} (Total: {} cells). Start Index: {}, End Index: {}",
+                 m_nGridWidth,
+                 m_nGridHeight,
+                 nTotalCells,
+                 m_nStartIndex,
+                 m_nEndIndex);
         return true;
     }
 
     /******************************************************************************
-     * @brief Perform the A* search algorithm to find the optimal path.
-     *
+     * @brief Actively runs a highly optimized Weighted A* pathfinding search upon
+     * the 1D Costmap grid utilizing kinematic 3D spatial awareness.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-09-28
+     * @date 2025-07-14
      ******************************************************************************/
     void GeoPlanner::SearchAStar()
     {
-        // Store the start time.
         std::chrono::high_resolution_clock::time_point tmStartTime = std::chrono::high_resolution_clock::now();
 
-        // Initialize the start state.
-        PlannerState stStartState = m_umAllStates[m_nStartID];
-        stStartState.dGCost       = 0.0;
-        // Heuristic cost (Euclidean distance to goal).
-        stStartState.dHCost = this->EuclideanDistance(stStartState.dEasting,
-                                                      stStartState.dNorthing,
-                                                      stStartState.dAltitude,
-                                                      m_umAllStates[m_nEndID].dEasting,
-                                                      m_umAllStates[m_nEndID].dNorthing,
-                                                      m_umAllStates[m_nEndID].dAltitude);
-        // Cumulative traversal score starts as the start point's score.
-        m_umAllStates[m_nStartID] = stStartState;
+        // Initialize the origin node states.
+        PlannerState stStartState;
+        stStartState.nGridIndex = m_nStartIndex;
+        stStartState.dGCost     = 0.0;
 
-        // Push start into the open set priority queue.
-        m_pqOpenSetNextBest.push(m_umAllStates[m_nStartID]);
+        int nEndX, nEndY;
+        GetGridCoords(m_nEndIndex, nEndX, nEndY);
 
-        // Main A* search loop.
+        // Compute baseline Euclidean heuristic scaled up by heuristic weight.
+        int nStartX, nStartY;
+        GetGridCoords(m_nStartIndex, nStartX, nStartY);
+        stStartState.dHCost =
+            m_dHeuristicWeight * EuclideanDistance(nStartX * m_dGridResolution, nStartY * m_dGridResolution, nEndX * m_dGridResolution, nEndY * m_dGridResolution);
+
+        m_vdGCosts[m_nStartIndex] = 0.0;
+        m_pqOpenSetNextBest.push(stStartState);
+
+        // Pre-computed lookup tables for rapid 8-way directional neighbor evaluation.
+        constexpr int anDx[8]          = {-1, 0, 1, -1, 1, -1, 0, 1};
+        constexpr int anDy[8]          = {-1, -1, -1, 0, 0, 1, 1, 1};
+        constexpr double adMoveDist[8] = {1.414, 1.0, 1.414, 1.0, 1.0, 1.414, 1.0, 1.414};
+
+        // Main algorithm frontier expansion loop.
         while (!m_pqOpenSetNextBest.empty())
         {
-            // Get the node in the open set with the lowest f = g + h cost.
+            // Acquire the lowest cost node currently located in the Min-Heap.
             PlannerState stCurrentState = m_pqOpenSetNextBest.top();
-            // Remove the current node from the open set.
             m_pqOpenSetNextBest.pop();
 
-            // Check stale: compare popped.g to canonical g in m_umAllStates.
-            std::unordered_map<int, pathplanners::GeoPlanner::PlannerState>::iterator itState = m_umAllStates.find(stCurrentState.nID);
-            if (itState == m_umAllStates.end())
-            {
-                continue;    // This is unexpected, but skip if not found.
-            }
-            // If the popped state has a higher G cost than the recorded state, it's stale.
-            if (stCurrentState.dGCost > itState->second.dGCost + 1e-9)
-            {
-                // Stale entry: we previously found a better path and pushed that copy.
-                continue;
-            }
-
-            // If we've already evaluated it (closed set), skip.
-            if (m_usClosedSet.find(stCurrentState.nID) != m_usClosedSet.end())
+            // Ignore stale states that were updated with a better path later in the queue.
+            if (stCurrentState.dGCost > m_vdGCosts[stCurrentState.nGridIndex])
             {
                 continue;
             }
 
-            // If we reached the goal.
-            if (stCurrentState.nID == m_nEndID)
+            // Immediately exit standard operations if the target goal coordinate was successfully reached.
+            if (stCurrentState.nGridIndex == m_nEndIndex)
             {
-                LOG_INFO(logging::g_qSharedLogger, "Goal reached in A* search.");
+                LOG_INFO(logging::g_qSharedLogger, "Successfully reached valid goal configuration parameter during A* expansions.");
                 return;
             }
 
-            // Mark the current node as evaluated by adding it to the closed set.
-            m_usClosedSet.insert(stCurrentState.nID);
+            // Mark this specific node index as fully evaluated.
+            m_vbClosedSet[stCurrentState.nGridIndex] = true;
 
-            // Ensure the tile containing the current state is loaded.
-            this->CheckAndLoadTile(stCurrentState);
+            int nCurrentX, nCurrentY;
+            GetGridCoords(stCurrentState.nGridIndex, nCurrentX, nCurrentY);
 
-            // Query the KDTree to get the neighbors in the given search radius.
-            std::vector<LiDARHandler::PointRow> vNeighbors;
-            KDQueryPoint stQueryPoint{stCurrentState.dEasting, stCurrentState.dNorthing};
-            m_pKDTree->find_within_range(stQueryPoint, m_dSearchRadius, std::back_inserter(vNeighbors));
-
-            // Loop through the neighboring points within the radius.
-            for (LiDARHandler::PointRow& stPoint : vNeighbors)
+            // Explore all 8 adjacent neighbor grid cells.
+            for (int nI = 0; nI < 8; ++nI)
             {
-                // Skip if this neighbor is already in the closed set.
-                if (m_usClosedSet.find(stPoint.nID) != m_usClosedSet.end())
+                int nNeighborX = nCurrentX + anDx[nI];
+                int nNeighborY = nCurrentY + anDy[nI];
+
+                // Block bounds queries outside of the physical map.
+                if (nNeighborX < 0 || nNeighborX >= m_nGridWidth || nNeighborY < 0 || nNeighborY >= m_nGridHeight)
                 {
-                    continue;    // Already evaluated.
+                    continue;
                 }
 
-                /*
-                    Calculate the tentative G cost for this neighbor.
-                */
-                // Calculate Euclidean distance to neighbor.
-                double dDistance = this->EuclideanDistance(stCurrentState.dEasting,
-                                                           stCurrentState.dNorthing,
-                                                           stCurrentState.dAltitude,
-                                                           stPoint.dEasting,
-                                                           stPoint.dNorthing,
-                                                           stPoint.dAltitude);
-                // Clamp traversal score [0,1] just to be safe.
-                double dScore = std::clamp(stPoint.dTraversalScore, 0.0, 1.0);
-                // Calculate cost multiplier based on traversal score and beta.
-                double dMultiplier = 1.0 + m_dBeta * (1.0 - dScore);    // <1 not needed; this is >=1
-                // Calculate tentative G cost.
-                double dTentativeGCost = stCurrentState.dGCost + dDistance * dMultiplier;
+                int nNeighborIdx = GetGridIndex(nNeighborX, nNeighborY);
 
-                // If this neighbor is not in the open set or we found a better path to it.
-                std::unordered_map<int, PlannerState>::const_iterator itNeighborState = m_umAllStates.find(stPoint.nID);
-                // If this path to neighbor is better, update its state.
-                if (itNeighborState == m_umAllStates.end() || dTentativeGCost + 1e-12 < itNeighborState->second.dGCost)
+                // Skip indices that have already been cleanly solved.
+                if (m_vbClosedSet[nNeighborIdx])
                 {
-                    // Update the neighbor's state.
+                    continue;
+                }
+
+                // Reference cell parameters.
+                const GridCell& stCell        = m_vCostmap[nNeighborIdx];
+                const GridCell& stCurrentCell = m_vCostmap[stCurrentState.nGridIndex];
+
+                // Ensure neighbor inherently contains registered geographic parameters and meets minimum score limits.
+                if (stCell.dTravScore < 0.0 || stCell.dTravScore < m_dMinTravScore)
+                {
+                    continue;
+                }
+
+                // --- KINEMATIC AWARENESS LOGIC ---
+                // Calculate actual true 3D spatial distance incorporating the vertical ascent parameters.
+                double dAltDiff    = std::abs(stCell.dAltitude - stCurrentCell.dAltitude);
+                double dPlanarDist = adMoveDist[nI] * m_dGridResolution;
+                double dTrueDist   = std::sqrt((dPlanarDist * dPlanarDist) + (dAltDiff * dAltDiff));
+
+                // Constrain traversal metrics rigidly to [0,1] bounds simply for mathematical safety.
+                double dScore = std::clamp(stCell.dTravScore, 0.0, 1.0);
+
+                // Generate an exponential scaling multiplier. Low traversal scores (e.g., rigid trees or sharp canyons) are
+                // inflated heavily. Empowering the multiplier ensures aggressive physical avoidance of high penalties.
+                double dPenaltyWeight = std::pow(1.0 - dScore, m_dPenaltyPower);
+                double dMultiplier    = 1.0 + (m_dBeta * m_dPenaltyScalingFactor * dPenaltyWeight);
+
+                // Compute exact, penalized aggregate traversal path cost.
+                double dTentativeGCost = stCurrentState.dGCost + (dTrueDist * dMultiplier);
+
+                // Adopt spatial progression only if it presents a mathematically optimal routing arrangement.
+                if (dTentativeGCost < m_vdGCosts[nNeighborIdx])
+                {
+                    m_vdGCosts[nNeighborIdx]      = dTentativeGCost;
+                    m_vPredecessors[nNeighborIdx] = stCurrentState.nGridIndex;
+
+                    // Package mathematical layout elements for injection to the heap bounds queue.
                     PlannerState stNeighborState;
-                    stNeighborState.nID                   = stPoint.nID;
-                    stNeighborState.dEasting              = stPoint.dEasting;
-                    stNeighborState.dNorthing             = stPoint.dNorthing;
-                    stNeighborState.dAltitude             = stPoint.dAltitude;
-                    stNeighborState.nZone                 = std::stoi(stPoint.szZone.substr(0, 2));    // Assuming zone is stored as string.
-                    stNeighborState.bInNorthernHemisphere = (stPoint.dNorthing >= 0);                  // Simple check based on northing.
-                    stNeighborState.dGCost                = dTentativeGCost;
-                    // Heuristic cost (Euclidean distance to goal).
-                    stNeighborState.dHCost = this->EuclideanDistance(stNeighborState.dEasting,
-                                                                     stNeighborState.dNorthing,
-                                                                     stNeighborState.dAltitude,
-                                                                     m_umAllStates[m_nEndID].dEasting,
-                                                                     m_umAllStates[m_nEndID].dNorthing,
-                                                                     m_umAllStates[m_nEndID].dAltitude);
+                    stNeighborState.nGridIndex = nNeighborIdx;
+                    stNeighborState.dGCost     = dTentativeGCost;
+                    stNeighborState.dHCost =
+                        m_dHeuristicWeight *
+                        EuclideanDistance(nNeighborX * m_dGridResolution, nNeighborY * m_dGridResolution, nEndX * m_dGridResolution, nEndY * m_dGridResolution);
 
-                    // Update the state map.
-                    m_umAllStates[stPoint.nID] = stNeighborState;
-                    // Update the predecessor map.
-                    m_umPredecessors[stPoint.nID] = stCurrentState.nID;
-
-                    // Add the neighbor to the open set. Duplicates are handled by checking the cost when popping.
                     m_pqOpenSetNextBest.push(stNeighborState);
                 }
             }
 
-            // Log progress every 100 iterations.
-            if (m_usClosedSet.size() % 1000 == 0)
+            // Consistently measure real-world time elapsed to terminate algorithms forcibly if CPU limits are breached.
+            if (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - tmStartTime).count() >= m_dMaxSearchTimeSeconds)
             {
-                LOG_INFO(logging::g_qSharedLogger, "A* search progress: {} nodes evaluated.", m_usClosedSet.size());
-            }
-
-            // Check if we've exceeded the maximum search time.
-            std::chrono::high_resolution_clock::time_point tmCurrentTime = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> dElapsedTime                   = tmCurrentTime - tmStartTime;
-            if (dElapsedTime.count() >= m_dMaxSearchTimeSeconds)
-            {
-                LOG_WARNING(logging::g_qSharedLogger, "A* search terminated after exceeding max search time of {} seconds.", m_dMaxSearchTimeSeconds);
+                LOG_WARNING(logging::g_qSharedLogger, "Grid search forcibly terminated due to exceeding the max search boundary of {} seconds.", m_dMaxSearchTimeSeconds);
                 return;
             }
         }
     }
 
     /******************************************************************************
-     * @brief Plan a path from the start to the end UTM coordinates using A* algorithm.
+     * @brief Transforms the abstract 1D computational grid configurations logically
+     * backward to rebuild a continuous stream of actionable UTM Geographic sequences.
      *
-     * @return std::vector<geoops::Waypoint> - The planned path as a vector of waypoints.
+     * @return std::vector<geoops::Waypoint> - Sequentially ordered map of waypoints establishing optimal path structures.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-09-27
+     * @date 2025-07-14
      ******************************************************************************/
     std::vector<geoops::Waypoint> GeoPlanner::ReconstructPath() const
     {
-        // Create instance variables.
         std::vector<geoops::Waypoint> vPath;
-        int nCurrentID = m_nEndID;
 
-        // If the goal wasn't reached, return an empty path.
-        if (m_umPredecessors.find(m_nEndID) == m_umPredecessors.end())
+        // Verify that the final path integration chain was actually established to the end node.
+        if (m_vPredecessors[m_nEndIndex] == -1)
         {
-            LOG_WARNING(logging::g_qSharedLogger, "Path was not found.");
+            LOG_WARNING(logging::g_qSharedLogger, "Algorithmic resolution fault: Final path integration chain was never properly established.");
             return {};
         }
 
-        // Backtrack from the end node to the start node using the cameFrom map.
-        while (true)
-        {
-            // Add the current node ID to the path.
-            std::unordered_map<int, PlannerState>::const_iterator itPlannerState = m_umAllStates.find(nCurrentID);
-            if (itPlannerState != m_umAllStates.end())
-            {
-                // Found the PlannerState for this point ID.
-                const PlannerState& stState = itPlannerState->second;
-                // Convert PlannerState to Waypoint and add to path.
-                vPath.emplace_back(geoops::UTMCoordinate(stState.dEasting, stState.dNorthing, stState.nZone, stState.bInNorthernHemisphere, stState.dAltitude),
-                                   geoops::WaypointType::eNavigationWaypoint,
-                                   0.5,
-                                   stState.nID);
-            }
-            else
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "PlannerState for point ID {} not found during path reconstruction.", nCurrentID);
-            }
+        int nCurrentIdx = m_nEndIndex;
 
-            // If we've reached the start node, break the loop.
-            if (nCurrentID == m_nStartID)
+        // Traverse the hierarchical sequence strictly backwards.
+        while (nCurrentIdx != -1)
+        {
+            int nX, nY;
+            GetGridCoords(nCurrentIdx, nX, nY);
+
+            const GridCell& stCell = m_vCostmap[nCurrentIdx];
+
+            // Reapply coordinate origins to map grid positions back to real-world UTM coordinates.
+            double dEasting  = m_dGridOriginEasting + (nX * m_dGridResolution);
+            double dNorthing = m_dGridOriginNorthing + (nY * m_dGridResolution);
+
+            // Construct waypoint and append to vector.
+            vPath.emplace_back(geoops::UTMCoordinate(dEasting, dNorthing, stCell.nZone, stCell.bInNorthernHemisphere, stCell.dAltitude),
+                               geoops::WaypointType::eNavigationWaypoint,
+                               m_dPathWaypointTolerance,
+                               stCell.nClosestPointID);
+
+            // Halt backtracing immediately upon intersecting initial origin index.
+            if (nCurrentIdx == m_nStartIndex)
             {
                 break;
             }
 
-            // Look at the predecessor map to get the parent node ID.
-            nCurrentID = m_umPredecessors.at(nCurrentID);
+            nCurrentIdx = m_vPredecessors[nCurrentIdx];
         }
 
-        // Reverse the path to get it from start to end.
+        // Reverse sequence to represent chronology from Start to Goal.
         std::reverse(vPath.begin(), vPath.end());
 
         return vPath;
     }
 
     /******************************************************************************
-     * @brief Check if the tile containing the current state is loaded, and if not, load it.
+     * @brief Checks if a specific tile is loaded in the cache, and if not, fetches
+     * the relevant LiDAR point cloud data into memory.
      *
-     * @param stCurrentState - The current planner state.
+     * @param nTileX - The exact coordinate identifier X block reference naturally mapping structurally.
+     * @param nTileY - The exact coordinate identifier Y block reference naturally mapping structurally.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-09-25
+     * @date 2025-07-14
      ******************************************************************************/
-    void GeoPlanner::CheckAndLoadTile(const PlannerState& stCurrentState)
+    void GeoPlanner::CheckAndLoadTile(int nTileX, int nTileY)
     {
-        // Determine which tile the current state is in.
-        int nTileX = static_cast<int>(std::floor(stCurrentState.dEasting / m_dTileSize));
-        int nTileY = static_cast<int>(std::floor(stCurrentState.dNorthing / m_dTileSize));
         TileKey stTileKey{nTileX, nTileY};
 
-        // Check if the tile is already loaded.
+        // Check if the tile is already present in the active cache map.
         if (m_umTileMapCache.find(stTileKey) == m_umTileMapCache.end())
         {
-            // Tile is not loaded, so we need to load it.
+            // Set up point filter parameters logically outlining requested search area blocks.
             LiDARHandler::PointFilter stFilter;
-            stFilter.dEasting        = (nTileX + 0.5) * m_dTileSize;                                      // Center of the tile in easting.
-            stFilter.dNorthing       = (nTileY + 0.5) * m_dTileSize;                                      // Center of the tile in northing.
-            stFilter.dRadius         = std::sqrt(2) * (m_dTileSize / 2.0);                                // Radius to cover the entire tile
-            stFilter.dTraversalScore = LiDARHandler::PointFilter::Range<double>{m_dMinTravScore, 1.0};    // Only load points with sufficient traversal score.
+            stFilter.dEasting  = (nTileX + 0.5) * m_dTileSize;
+            stFilter.dNorthing = (nTileY + 0.5) * m_dTileSize;
+            stFilter.dRadius   = std::sqrt(2) * (m_dTileSize / 2.0);
+
+            // Retrieve the point cloud data for the tile from the LiDAR handler.
             std::vector<LiDARHandler::PointRow> vTilePoints = m_pLiDARHandler->GetLiDARData(stFilter);
 
-            // Check if we got any points back.
+            // Return if no points were found for the requested tile mapping boundaries.
             if (vTilePoints.empty())
             {
-                // Log warning message.
-                LOG_WARNING(logging::g_qSharedLogger, "No LiDAR points found in tile ({}, {}).", nTileX, nTileY);
                 return;
             }
 
-            // First, we insert the points into the tile cache.
-            m_umTileMapCache[stTileKey] = vTilePoints;
-
-            // Log info message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Loaded tile ({}, {}) with {} points into cache.", nTileX, nTileY, vTilePoints.size());
-        }
-
-        // Check if this tile is already loaded into the KD-Tree.
-        if (m_usKDTreeInsertedTiles.find(stTileKey) == m_usKDTreeInsertedTiles.end())
-        {
-            // Get the points for this tile from the cache.
-            std::vector<LiDARHandler::PointRow>& vTilePoints = m_umTileMapCache[stTileKey];
-            // Next, we will insert the points into the KD-Tree for fast spatial queries.
-            for (LiDARHandler::PointRow& stLiDARPoint : vTilePoints)
-            {
-                // Insert this point into the KDTree.
-                m_pKDTree->insert(stLiDARPoint);
-
-                /*
-                    Add tile points with IDs to the all states map.
-                */
-                // Convert the szZone ("15S") to an integer zone number (15) and hemisphere (true/false, north/south).
-                int nZoneNumber            = std::stoi(stLiDARPoint.szZone.substr(0, 2));
-                bool bIsNorthernHemisphere = stLiDARPoint.dNorthing >= 0;    // Simple check based on northing.
-
-                // Don't check if it's already there, just assign to overwrite if it is.
-                m_umAllStates[stLiDARPoint.nID] = PlannerState{stLiDARPoint.nID,
-                                                               stLiDARPoint.dEasting,
-                                                               stLiDARPoint.dNorthing,
-                                                               stLiDARPoint.dAltitude,
-                                                               nZoneNumber,
-                                                               bIsNorthernHemisphere,
-                                                               std::numeric_limits<double>::infinity(),
-                                                               0.0};
-            }
-            // Mark this tile as loaded into the KD-Tree.
-            m_usKDTreeInsertedTiles.insert(stTileKey);
-
-            /*
-                Optimize the KD-Tree after bulk insertion.
-
-                We don't want to optimize too often, so we'll just check the count of the
-                inserted tiles and optimize every so tiles loaded.
-            */
-            if (m_usKDTreeInsertedTiles.size() % 100 == 0)
-            {
-                m_pKDTree->optimize();
-                LOG_INFO(logging::g_qSharedLogger, "Optimized KD-Tree after loading {} tiles.", m_usKDTreeInsertedTiles.size());
-            }
-
-            // Log info message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Loaded tile ({}, {}) with {} points into KD-Tree.", nTileX, nTileY, vTilePoints.size());
+            // Store the retrieved points natively into the unordered tile cache matrix.
+            m_umTileMapCache[stTileKey] = std::move(vTilePoints);
         }
     }
 
     /******************************************************************************
-     * @brief Unload tile LiDAR data
-     *
-     * @param minX - Minimum x coordinate of tile range.
-     * @param maxX - Maximum x coordinate of tile range.
-     * @param minY - Minimum y coordinate of tile range.
-     * @param maxY - Maximum y coordinate of tile range.
-     *
-     * @author Sam Nolte (samnolte0302@gmail.com)
-     * @date 2025-03-01
-     ******************************************************************************/
-    void GeoPlanner::UnloadLiDARTiles(double minX, double maxX, double minY, double maxY)
-    {
-        int nMinTileX = static_cast<int>(std::floor(minX / m_dTileSize));
-        int nMinTileY = static_cast<int>(std::floor(minY / m_dTileSize));
-        int nMaxTileX = static_cast<int>(std::floor(maxX / m_dTileSize));
-        int nMaxTileY = static_cast<int>(std::floor(maxY / m_dTileSize));
-
-        std::list<TileKey> tileKeys;
-        for (int i = 0; i < nMaxTileX - nMinTileX + 1; ++i)
-            for (int j = 0; j < nMaxTileY - nMinTileY + 1; ++j)
-                tileKeys.push_back(TileKey{nMinTileX + i, nMinTileY + j});
-
-        for (std::list<TileKey>::iterator it = tileKeys.begin(); it != tileKeys.end(); ++it)
-        {
-            // Make sure tile is actually loaded
-            if (m_umTileMapCache.find(*it) == m_umTileMapCache.end())
-            {
-                continue;
-            }
-
-            m_umTileMapCache.erase(*it);
-            m_usKDTreeInsertedTiles.erase(*it);
-        }
-    }
-
-    /******************************************************************************
-     * @brief Find the closest LiDAR point to the given UTM coordinate.
-     *
-     * @param stCoordinate - The UTM coordinate to find the closest LiDAR point to.
-     * @return GeoPlanner::PlannerState - The PlannerState representing the closest LiDAR point.
+     * @brief Performs morphological dilation on the costmap to fill in structural
+     * voids or gaps caused by sparse LiDAR data collections.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-09-25
+     * @date 2025-07-14
      ******************************************************************************/
-    GeoPlanner::PlannerState GeoPlanner::FindClosestLiDARPoint(const geoops::UTMCoordinate& stCoordinate)
+    void GeoPlanner::FillGridHoles()
     {
-        // Create instance variables.
-        PlannerState stClosestPoint;
+        std::vector<GridCell> vNewCostmap = m_vCostmap;
+        constexpr int anDx[8]             = {-1, 0, 1, -1, 1, -1, 0, 1};
+        constexpr int anDy[8]             = {-1, -1, -1, 0, 0, 1, 1, 1};
 
-        // First, we need to check to make sure that the tile our given coordinate lies in is loaded.
-        CheckAndLoadTile(PlannerState{-1, stCoordinate.dEasting, stCoordinate.dNorthing, stCoordinate.dAltitude});
-
-        // Now we can perform a nearest neighbor search in the KD-Tree.
-        KDQueryPoint stQueryPoint{stCoordinate.dEasting, stCoordinate.dNorthing};
-        std::pair<pathplanners::KDTree2D::const_iterator, pathplanners::PointKDAccessor::result_type> tpResult = m_pKDTree->find_nearest(stQueryPoint);
-        if (tpResult.first != m_pKDTree->end())
+        // Perform processing passes to iteratively stretch valid geographic bounds incrementally.
+        for (int nPass = 0; nPass < m_nDilationPasses; ++nPass)
         {
-            // We found a nearest neighbor, populate the PlannerState.
-            const LiDARHandler::PointRow& stNearestPoint = *(tpResult.first);
-            stClosestPoint.nID                           = stNearestPoint.nID;
-            stClosestPoint.dEasting                      = stNearestPoint.dEasting;
-            stClosestPoint.dNorthing                     = stNearestPoint.dNorthing;
-            stClosestPoint.dAltitude                     = stNearestPoint.dAltitude;
-            stClosestPoint.dGCost                        = std::numeric_limits<double>::infinity();
-            stClosestPoint.dHCost                        = 0.0;    // H cost will be calculated later.
-        }
-        else
-        {
-            // No nearest neighbor found, log an error.
-            LOG_ERROR(logging::g_qSharedLogger, "No nearest LiDAR point found for coordinate ({}, {}).", stCoordinate.dEasting, stCoordinate.dNorthing);
-        }
+            for (int nY = 0; nY < m_nGridHeight; ++nY)
+            {
+                for (int nX = 0; nX < m_nGridWidth; ++nX)
+                {
+                    int nIdx = GetGridIndex(nX, nY);
 
-        return stClosestPoint;
+                    // Check if the target grid cell is currently an empty void.
+                    if (m_vCostmap[nIdx].dTravScore < 0.0)
+                    {
+                        double dBestScore = -1.0;
+                        GridCell stBestCell;
+
+                        // Look at neighboring cells to find a valid traversal score to inherit.
+                        for (int nI = 0; nI < 8; ++nI)
+                        {
+                            int nNeighborX = nX + anDx[nI];
+                            int nNeighborY = nY + anDy[nI];
+
+                            // Ensure neighbor indices are within valid 2D grid bounds.
+                            if (nNeighborX >= 0 && nNeighborX < m_nGridWidth && nNeighborY >= 0 && nNeighborY < m_nGridHeight)
+                            {
+                                int nNeighborIdx = GetGridIndex(nNeighborX, nNeighborY);
+                                if (m_vCostmap[nNeighborIdx].dTravScore > dBestScore)
+                                {
+                                    dBestScore = m_vCostmap[nNeighborIdx].dTravScore;
+                                    stBestCell = m_vCostmap[nNeighborIdx];
+                                }
+                            }
+                        }
+
+                        // Inherit the best adjacent traversal score if a valid neighbor was discovered.
+                        if (dBestScore >= 0.0)
+                        {
+                            vNewCostmap[nIdx] = stBestCell;
+                        }
+                    }
+                }
+            }
+            // Update the core system array structures with the applied morphological filter outcomes.
+            m_vCostmap = vNewCostmap;
+        }
     }
 
     /******************************************************************************
-     * @brief Plot the given path and the terrain points that the path goes through.
+     * @brief Expands outward concentrically from a target grid cell to locate the
+     * nearest neighboring cell that contains valid and safe traversal structures.
      *
-     * @param vPath - The vector of waypoints representing the path to plot.
+     * @param nStartIndex - Origin array structural identifier originally derived from GPS.
+     * @return int - Corrected viable mapping ID index, or -1 representing complete absence of viable data.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2025-07-14
+     ******************************************************************************/
+    int GeoPlanner::FindNearestValidCell(int nStartIndex) const
+    {
+        // Define an explicit threshold to prevent snapping the origin to extremely hazardous geometry.
+        double dSafeThreshold = std::max(m_dMinTravScore, m_dSafeTravScoreThreshold);
+
+        // Verify quickly if the requested starting index is already a valid and thoroughly safe cell.
+        if (nStartIndex >= 0 && nStartIndex < static_cast<int>(m_vCostmap.size()) && m_vCostmap[nStartIndex].dTravScore >= 0.0 &&
+            m_vCostmap[nStartIndex].dTravScore >= dSafeThreshold)
+        {
+            return nStartIndex;
+        }
+
+        int nStartX, nStartY;
+        GetGridCoords(nStartIndex, nStartX, nStartY);
+
+        int nMaxRadius            = m_nMaxSpiralSearchRadius;
+        int nBestFallbackIdx      = -1;
+        double dBestFallbackScore = -1.0;
+
+        // Spiral search radially outward tracking concentric boundary edges locally.
+        for (int nRadius = 1; nRadius <= nMaxRadius; ++nRadius)
+        {
+            int nBestIdxInRing      = -1;
+            double dBestScoreInRing = -1.0;
+
+            for (int nI = -nRadius; nI <= nRadius; ++nI)
+            {
+                for (int nJ = -nRadius; nJ <= nRadius; ++nJ)
+                {
+                    // Restrict processing exclusively to parameters located directly at the current radius boundary.
+                    if (std::abs(nI) == nRadius || std::abs(nJ) == nRadius)
+                    {
+                        int nNeighborX = nStartX + nI;
+                        int nNeighborY = nStartY + nJ;
+
+                        if (nNeighborX >= 0 && nNeighborX < m_nGridWidth && nNeighborY >= 0 && nNeighborY < m_nGridHeight)
+                        {
+                            int nIdx      = GetGridIndex(nNeighborX, nNeighborY);
+                            double dScore = m_vCostmap[nIdx].dTravScore;
+
+                            if (dScore >= 0.0 && dScore >= m_dMinTravScore)
+                            {
+                                // Track the absolute best viable layout encountered overall.
+                                if (dScore > dBestFallbackScore)
+                                {
+                                    dBestFallbackScore = dScore;
+                                    nBestFallbackIdx   = nIdx;
+                                }
+
+                                // Prioritize and track specific indices exceeding the optimal safe threshold.
+                                if (dScore >= dSafeThreshold && dScore > dBestScoreInRing)
+                                {
+                                    dBestScoreInRing = dScore;
+                                    nBestIdxInRing   = nIdx;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Immediately yield the optimal safe coordinate natively if one was discovered in this ring.
+            if (nBestIdxInRing != -1)
+            {
+                return nBestIdxInRing;
+            }
+        }
+
+        // Return the highest scoring viable cell found within the search limits, or -1 if no usable data exists.
+        return nBestFallbackIdx;
+    }
+
+    /******************************************************************************
+     * @brief Visually processes the calculated waypoint path and the related
+     * terrain point clouds to plot them properly on the telemetry interfaces.
+     *
+     * @param vPath - The finalized sequence of waypoints representing the optimal path mapping.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-09-25
      ******************************************************************************/
     void GeoPlanner::PlotPathAndTerrain(const std::vector<geoops::Waypoint>& vPath) const
     {
-        // Clear the current layers of the path.
+        // Clear the previous rendering history layers for terrain boundaries and path sequences.
         m_pPathTracer->ClearLayer("TerrainPoints");
         m_pPathTracer->ClearLayer("RoverPath");
 
-        // Loop through the path and only display the terrain tiles that the path goes through.
+        // Determine the unique database tiles currently required to visually render the path.
         std::unordered_set<TileKey, TileKeyHash, TileKeyEqual> usTilesToPlot;
         for (const geoops::Waypoint& stWaypoint : vPath)
         {
-            // Determine which tile this waypoint is in.
             int nTileX = static_cast<int>(std::floor(stWaypoint.GetUTMCoordinate().dEasting / m_dTileSize));
             int nTileY = static_cast<int>(std::floor(stWaypoint.GetUTMCoordinate().dNorthing / m_dTileSize));
             usTilesToPlot.insert(TileKey{nTileX, nTileY});
-
-            // Also check the surrounding tiles to give some context.
-            for (int nXOffset = -1; nXOffset <= 1; ++nXOffset)
-            {
-                for (int nYOffset = -1; nYOffset <= 1; ++nYOffset)
-                {
-                    usTilesToPlot.insert(TileKey{nTileX + nXOffset, nTileY + nYOffset});
-                }
-            }
         }
 
-        // Now plot the points from these tiles.
+        // Iterate through the determined required tiles and plot their structural terrain limits.
         for (const TileKey& stTileKey : usTilesToPlot)
         {
             std::unordered_map<TileKey, std::vector<LiDARHandler::PointRow>, TileKeyHash, TileKeyEqual>::const_iterator itCachedTile = m_umTileMapCache.find(stTileKey);
             if (itCachedTile != m_umTileMapCache.end())
             {
-                // Create instance variables.
-                std::vector<geoops::Waypoint> stTerrainWaypoints;
+                std::vector<geoops::Waypoint> vTerrainWaypoints;
                 const std::vector<LiDARHandler::PointRow>& vTilePoints = itCachedTile->second;
 
-                // Subsample the points if there are too many to plot.
-                const size_t nMaxPointsToPlot = 10;
-                if (vTilePoints.size() > nMaxPointsToPlot)
-                {
-                    double dSubsampleFactor = static_cast<double>(vTilePoints.size()) / static_cast<double>(nMaxPointsToPlot);
-                    std::vector<LiDARHandler::PointRow> vSubsampledPoints;
-                    for (size_t i = 0; i < vTilePoints.size(); i += static_cast<size_t>(dSubsampleFactor))
-                    {
-                        vSubsampledPoints.push_back(vTilePoints[i]);
-                    }
-                    // Use the subsampled points for plotting.
-                    stTerrainWaypoints.reserve(vSubsampledPoints.size());
-                    for (const LiDARHandler::PointRow& stPoint : vSubsampledPoints)
-                    {
-                        // Create a waypoint from the PointRow struct.
-                        geoops::Waypoint stWaypoint{geoops::UTMCoordinate(stPoint.dEasting,
-                                                                          stPoint.dNorthing,
-                                                                          std::stoi(stPoint.szZone.substr(0, 2)),
-                                                                          (stPoint.dNorthing >= 0),
-                                                                          stPoint.dAltitude),
-                                                    geoops::WaypointType::eNavigationWaypoint,
-                                                    0.01,
-                                                    stPoint.nID};
-                        // Add the waypoint to the terrain waypoints vector.
-                        stTerrainWaypoints.push_back(stWaypoint);
-                    }
-                }
-                else
-                {
-                    // Use all points if under the max limit.
-                    stTerrainWaypoints.reserve(vTilePoints.size());
+                // Subsample the structural terrain arrays strictly to prevent overloading the visualizer application.
+                size_t siStep = (vTilePoints.size() > m_siMaxPlotPointsPerTile) ? vTilePoints.size() / m_siMaxPlotPointsPerTile : 1;
 
-                    for (const LiDARHandler::PointRow& stPoint : vTilePoints)
-                    {
-                        // Create a waypoint from the PointRow struct.
-                        geoops::Waypoint stWaypoint{geoops::UTMCoordinate(stPoint.dEasting,
-                                                                          stPoint.dNorthing,
-                                                                          std::stoi(stPoint.szZone.substr(0, 2)),
-                                                                          (stPoint.dNorthing >= 0),
-                                                                          stPoint.dAltitude),
-                                                    geoops::WaypointType::eNavigationWaypoint,
-                                                    0.01,
-                                                    stPoint.nID};
-                        // Add the waypoint to the terrain waypoints vector.
-                        stTerrainWaypoints.push_back(stWaypoint);
-                    }
+                for (size_t siI = 0; siI < vTilePoints.size(); siI += siStep)
+                {
+                    const LiDARHandler::PointRow& stPoint = vTilePoints[siI];
+                    vTerrainWaypoints.emplace_back(
+                        geoops::UTMCoordinate(stPoint.dEasting, stPoint.dNorthing, std::stoi(stPoint.szZone.substr(0, 2)), (stPoint.dNorthing >= 0), stPoint.dAltitude),
+                        geoops::WaypointType::eNavigationWaypoint,
+                        m_dPlotWaypointTolerance,
+                        stPoint.nID);
                 }
 
-                // Add the waypoints to the path tracer.
-                m_pPathTracer->AddDots(stTerrainWaypoints, "TerrainPoints", 0);
+                m_pPathTracer->AddDots(vTerrainWaypoints, "TerrainPoints", 0);
             }
         }
 
-        // Finally, add the planned path to the path tracer.
         m_pPathTracer->AddPathPoints(vPath, "RoverPath", 0);
     }
 
     /******************************************************************************
-     * @brief Calculate the distance between two UTM coordinates.
+     * @brief Calculates the standard 2D Euclidean distance between two geographic coordinates.
+     * This establishes mathematically admissible baseline heuristic bounds for A*.
      *
-     * @param dEasting1 - The easting of the first point.
-     * @param dNorthing1 - The northing of the first point.
-     * @param Altitude1 - The altitude of the first point.
-     * @param dEasting2 - The easting of the second point.
-     * @param dNorthing2 - The northing of the second point.
-     * @param Altitude2 - The altitude of the second point.
-     * @return double - The distance between the two points.
+     * @param dEasting1 - The numeric coordinate east bounds establishing start reference.
+     * @param dNorthing1 - The numeric coordinate north bounds establishing start reference.
+     * @param dEasting2 - The numeric coordinate east bounds establishing end reference.
+     * @param dNorthing2 - The numeric coordinate north bounds establishing end reference.
+     * @return double - The calculated spatial euclidean distance dimension.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-10-20
+     * @date 2025-07-14
      ******************************************************************************/
-    double GeoPlanner::EuclideanDistance(double dEasting1, double dNorthing1, double Altitude1, double dEasting2, double dNorthing2, double Altitude2) const
+    double GeoPlanner::EuclideanDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const
     {
-        // Calculate distance between two points.
+        // Evaluate numerical differentials mapping bounds simply and efficiently.
         double dDiffX = dEasting1 - dEasting2;
         double dDiffY = dNorthing1 - dNorthing2;
-        double dDiffZ = Altitude1 - Altitude2;
 
-        return std::sqrt(dDiffX * dDiffX + dDiffY * dDiffY + dDiffZ * dDiffZ);
+        return std::sqrt(dDiffX * dDiffX + dDiffY * dDiffY);
     }
 }    // namespace pathplanners
