@@ -80,40 +80,50 @@ DriveBoard::~DriveBoard()
  * @param dActualHeading - The real angle that the Rover is current facing.
  * @param eKinematicsMethod - The kinematics model to use for differential drive control. Enum within DifferentialDrive.hpp
  * @param bDriveBackwards - If true, the rover will drive backwards while trying to hit the heading. This is used for the "backwards" mode of the drive control.
- * @param bAlwaysProgressForward - If true, the rover will always move forward or backward. Point turns will not be allowed.
+ * @param bPreventPointTurns - If true, the rover will always maintain linear movement (forward or backward). Point turns will not be allowed.
  * @param bSquareControlInput - If true, the control input will be squared before being applied.
  * @param bCurvatureDriveAllowTurningWhileStopped - If true, the curvature drive method will allow turning while the rover is stopped.
  * @return diffdrive::DrivePowers - A struct containing two values. (left power, right power)
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-09-21
+ * @date 2026-04-24
  ******************************************************************************/
 diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
                                                  const double dGoalHeading,
                                                  const double dActualHeading,
                                                  const diffdrive::DifferentialControlMethod eKinematicsMethod,
                                                  const bool bDriveBackwards,
-                                                 const bool bAlwaysProgressForward,
+                                                 const bool bPreventPointTurns,
                                                  const bool bSquareControlInput,
                                                  const bool bCurvatureDriveAllowTurningWhileStopped)
 {
     // Create instance variables.
     diffdrive::DrivePowers stOutputPowers;
-    double dSpeed = dGoalSpeed;
 
-    // Get control output from PID controller.
-    double dTurnOutput = m_pPID->Calculate(dActualHeading, dGoalHeading);
+    // Invert the speed if we are driving backwards
+    double dSpeed         = bDriveBackwards ? -dGoalSpeed : dGoalSpeed;
+    double dTargetHeading = dGoalHeading;
+
+    // If driving backwards, we must point the rear of the rover towards the goal.
+    if (bDriveBackwards)
+    {
+        // Offset the goal heading by 180 degrees and wrap around 360 to stay in bounds.
+        dTargetHeading = std::fmod(dTargetHeading + 180.0, 360.0);
+    }
+
+    // Get control output from PID controller using our target heading.
+    double dTurnOutput = m_pPID->Calculate(dActualHeading, dTargetHeading);
 
     // Calculate drive powers from inverse kinematics of goal speed and turning adjustment.
     switch (eKinematicsMethod)
     {
         case diffdrive::DifferentialControlMethod::eArcadeDrive:
         {
-            // Check if the rover should always move forward.
-            if (!bAlwaysProgressForward)
+            // Check if the rover is allowed to pivot in place.
+            if (!bPreventPointTurns)
             {
-                // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns when given a
-                // constant speed.
+                // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile.
+                // Because we square dTurnOutput, this correctly scales down negative speeds when driving backwards as well.
                 dSpeed *= 1.0 - std::pow(dTurnOutput, 2);
             }
             // Calculate drive power with inverse kinematics.
@@ -122,11 +132,10 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
         }
         case diffdrive::DifferentialControlMethod::eCurvatureDrive:
         {
-            // Check if the rover should always move forward.
-            if (!bAlwaysProgressForward)
+            // Check if the rover is allowed to pivot in place.
+            if (!bPreventPointTurns)
             {
-                // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile. This helps with pivot turns when given a
-                // constant speed.
+                // Based on our turn output, inverse-proportionally scale down our goal speed along a squared curve profile.
                 dSpeed *= 1.0 - std::pow(dTurnOutput, 2);
             }
             // Calculate drive power with inverse kinematics.
