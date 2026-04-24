@@ -337,6 +337,11 @@ void TagDetector::ThreadedContinuousCode()
         m_cvArucoProcFrame = m_cvFrame.clone();
         // Detect tags in the image
         std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
+        // Loop through the newly detected OpenCV tags and set their detector UUID to this TagDetector's camera name so we can associate them with this detector.
+        for (tagdetectutils::ArucoTag& stTag : vNewOpenCVTags)
+        {
+            stTag.szDetectorUUID = this->GetThreadUUID();
+        }
         // Add OpenCV tags to the list of newly detected tags.
         m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
 
@@ -346,6 +351,7 @@ void TagDetector::ThreadedContinuousCode()
             // Detect tags in the image.
             std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
                 torchtag::Detect(m_cvArucoProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+
             // Add Torch tags to the list of newly detected tags.
             m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
         }
@@ -353,6 +359,8 @@ void TagDetector::ThreadedContinuousCode()
         // Set the FOV of the camera in the tag structs for this detector's camera.
         for (tagdetectutils::ArucoTag& stTag : m_vNewlyDetectedTags)
         {
+            // Set the UUID of the detector that detected this tag to this TagDetector's camera name so we can associate it with this detector.
+            stTag.szDetectorUUID = this->GetThreadUUID();
             // Set tag FOV parameter to this tag detectors camera's FOV.
             stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
         }

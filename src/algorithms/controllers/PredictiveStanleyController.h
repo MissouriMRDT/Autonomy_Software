@@ -16,14 +16,15 @@
 #include "../kinematics/UnicycleModel.hpp"
 
 /// \cond
+#include <utility>
 #include <vector>
 
 /// \endcond
 
 /******************************************************************************
  * @brief This namespace stores classes, functions, and structs that are used to
- *      implement different controllers that implement advanced control systems
- *      used for accurate and precise robotic control.
+ * implement different controllers that implement advanced control systems
+ * used for accurate and precise robotic control.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -33,7 +34,7 @@ namespace controllers
 {
     /******************************************************************************
      * @brief This class implements the Predictive Stanley Controller. This controller
-     *      is used to follow a path using the Stanley method with predictive control.
+     * is used to follow a path using the Stanley method with predictive control.
      *
      * @note See docs/WhitePapers/2020-A-Path-Tracking-Algorithm-Using-Predictive-Stanley-Lateral-Controller.pdf
      *
@@ -87,7 +88,7 @@ namespace controllers
             // Declare private class methods.
             /////////////////////////////////////////
 
-            geoops::Waypoint FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition);
+            std::pair<geoops::Waypoint, int> FindClosestWaypointInPath(const geoops::UTMCoordinate& stCurrentPosition, const int nStartIndex) const;
 
             /////////////////////////////////////////
             // Declare private member variables.

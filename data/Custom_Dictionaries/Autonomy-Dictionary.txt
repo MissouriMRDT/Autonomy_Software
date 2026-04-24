@@ -96,6 +96,8 @@ Colour
 COMPASSDATA
 CONTINUOUSNAVIGATE
 Contoller
+costmap
+Costmap
 cowfile
 cowsay
 Cowsay
@@ -766,6 +768,7 @@ Utilty
 UTMERKNS
 UTMMDRS
 UTMUPS
+UUIDV
 uvicorn
 UVLED
 vaapi
