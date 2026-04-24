@@ -56,7 +56,7 @@ namespace statemachine
         m_vSearchPath = GeoPlanSearchPattern(m_vSearchPath);
 
         // Add the search and rover path layers to the plot.
-        // m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
+        m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
         m_pRoverPathPlot->CreatePathLayer("ReverseSpiralSearchPattern", "-o");
         m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
@@ -65,7 +65,7 @@ namespace statemachine
         m_pRoverPathPlot->CreateDotLayer("PurePursuitTargetIndex", "or");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
         // Plot the search path on the rover path.
-        // m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
+        m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
         // Plot the search path in the visualizer.
         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
 
