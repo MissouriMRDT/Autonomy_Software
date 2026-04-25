@@ -15,7 +15,6 @@
 #include "../algorithms/planners/GeoPlanner.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
-#include "../util/logging/PathTracer.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 #include "../vision/objects/ObjectDetector.h"
@@ -50,7 +49,6 @@ namespace statemachine
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
             std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
-            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
             std::vector<geoops::Waypoint> m_vPathCoordinates;
 

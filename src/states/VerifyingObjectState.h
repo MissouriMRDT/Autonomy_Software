@@ -11,6 +11,7 @@
 #ifndef VERIFYING_OBJECT_STATE_H
 #define VERIFYING_OBJECT_STATE_H
 
+#include "../handlers/ObjectDetectionHandler.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../vision/objects/ObjectDetector.h"
@@ -35,6 +36,7 @@ namespace statemachine
         private:
             bool m_bInitialized;
             geoops::Waypoint m_stGoalWaypoint;
+            objectdetectutils::Object m_stBestObject;
             std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             std::chrono::system_clock::time_point m_tmObjectVerificationStartTime;
             std::chrono::system_clock::time_point m_tmObjectLastSeenTime;
