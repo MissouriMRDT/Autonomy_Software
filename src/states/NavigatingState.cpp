@@ -122,12 +122,6 @@ namespace statemachine
             m_dStuckDistanceToGoal = geoops::CalculateGeoMeasurement(stLastStuckPoint, m_stGoalWaypoint.GetUTMCoordinate()).dDistanceMeters;
             m_pStanleyController->SetControlGain(1);
 
-            LOG_INFO(logging::g_qSharedLogger,
-                     "setting stanley variables. stuck dist: {}, last point: ({}, {})",
-                     m_dStuckDistanceToGoal,
-                     stLastStuckPoint.dEasting,
-                     stLastStuckPoint.dNorthing);
-
             // Update visualizer and stanley
             globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
             m_pStanleyController->SetReferencePath(m_vPathCoordinates);
@@ -144,7 +138,6 @@ namespace statemachine
         {
             m_pStanleyController->SetControlGain(constants::STANLEY_CROSSTRACK_CONTROL_GAIN);
             m_dStuckDistanceToGoal = 0;
-            LOG_INFO(logging::g_qSharedLogger, "resetting stanley variables");
         }
 
         // Only print out every so often.
@@ -584,7 +577,6 @@ namespace statemachine
                                      pow(m_vPathCoordinates.back().GetUTMCoordinate().dNorthing - m_vPathCoordinates.front().GetUTMCoordinate().dNorthing, 2));
         while (dDistToGoal > dMaxDistToGoal)
         {
-            LOG_INFO(logging::g_qSharedLogger, "({}, {})       dist: {}|", it->GetUTMCoordinate().dEasting, it->GetUTMCoordinate().dNorthing, dDistToGoal);
             it = m_vPathCoordinates.erase(it);
             ++pointsRemoved;
             dDistToGoal = sqrt(pow(m_vPathCoordinates.back().GetUTMCoordinate().dEasting - m_vPathCoordinates.front().GetUTMCoordinate().dEasting, 2) +
@@ -605,7 +597,7 @@ namespace statemachine
             pointsAdded += vSplicePathCoordinates.size();
 
             // Splice in a new path from outside of the obstacle to the end of the previous path
-            stStartCoordinate      = std::prev(vSplicePathCoordinates.end())->GetUTMCoordinate();
+            stStartCoordinate      = (vSplicePathCoordinates.size() >= 2) ? std::prev(vSplicePathCoordinates.end())->GetUTMCoordinate() : stStartCoordinate;
             vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stFirstNodeOfOriginalPath);
             if (vSplicePathCoordinates.size() >= 3)
             {
