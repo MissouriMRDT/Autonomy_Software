@@ -42,6 +42,8 @@ namespace statemachine
             // Declare private member variables.
             /////////////////////////////////////////
             bool m_bWasStuck;
+            double m_dStuckDistanceToGoal;
+            double m_dHeadingBeforeStuck;
             bool m_bFetchNewWaypoint;
             geoops::Waypoint m_stGoalWaypoint;
             bool m_bInitialized;
@@ -55,7 +57,7 @@ namespace statemachine
             /////////////////////////////////////////
             // Declare private class methods.
             /////////////////////////////////////////
-            void ModifyPathAfterStuckState();
+            geoops::UTMCoordinate ModifyPathAfterStuckState();
 
         protected:
             /////////////////////////////////////////
