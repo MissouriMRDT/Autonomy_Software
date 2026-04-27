@@ -241,8 +241,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Models to use for detection.
-    const std::string TAGDETECT_TORCH_MODEL =
-        "../data/models/yolo_models/tag/v8n_x640_200epochs_balanced/best.torchscript";    // The model path to use for tag detection.
+    const std::string TAGDETECT_TORCH_MODEL = "../data/models/yolo_models/tag/v8s_x640_150epochs_augment/best.torchscript";    // The model path to use for tag detection.
 
     // Main ZED Camera.
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
@@ -276,14 +275,14 @@ namespace constants
 
     // Models to use for detection.
     const std::string OBJECTDETECT_TORCH_MODEL =
-        "../data/models/yolo_models/bmp_v4/v8n_x640_200epochs/best.torchscript";    // The model path to use for object detection.
+        "../data/models/yolo_models/bmp_v6/v8s_x640_150epochs_augment/best.torchscript";    // The model path to use for object detection.
 
     // Main ZED Camera.
     const int OBJECTDETECT_MAINCAM_DATA_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing data copies to other threads.
     const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track objects.
     const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
     const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE     = 0.8f;    // The minimum confidence to consider a viable object detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE     = 0.6f;    // The minimum confidence to consider a viable object detection.
     const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH     = 0.4f;    // The threshold for non-max suppression filtering.
 
                                                                      // Rear ZED Camera.
@@ -291,7 +290,7 @@ namespace constants
     const bool OBJECTDETECT_REARCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track objects.
     const int OBJECTDETECT_REARCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
     const bool OBJECTDETECT_REARCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
-    const float OBJECTDETECT_REARCAM_TORCH_CONFIDENCE     = 0.8f;    // The minimum confidence to consider a viable object detection.
+    const float OBJECTDETECT_REARCAM_TORCH_CONFIDENCE     = 0.6f;    // The minimum confidence to consider a viable object detection.
     const float OBJECTDETECT_REARCAM_TORCH_NMS_THRESH     = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////

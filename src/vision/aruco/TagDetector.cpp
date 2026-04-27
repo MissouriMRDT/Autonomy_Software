@@ -863,12 +863,29 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
                                          stCameraPose,
                                          cv::Point(stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2, stTag.pBoundingBox->y + stTag.pBoundingBox->height / 2),
                                          nNeighborhoodSize);
-                // Since this is a tag detection, set the tag's waypoint type appropriately.
-                stGeolocation.eType = geoops::WaypointType::eTagWaypoint;
 
-                // Check if the geolocation is valid.
+                // Calculate the yaw angle to the tag using the center point of the tag and the camera's field of view.
+                // This is a fallback in case the geolocation fails for some reason, we can still provide a relative angle to the tag.
+                // Get the center X pixel coordinate of the tag's bounding box.
+                double dTagCenterX = stTag.pBoundingBox->x + (stTag.pBoundingBox->width / 2.0);
+                // Get the center X pixel coordinate of the camera frame.
+                double dFrameCenterX = m_cvFrame.cols / 2.0;
+                // Calculate the offset in pixels from the center of the camera frame.
+                // (Positive offset = target is to the right, Negative = target is to the left)
+                double dPixelOffsetX = dTagCenterX - dFrameCenterX;
+                // Calculate how many real-world degrees each pixel represents.
+                double dDegreesPerPixel = stTag.dHorizontalFOV / static_cast<double>(m_cvFrame.cols);
+                // Multiply the pixel offset by the degrees per pixel to get the relative yaw angle.
+                stTag.dYawAngle = dPixelOffsetX * dDegreesPerPixel;
+                // Explicitly set distance to 0.0 so the autonomy state machines know the depth map failed
+                // and will properly fall back to using this calculated dYawAngle.
+                stTag.dStraightLineDistance = 0.0;
+
+                // Check if the geolocation is valid. If it is overwrite the yaw angle and distance with the geolocation data.
                 if (stGeolocation != geoops::Waypoint())
                 {
+                    // Since this is a tag detection, set the tag's waypoint type appropriately.
+                    stGeolocation.eType = geoops::WaypointType::eTagWaypoint;
                     // Calculate the geo measurement and print the distance to the tag.
                     geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stGeolocation.GetUTMCoordinate());
 

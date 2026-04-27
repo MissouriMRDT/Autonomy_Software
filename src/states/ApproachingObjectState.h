@@ -18,6 +18,8 @@
 #include "../util/vision/ObjectDetectionUtility.hpp"
 #include "../vision/objects/ObjectDetector.h"
 
+#include <chrono>
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -28,7 +30,7 @@ namespace statemachine
 {
     /******************************************************************************
      * @brief The ApproachingObjectState class implements the Approaching Object
-     *        state for the Autonomy State Machine.
+     * state for the Autonomy State Machine.
      *
      * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
@@ -36,12 +38,31 @@ namespace statemachine
     class ApproachingObjectState : public State
     {
         private:
+            // Core Components
             std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
+            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
+
+            // State tracking
             States m_eTriggeringState;
             bool m_bInitialized;
             geoops::Waypoint m_stGoalWaypoint;
-            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
+
+            // Persistent tracking variables for Run()
+            double m_dHeadingSetPoint;
+            double m_dDistanceFromObject;
+            bool m_bDriveBackwards;
+
+            // Geolocation fallback
+            geoops::Waypoint m_stLastGeolocatedPosition;
+            bool m_bHasLastGeolocatedPosition;
+            bool m_bHasSeenTarget;
+
+            // Timing and logging flags
+            std::chrono::system_clock::time_point m_tmLastSeenTime;
+            std::chrono::system_clock::time_point m_tmLastLogTime;
+            bool m_bAlreadyPrintedLost;
+            bool m_bAlreadyPrintedVisualLostFallback;
 
         protected:
             void Start() override;
@@ -54,4 +75,4 @@ namespace statemachine
     };
 }    // namespace statemachine
 
-#endif    // APPROACHINGOBJECTSTATE_H
+#endif    // APPROACHING_OBJECT_STATE_H

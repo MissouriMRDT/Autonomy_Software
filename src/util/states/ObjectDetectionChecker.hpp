@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief ObjectDetectionChecker class is responsible for checking if the rover is
- *       has detected an object and if it meets the requirements to be considered a valid object.
+ * has detected an object and if it meets the requirements to be considered a valid object.
  *
  * @file ObjectDetectionChecker.hpp
  * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
@@ -31,7 +31,7 @@ namespace statemachine
     /******************************************************************************
      * @brief Aggregates all detected objects from each provided object detector.
      *
-     * @param vDetectedObject - Reference vector that will hold all of the aggregated detected objects.
+     * @param vDetectedObjects - Reference vector that will hold all of the aggregated detected objects.
      * @param vObjectDetectors - Vector of pointers to object detectors that will be used to request their detected objects.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
@@ -66,7 +66,8 @@ namespace statemachine
         // Ensure all requests have been fulfilled.
         // Then transfer objects from the buffer to vDetectedObjects for the user to access.
         int nFutureIdx = 0;
-        for (size_t siIdx = 0; siIdx < vDetectedObjectsFuture.size(); ++siIdx)
+        // Iterate through the total number of detectors to match the buffer and spawned tracking sizes.
+        for (size_t siIdx = 0; siIdx < siNumObjectDetectors; ++siIdx)
         {
             // Only check the buffer if the detector was ready and actually spawned a future
             if (vSpawnedFuture[siIdx])
@@ -106,26 +107,30 @@ namespace statemachine
         objectdetectutils::Object stBestObject;
         std::string szIdentifiedObjects = "";
 
+        // Initialize best percentage to 0 so the first valid object always wins
+        double dBestAreaPercentage = 0.0;
+
         // Get the current time
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
         // Load all detected objects in the rover's vision.
         LoadDetectedObjects(vDetectedObjects, vObjectDetectors);
+
         // Find the best object.
         for (const objectdetectutils::Object& stCandidate : vDetectedObjects)
         {
             // Calculate the total age of the object.
             double dObjectTotalAge = std::fabs(std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - stCandidate.tmCreation).count() / 1000.0);
-            // Calculate the total object area.
-            double dArea = stCandidate.pBoundingBox->area();
-            // Calculate what percentage of the screen the object takes up.
-            double dAreaPercentage = (dArea / (stCandidate.cvImageResolution.width * stCandidate.cvImageResolution.height)) * 100.0;
 
-            // If the distance of the object is not greater than 0, skip it.
-            if (stCandidate.dStraightLineDistance <= 0.0)
+            // Null pointer safety check for the bounding box
+            if (stCandidate.pBoundingBox == nullptr)
             {
                 continue;
             }
+
+            // Calculate the total object area and percentage of the screen the object takes up.
+            double dArea           = stCandidate.pBoundingBox->area();
+            double dAreaPercentage = (dArea / (stCandidate.cvImageResolution.width * stCandidate.cvImageResolution.height)) * 100.0;
 
             // Determine the desired detection type.
             switch (eDesiredDetectionType)
@@ -133,25 +138,19 @@ namespace statemachine
                 case geoops::WaypointType::eMalletWaypoint:
                 {
                     if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eMallet)
-                    {
                         continue;
-                    }
                     break;
                 }
                 case geoops::WaypointType::eWaterBottleWaypoint:
                 {
                     if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eWaterBottle)
-                    {
                         continue;
-                    }
                     break;
                 }
                 case geoops::WaypointType::eRockPickWaypoint:
                 {
                     if (stCandidate.eDetectionType != objectdetectutils::ObjectDetectionType::eRockPick)
-                    {
                         continue;
-                    }
                     break;
                 }
                 case geoops::WaypointType::eObjectWaypoint:
@@ -170,23 +169,25 @@ namespace statemachine
                 }
             }
 
-            //  Check the object detection method type.
+            // Check the object detection method type.
             if (stCandidate.eDetectionMethod == objectdetectutils::ObjectDetectionMethod::eTorch)
             {
                 // Assemble the identified objects string.
                 szIdentifiedObjects += "\tObject Class: " + stCandidate.szClassName + " Object Age: " + std::to_string(dObjectTotalAge) +
                                        "s Object Screen Percentage: " + std::to_string(dAreaPercentage) + "%\n";
-                // Check if the object meets the requirements.
+
+                // Check if the object meets the threshold requirements.
                 if (dAreaPercentage < constants::BBOX_MIN_SCREEN_PERCENTAGE || dObjectTotalAge < constants::BBOX_MIN_LIFETIME_THRESHOLD)
                 {
                     continue;
                 }
 
-                // Check other object requirements.
-                if (dArea > stBestObject.pBoundingBox->area())
+                // Prioritize the object that takes up the most screen area
+                if (dAreaPercentage > dBestAreaPercentage)
                 {
                     // Set the target object to the detected object.
-                    stBestObject = stCandidate;
+                    stBestObject        = stCandidate;
+                    dBestAreaPercentage = dAreaPercentage;
                 }
             }
         }

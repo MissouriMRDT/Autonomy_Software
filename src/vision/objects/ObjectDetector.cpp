@@ -807,14 +807,12 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                 // Use either width of height for the neighborhood size.
                 int nNeighborhoodSize = std::min(stObject.pBoundingBox->width, stObject.pBoundingBox->height);
                 // Geolocate the object in the point cloud.
-                stObject.stGeolocatedPosition = geoloc::GeolocateBox(
+                geoops::Waypoint stGeolocation = geoloc::GeolocateBox(
                     m_cvPointCloud,
                     stCameraPose,
                     cv::Point(stObject.pBoundingBox->x + stObject.pBoundingBox->width / 2, stObject.pBoundingBox->y + stObject.pBoundingBox->height / 2),
                     nNeighborhoodSize);
 
-                // Since this is a object detection, set the object's waypoint type appropriately.
-                stObject.stGeolocatedPosition.eType = geoops::WaypointType::eObjectWaypoint;
                 // Depending on the class name of the model, set the object type.
                 if (stObject.szClassName == "mallet")
                 {
@@ -829,13 +827,43 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                     stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eRockPick;
                 }
 
-                // Calculate the geo measurement and print the distance to the object.
-                geoops::GeoMeasurement stMeasurement =
-                    geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stObject.stGeolocatedPosition.GetUTMCoordinate());
-                // Set the straight line distance to the object.
-                stObject.dStraightLineDistance = stMeasurement.dDistanceMeters;
-                // Use the rover heading and the azimuth angle to calculate the relative heading to the object.
-                stObject.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                // Calculate the yaw angle to the tag using the center point of the tag and the camera's field of view.
+                // This is a fallback in case the geolocation fails for some reason, we can still provide a relative angle to the tag.
+                // Get the center X pixel coordinate of the object's bounding box.
+                double dObjectCenterX = stObject.pBoundingBox->x + (stObject.pBoundingBox->width / 2.0);
+                // Get the center X pixel coordinate of the camera frame.
+                double dFrameCenterX = m_cvFrame.cols / 2.0;
+                // Calculate the offset in pixels from the center of the camera frame.
+                // (Positive offset = target is to the right, Negative = target is to the left)
+                double dPixelOffsetX = dObjectCenterX - dFrameCenterX;
+                // Calculate how many real-world degrees each pixel represents.
+                double dDegreesPerPixel = stObject.dHorizontalFOV / static_cast<double>(m_cvFrame.cols);
+                // Multiply the pixel offset by the degrees per pixel to get the relative yaw angle.
+                stObject.dYawAngle = dPixelOffsetX * dDegreesPerPixel;
+                // Explicitly set distance to 0.0 so the autonomy state machines know the depth map failed
+                // and will properly fall back to using this calculated dYawAngle.
+                stObject.dStraightLineDistance = 0.0;
+
+                // Check if the geolocation is valid. If it is overwrite the yaw angle and distance with the geolocation data.
+                if (stGeolocation != geoops::Waypoint())
+                {
+                    // Since this is a object detection, set the object's waypoint type appropriately.
+                    stGeolocation.eType = geoops::WaypointType::eObjectWaypoint;
+                    // Calculate the geo measurement and print the distance to the object.
+                    geoops::GeoMeasurement stMeasurement =
+                        geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stObject.stGeolocatedPosition.GetUTMCoordinate());
+
+                    // Check that the distance is in a reasonable range.
+                    if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
+                    {
+                        // Set the object's geolocation.
+                        stObject.stGeolocatedPosition = stGeolocation;
+                        // Use the rover heading and the azimuth angle to calculate the relative heading to the object.
+                        stObject.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                        // Set the straight line distance to the object.
+                        stObject.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                    }
+                }
             }
         }
     }
