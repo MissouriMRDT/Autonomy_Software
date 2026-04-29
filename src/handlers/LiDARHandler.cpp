@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "LiDARHandler.h"
+#include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 
 /******************************************************************************
@@ -359,4 +360,87 @@ void LiDARHandler::AddRangeFilter(std::vector<std::string>& vClauses,
                 });
         }
     }
+}
+
+/******************************************************************************
+ * @brief Modifies all LiDAR points in radius to reflect bad terrain
+ *
+ * @param stPoint - Center UTM coordinate of obstacle
+ * @param dRadius - Radius of obstacle
+ * @return true - If the data points were successfully modified.
+ * @return false - If the modification failed.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com), Sam Nolte (samnolte0302@gmail.com)
+ * @date 2025-1-12
+ ******************************************************************************/
+bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dRadius)
+{
+    // Acquire a write lock on the mutex to ensure thread safety.
+    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
+
+    // Check if the database is open.
+    if (!m_bIsDBOpen)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Database is not open.");
+        return false;
+    }
+
+    // Prepare the SQL statements for inserting data.
+    const char* pSQL      = R"(
+        UPDATE ProcessedLiDARPoints
+        SET trav_score = 0.01
+        WHERE id IN (
+            SELECT p.id
+            FROM ProcessedLiDARPoints_idx AS idx
+            JOIN ProcessedLiDARPoints AS p ON p.id = idx.id
+            WHERE
+                idx.min_x BETWEEN ? AND ?
+                AND idx.min_y BETWEEN ? AND ?
+                AND (p.easting - ?) * (p.easting - ?) + (p.northing - ?) * (p.northing - ?) <= ? * ?
+        )
+    )";
+
+    sqlite3_stmt* sqlSTMT = nullptr;
+    int nRC               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL, -1, &sqlSTMT, nullptr);
+    if (nRC != SQLITE_OK)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+        return false;
+    }
+
+    // for rtree
+    sqlite3_bind_double(sqlSTMT, 1, stPoint.dEasting - dRadius);
+    sqlite3_bind_double(sqlSTMT, 2, stPoint.dEasting + dRadius);
+    sqlite3_bind_double(sqlSTMT, 3, stPoint.dNorthing - dRadius);
+    sqlite3_bind_double(sqlSTMT, 4, stPoint.dNorthing + dRadius);
+    // for distance check
+    sqlite3_bind_double(sqlSTMT, 5, stPoint.dEasting);
+    sqlite3_bind_double(sqlSTMT, 6, stPoint.dEasting);
+    sqlite3_bind_double(sqlSTMT, 7, stPoint.dNorthing);
+    sqlite3_bind_double(sqlSTMT, 8, stPoint.dNorthing);
+    sqlite3_bind_double(sqlSTMT, 9, dRadius);
+    sqlite3_bind_double(sqlSTMT, 10, dRadius);
+
+    // Execute the statement.
+    nRC = sqlite3_step(sqlSTMT);
+    if (nRC != SQLITE_DONE)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
+        sqlite3_finalize(sqlSTMT);
+        return false;
+    }
+
+    // Finalize the statement.
+    sqlite3_finalize(sqlSTMT);
+
+    // Log LiDAR changes
+    int rowsUpdated = sqlite3_changes(m_pSQLDatabase);
+    LOG_INFO(logging::g_qSharedLogger,
+             "Created new obstacle at ({}, {}), radius: {}. Updated {} points",
+             (int) stPoint.dEasting,
+             (int) stPoint.dNorthing,
+             (int) dRadius,
+             rowsUpdated);
+
+    return true;
 }

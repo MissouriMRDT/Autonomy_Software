@@ -52,6 +52,9 @@ namespace statemachine
 
         // Stop drivetrain.
         globals::g_pDriveBoard->SendStop();
+
+        // Declare area in front of rover as an obstacle
+        DeclareObstacle();
     }
 
     /******************************************************************************
@@ -91,7 +94,7 @@ namespace statemachine
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
+     * @author Eli Byrd (edbgkk@mst.edu), Jason Pittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com), Sam Nolte (samnolte0302@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void StuckState::Run()
@@ -130,7 +133,7 @@ namespace statemachine
                     globals::g_pStateMachineHandler->HandleEvent(Event::eReverse, true);
                     break;
                 }
-                    // On the second attempt align the rover constants::STUCK_ALIGN_DEGREES degrees to the right of the original heading instead.
+                // On the second attempt align the rover constants::STUCK_ALIGN_DEGREES degrees to the right of the original heading instead.
                 case AttemptType::eReverseLeft:
                 {
                     // Check if we are already realigning.
@@ -201,7 +204,16 @@ namespace statemachine
                         // Submit logger message.
                         LOG_INFO(logging::g_qSharedLogger, "StuckState: Aligning rover heading {} degrees counter-clockwise...", constants::STUCK_ALIGN_DEGREES);
                         // Set aligning toggle.
-                        m_bIsCurrentlyAligning = true;
+                        // m_bIsCurrentlyAligning = LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
+                        // TODO: uncomment
+                        m_bInitialized = false;
+
+                        if (!m_bInitialized)
+                        {
+                            Start();
+                            m_bInitialized = true;
+                        }
+
                         // Update start heading.
                         m_dOriginalHeading = stCurrentRoverPose.GetCompassHeading();
                         // Update start time.
@@ -365,5 +377,33 @@ namespace statemachine
     {
         double dDistance = geoops::CalculateGeoMeasurement(stOriginalPosition, stCurrPosition).dDistanceMeters;
         return dDistance <= constants::STUCK_SAME_POINT_PROXIMITY;
+    }
+
+    /******************************************************************************
+     * @brief Adds the area in front of the rover as an obstacle by modifying the area's trav-score in LiDAR data
+     *
+     * @note Uses constants::STUCK_OBSTACLE_RADIUS for the declared obstacle's radius and constants::STUCK_OBSTACLE_DISTANCE for distance in front of the rover that is
+     * declared an obstacle
+     *
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2026-01-27
+     ******************************************************************************/
+    void StuckState::DeclareObstacle()
+    {
+        // Convert from compass degrees to unit circle radians.
+        double dRadians = (90.0 - m_dOriginalHeading) * M_PI / 180.0;
+        if (dRadians < 0)
+            dRadians += 2 * M_PI;
+        // Get the obstacle's origin
+        geoops::UTMCoordinate stObstaclePosition = globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate();
+        stObstaclePosition.dEasting += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+        stObstaclePosition.dNorthing += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
+
+        // Insert obstacle into lidar data
+        globals::g_pLiDARHandler->DeclareLiDARObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
+
+        // TODO: There is no way another obstacle could be added between now and when it is accessed in navigating, right?
+        // Add obstacle to Waypoint handler to be accessed later in navigating state
+        globals::g_pWaypointHandler->AddObstacle(stObstaclePosition);
     }
 }    // namespace statemachine

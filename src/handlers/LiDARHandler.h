@@ -111,7 +111,7 @@ class LiDARHandler
         bool OpenDB(const std::string& szDBPath);
         bool CloseDB();
         std::vector<PointRow> GetLiDARData(const PointFilter& stPointFilter);
-        bool InsertLiDARData(const std::vector<geoops::Waypoint>& vPoints);
+        bool DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dRadius);
 
         ////////////////////////////////////
         // Getters

@@ -706,6 +706,41 @@ namespace pathplanners
     }
 
     /******************************************************************************
+     * @brief Unload tile LiDAR data
+     *
+     * @param minX - Minimum x coordinate of tile range.
+     * @param maxX - Maximum x coordinate of tile range.
+     * @param minY - Minimum y coordinate of tile range.
+     * @param maxY - Maximum y coordinate of tile range.
+     *
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2025-03-01
+     ******************************************************************************/
+    void GeoPlanner::UnloadLiDARTiles(double minX, double maxX, double minY, double maxY)
+    {
+        int nMinTileX = static_cast<int>(std::floor(minX / m_dTileSize));
+        int nMinTileY = static_cast<int>(std::floor(minY / m_dTileSize));
+        int nMaxTileX = static_cast<int>(std::floor(maxX / m_dTileSize));
+        int nMaxTileY = static_cast<int>(std::floor(maxY / m_dTileSize));
+
+        std::list<TileKey> tileKeys;
+        for (int i = 0; i < nMaxTileX - nMinTileX + 1; ++i)
+            for (int j = 0; j < nMaxTileY - nMinTileY + 1; ++j)
+                tileKeys.push_back(TileKey{nMinTileX + i, nMinTileY + j});
+
+        for (std::list<TileKey>::iterator it = tileKeys.begin(); it != tileKeys.end(); ++it)
+        {
+            // Make sure tile is actually loaded
+            if (m_umTileMapCache.find(*it) == m_umTileMapCache.end())
+            {
+                continue;
+            }
+
+            m_umTileMapCache.erase(*it);
+        }
+    }
+
+    /******************************************************************************
      * @brief Expands outward concentrically from a target grid cell to locate the
      * nearest neighboring cell that contains valid and safe traversal structures.
      *

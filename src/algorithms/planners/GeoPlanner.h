@@ -77,6 +77,7 @@ namespace pathplanners
                                                    double dCorridorPadding      = 100.0);
 
             void ClearGeoCache();
+            void UnloadLiDARTiles(double minX, double maxX, double minY, double maxY);
 
             ////////////////////////////////////
             // Setters.

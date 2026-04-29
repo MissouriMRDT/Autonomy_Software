@@ -383,6 +383,8 @@ namespace constants
     extern const double STUCK_HEADING_ALIGN_TIMEOUT;
     extern const double STUCK_ALIGN_DEGREES;
     extern const double STUCK_ALIGN_TOLERANCE;
+    extern const double STUCK_OBSTACLE_DISTANCE;
+    extern const double STUCK_OBSTACLE_RADIUS;
 
     // Reverse State.
     extern const double REVERSE_MOTOR_POWER;
