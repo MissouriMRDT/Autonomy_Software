@@ -406,6 +406,9 @@ namespace constants
     const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
     const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller unicycle model.
 
+    // Pure Pursuit Controller config.
+    const double CLOSE_RANGE_PENALTY = 2.2;    // Additive to insure the index is updated.
+
     // ASTAR config.
     const double ASTAR_AVOIDANCE_MULTIPLIER = 1.2;       // Multiplier for marking extra nodes around objects as obstacles
     const double ASTAR_MAX_SEARCH_GRID      = 4000.0;    // Maximum search grid size (UTM)

@@ -48,19 +48,31 @@ namespace statemachine
         // Calculate the search path.
         m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
-                                                                       m_stSearchPatternCenter.dRadius,
+                                                                       15.0,
+                                                                       // m_stSearchPatternCenter.dRadius,
                                                                        stCurrentRoverPose.GetCompassHeading(),
                                                                        constants::SEARCH_SPIRAL_SPACING);
+        RemoveRedZonePoints(m_vSearchPath);
+        m_vSearchPath = GeoPlanSearchPattern(m_vSearchPath);
 
         // Add the search and rover path layers to the plot.
         m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
+        m_pRoverPathPlot->CreatePathLayer("ReverseSpiralSearchPattern", "-o");
         m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
         m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
         m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
         m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "purple");
+        m_pRoverPathPlot->CreateDotLayer("PurePursuitTargetIndex", "or");
         m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
         // Plot the search path on the rover path.
         m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
+        // Plot the search path in the visualizer.
+        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
+
+        // Set the path of the pure pursuit controller.
+        m_pPursuitController->SetReferencePath(m_vSearchPath);
+        m_pPursuitController->SetLookaheadDistance(1.25);
+        m_pPursuitController->SetLookaheadIndex(5);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
@@ -86,6 +98,58 @@ namespace statemachine
     }
 
     /******************************************************************************
+     * @brief Deletes waypoints with no valid LiDAR data.
+     *
+     *
+     * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
+     * @date 2026-04-20
+     ******************************************************************************/
+    void SearchPatternState::RemoveRedZonePoints(std::vector<geoops::Waypoint>& skeletonPath)
+    {
+        for (long unsigned int i = 0; i < skeletonPath.size();)
+        {
+            int nTileX = static_cast<int>(std::floor(skeletonPath[i].GetUTMCoordinate().dEasting / 5.0));
+            int nTileY = static_cast<int>(std::floor(skeletonPath[i].GetUTMCoordinate().dNorthing / 5.0));
+            LiDARHandler::PointFilter stFilter;
+            stFilter.dEasting                              = (nTileX + 0.5) * 5.0;                                  // Center of the tile in easting.
+            stFilter.dNorthing                             = (nTileY + 0.5) * 5.0;                                  // Center of the tile in northing.
+            stFilter.dRadius                               = std::sqrt(2) * (5.0 / 2.0);                            // Radius to cover the entire tile
+            stFilter.dTraversalScore                       = LiDARHandler::PointFilter::Range<double>{0.5, 1.0};    // Only load points with sufficient traversal
+
+            std::vector<LiDARHandler::PointRow> vLidarData = globals::g_pLiDARHandler->GetLiDARData(stFilter);
+
+            if (vLidarData.empty())
+            {
+                skeletonPath.erase(skeletonPath.begin() + static_cast<long int>(i));
+            }
+            else
+            {
+                ++i;
+            }
+        }
+    }
+
+    /******************************************************************************
+     * @brief Connects waypoints with planned paths into one path.
+     *
+     *
+     * @author Hunter LeRette (hrlnpc@mst.edu), Jordan Hoover (jh69n@mst.edu), Aiden Buter (ab9hm@mst.edu)
+     * @date 2026-04-20
+     ******************************************************************************/
+    std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeletonPath)
+    {
+        std::vector<geoops::Waypoint> m_vSearchPath;
+        for (long unsigned int i = 0; i < skeletonPath.size() - 1; i++)
+        {
+            std::vector<geoops::Waypoint> newPoints =
+                globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, skeletonPath[i].GetUTMCoordinate(), skeletonPath[i + 1].GetUTMCoordinate(), 2.0, 240.0, false);
+            m_vSearchPath.insert(m_vSearchPath.end(), newPoints.begin(), newPoints.end());
+        }
+
+        return m_vSearchPath;
+    }
+
+    /******************************************************************************
      * @brief Construct a new State object.
      *
      *
@@ -98,12 +162,13 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         // Initialize member variables.
-        m_bInitialized   = false;
-        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                        constants::STUCK_CHECK_INTERVAL,
-                                                                        constants::STUCK_CHECK_VEL_THRESH,
-                                                                        constants::STUCK_CHECK_ROT_THRESH);
-        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
+        m_bInitialized       = false;
+        m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                            constants::STUCK_CHECK_INTERVAL,
+                                                                            constants::STUCK_CHECK_VEL_THRESH,
+                                                                            constants::STUCK_CHECK_ROT_THRESH);
+        m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
+        m_pPursuitController = std::make_unique<controllers::PurePursuitController>();
 
         // Start state.
         if (!m_bInitialized)
@@ -129,6 +194,12 @@ namespace statemachine
 
         // Add the current rover pose to the path plot.
         m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
+
+        // Place a dot on the pure pursuit target index.
+        // geoops::Waypoint stPurePursuitTargetCoordinate =
+        //     m_pPurePursuitController->GetReferencePath().at(static_cast<size_t>(m_pPurePursuitController->GetReferencePathTargetIndex()));
+        // m_pRoverPathPlot->ClearLayer("PurePursuitTargetIndex");
+        // m_pRoverPathPlot->AddDot(stPurePursuitTargetCoordinate.GetUTMCoordinate(), "PurePursuitTargetIndex", 1);
 
         /*
             The overall flow of this state is as follows.
@@ -253,33 +324,33 @@ namespace statemachine
             return;
         }
 
-        // Have we reached the current waypoint?
-        geoops::GPSCoordinate stCurrTargetGPS    = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
-        geoops::GeoMeasurement stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
-        bool bReachedTarget                      = stCurrRelToTarget.dDistanceMeters <= constants::SEARCH_WAYPOINT_PROXIMITY;
+        // Have we reached the final waypoint of the search pattern?
+        geoops::GPSCoordinate stFinalTargetGPS    = m_vSearchPath.back().GetGPSCoordinate();
+        geoops::GeoMeasurement stRelToFinalTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stFinalTargetGPS);
+        double dCompletionRadius                  = constants::SEARCH_WAYPOINT_PROXIMITY;
+        bool bReachedFinalTarget                  = stRelToFinalTarget.dDistanceMeters <= dCompletionRadius;
 
         // If the entire search pattern has been completed without seeing tags or objects, try different search pattern.
-        if (bReachedTarget && m_nSearchPathIdx >= int(m_vSearchPath.size() - 1))
+        if (bReachedFinalTarget)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
             return;
         }
-        // Move on to the next waypoint in the search path.
-        else if (bReachedTarget)
-        {
-            ++m_nSearchPathIdx;
-            stCurrTargetGPS   = m_vSearchPath[m_nSearchPathIdx].GetGPSCoordinate();
-            stCurrRelToTarget = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetGPSCoordinate(), stCurrTargetGPS);
-        }
 
-        // Drive to target waypoint.
-        diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::SEARCH_MOTOR_POWER,
-                                                                                     stCurrRelToTarget.dStartRelativeBearing,
+        // NOTE: Optional - Uncomment the above code and comment out the below code to use pure pursuit control to navigate to the goal waypoint.
+        // Use pure pursuit to calculate drive move/powers.
+        controllers::PurePursuitController::DriveVector stDriveVector = m_pPursuitController->Calculate(stCurrentRoverPose, constants::SEARCH_MOTOR_POWER);
+        // Calculate move from goal heading and desired speed.
+        diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+                                                                                     stDriveVector.dThetaHeading,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
-
+        // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
+        //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
+        //                                                                              stCurrentRoverPose.GetCompassHeading(),
+        //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
         // Send drive powers over RoveComm.
-        globals::g_pDriveBoard->SendDrive(stDrivePowers);
+        globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
 
         return;
     }
@@ -339,38 +410,22 @@ namespace statemachine
                     case SearchPatternType::eSpiral:
                     {
                         // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying snake...");
-                        // Generate vertical zigzag pattern.
-                        m_vSearchPath = searchpattern::CalculateSnakeSearchPattern(m_stSearchPatternCenter.GetGPSCoordinate(),
-                                                                                   m_stSearchPatternCenter.dRadius * 2,
-                                                                                   m_stSearchPatternCenter.dRadius * 2,
-                                                                                   constants::SEARCH_ZIGZAG_SPACING,
-                                                                                   constants::SEARCH_SNAKE_SLITHERS);
-                        // Reset index counter.
-                        m_nSearchPathIdx = 0;
-                        // Update current search pattern
-                        m_eCurrentSearchPatternType = SearchPatternType::eSnake;
+                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Spiral search pattern failed, trying reverse spiral...");
 
-                        // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "SnakeSearchPattern");
-                        break;
-                    }
-                    case SearchPatternType::eSnake:
-                    {
-                        // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Snake search pattern failed, trying ZigZag...");
-                        // Generate vertical zigzag pattern.
-                        m_vSearchPath = searchpattern::CalculateZigZagPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
-                                                                                       m_stSearchPatternCenter.dRadius * 2,
-                                                                                       m_stSearchPatternCenter.dRadius * 2,
-                                                                                       constants::SEARCH_ZIGZAG_SPACING);
                         // Reset index counter.
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = SearchPatternType::END;
 
+                        // m_vSearchPath               = GeoPlanSearchPattern(m_vSearchPath);
+                        std::reverse(m_vSearchPath.begin(), m_vSearchPath.end());
+
                         // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "VerticalZigZagSearchPattern");
+                        m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "ReverseSpiralSearchPattern", 0);
+                        // Plot the search path in the visualizer.
+                        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
+                        // Set the path of the pure pursuit controller.
+                        m_pPursuitController->SetReferencePath(m_vSearchPath);
                         break;
                     }
                     case SearchPatternType::END:

@@ -419,6 +419,9 @@ namespace constants
     extern const int STANLEY_PREDICTION_HORIZON;
     extern const double STANLEY_PREDICTION_TIME_STEP;
 
+    // Pure Pursuit Controller config.
+    extern const double CLOSE_RANGE_PENALTY;
+
     // ASTAR config.
     extern const double ASTAR_AVOIDANCE_MULTIPLIER;
     extern const double ASTAR_MAX_SEARCH_GRID;

@@ -11,7 +11,8 @@
 #ifndef SEARCH_PATTERN_STATE_H
 #define SEARCH_PATTERN_STATE_H
 
-#include "../algorithms/controllers/PredictiveStanleyController.h"
+#include "../algorithms/controllers/PurePursuitController.h"
+#include "../algorithms/planners/GeoPlanner.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../util/logging/PathTracer.hpp"
@@ -67,6 +68,7 @@ namespace statemachine
             SearchPatternType m_eCurrentSearchPatternType;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
+            std::unique_ptr<controllers::PurePursuitController> m_pPursuitController;
 
         protected:
             /////////////////////////////////////////
@@ -79,6 +81,8 @@ namespace statemachine
             /////////////////////////////////////////
             // Declare public class methods.
             /////////////////////////////////////////
+            std::vector<geoops::Waypoint> GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& skeltonPath);
+            void RemoveRedZonePoints(std::vector<geoops::Waypoint>& skeltonPath);
             SearchPatternState();
             void Run() override;
             States TriggerEvent(Event eEvent) override;
