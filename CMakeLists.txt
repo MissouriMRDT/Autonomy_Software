@@ -49,7 +49,7 @@ set(CMAKE_UNITY_BUILD_BATCH_SIZE 8) # Adjust batch size based on project size. L
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
