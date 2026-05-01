@@ -29,7 +29,7 @@
 namespace statemachine
 {
     /******************************************************************************
-     * @brief Aggregates all detected tags from each provided tag detector for both OpenCV and Tensorflow detection.
+     * @brief Aggregates all detected tags from each provided tag detector for both OpenCV and YOLO detection.
      *
      * @param vDetectedArucoTags - Reference vector that will hold all of the aggregated detected Aruco tags.
      * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.

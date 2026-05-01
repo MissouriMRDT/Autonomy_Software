@@ -1,7 +1,7 @@
 /******************************************************************************
  * @brief Runtime LiDAR database query interface for autonomy systems.
  *
- * Provides spatial lookup capabilities against a preloaded SQLite database
+ * Provides spatial lookup capabilities against a preloaded DuckDB database
  * of USGS LAS 1.4 point cloud data. Enables nearby point lookup within a
  * radius from an (Easting, Northing) coordinate for real-time navigation.
  *
@@ -18,10 +18,11 @@
 #include "../util/GeospatialOperations.hpp"
 
 /// \cond
+#include <duckdb.hpp>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <shared_mutex>
-#include <sqlite3.h>
 #include <string>
 #include <vector>
 
@@ -111,7 +112,6 @@ class LiDARHandler
         bool OpenDB(const std::string& szDBPath);
         bool CloseDB();
         std::vector<PointRow> GetLiDARData(const PointFilter& stPointFilter);
-        bool InsertLiDARData(const std::vector<geoops::Waypoint>& vPoints);
 
         ////////////////////////////////////
         // Getters
@@ -126,7 +126,7 @@ class LiDARHandler
 
         template<typename T>
         void AddRangeFilter(std::vector<std::string>& vClauses,
-                            std::vector<std::function<void(sqlite3_stmt*, int&)>>& vBinders,
+                            duckdb::vector<duckdb::Value>& vBindValues,
                             const char* pColumn,
                             const std::optional<PointFilter::Range<T>>& stdOptRange);
 
@@ -134,10 +134,10 @@ class LiDARHandler
         // Private Members
         ////////////////////////////////////
 
-        sqlite3* m_pSQLDatabase;
-        sqlite3_stmt* m_pSQLStatement;
+        std::unique_ptr<duckdb::DuckDB> m_pDB;          // DuckDB database instance.
+        std::unique_ptr<duckdb::Connection> m_pConn;    // DuckDB connection wrapper.
         bool m_bIsDBOpen;
-        std::shared_mutex m_muQueryMutex;    // Mutex for thread-safe access to the database.
+        std::shared_mutex m_muQueryMutex;               // Mutex for thread-safe access to the database.
 };
 
 #endif

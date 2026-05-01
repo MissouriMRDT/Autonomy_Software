@@ -452,7 +452,7 @@ void TagDetector::PooledLinearCode()
 
 /******************************************************************************
  * @brief Request a copy of a frame containing the tag detection overlays from the
- *      aruco and tensorflow library.
+ *      aruco and torch library.
  *
  * @param cvFrame - The frame to copy the detection overlay image to.
  * @return std::future<bool> - The future that should be waited on before using the passed in frame.

@@ -14,13 +14,11 @@
 #include "../algorithms/controllers/PredictiveStanleyController.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
-#include "../util/logging/PathTracer.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../vision/aruco/TagDetector.h"
 #include "../vision/objects/ObjectDetector.h"
 
 /// \cond
-#include <matplot/matplot.h>
 
 /// \endcond
 
@@ -66,7 +64,6 @@ namespace statemachine
             int m_nSearchPathIdx;
             SearchPatternType m_eCurrentSearchPatternType;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
-            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
         protected:
             /////////////////////////////////////////

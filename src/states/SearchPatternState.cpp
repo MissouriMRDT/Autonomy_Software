@@ -46,21 +46,11 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Calculate the search path.
-        m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
-                                                                       constants::SEARCH_ANGULAR_STEP_DEGREES,
-                                                                       m_stSearchPatternCenter.dRadius,
-                                                                       stCurrentRoverPose.GetCompassHeading(),
-                                                                       constants::SEARCH_SPIRAL_SPACING);
-
-        // Add the search and rover path layers to the plot.
-        m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
-        m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
-        m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
-        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
-        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "purple");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
-        // Plot the search path on the rover path.
-        m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
+        m_vSearchPath      = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
+                                                                            constants::SEARCH_ANGULAR_STEP_DEGREES,
+                                                                            m_stSearchPatternCenter.dRadius,
+                                                                            stCurrentRoverPose.GetCompassHeading(),
+                                                                            constants::SEARCH_SPIRAL_SPACING);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
@@ -98,12 +88,11 @@ namespace statemachine
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
         // Initialize member variables.
-        m_bInitialized   = false;
-        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                        constants::STUCK_CHECK_INTERVAL,
-                                                                        constants::STUCK_CHECK_VEL_THRESH,
-                                                                        constants::STUCK_CHECK_ROT_THRESH);
-        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
+        m_bInitialized  = false;
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                       constants::STUCK_CHECK_INTERVAL,
+                                                                       constants::STUCK_CHECK_VEL_THRESH,
+                                                                       constants::STUCK_CHECK_ROT_THRESH);
 
         // Start state.
         if (!m_bInitialized)
@@ -126,9 +115,6 @@ namespace statemachine
 
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
-
-        // Add the current rover pose to the path plot.
-        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
         /*
             The overall flow of this state is as follows.
@@ -157,19 +143,6 @@ namespace statemachine
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target marker!");
 
-                // Check if the OpenCV tag has a good absolute position.
-                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-                // Check if the torch tag has a good absolute position.
-                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
                 // Don't execute the rest of the state.
@@ -195,13 +168,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target object!");
-
-                // Check if the torch tag has a good absolute position.
-                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
-                }
 
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eObjectSeen, true);
@@ -350,9 +316,6 @@ namespace statemachine
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = SearchPatternType::eSnake;
-
-                        // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "SnakeSearchPattern");
                         break;
                     }
                     case SearchPatternType::eSnake:
@@ -368,9 +331,6 @@ namespace statemachine
                         m_nSearchPathIdx = 0;
                         // Update current search pattern
                         m_eCurrentSearchPatternType = SearchPatternType::END;
-
-                        // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddDots(m_vSearchPath, "VerticalZigZagSearchPattern");
                         break;
                     }
                     case SearchPatternType::END:

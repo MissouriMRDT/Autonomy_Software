@@ -1,6 +1,6 @@
 /******************************************************************************
  * @brief Provides aruco detection and pose estimation capabilities in a multithreaded
- *      fashion using both OpenCV's ArUco library and a custom Tensorflow detection model.
+ *      fashion using both OpenCV's ArUco library and a custom Torch detection model.
  *
  * @file TagDetector.h
  * @author jspencerpittman (jspencerpittman@gmail.com)
