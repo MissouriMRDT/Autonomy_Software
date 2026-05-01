@@ -94,15 +94,15 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp && \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Camera.hpp && sed -i '/#warning*/d' /usr/local/zed/include/sl/Camera.hpp
 
-# Install DuckDB (arm64/aarch64)
+# Install DuckDB (arm64/arm64)
 ARG DUCKDB_VERSION="1.5.2"
-RUN wget -q https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/libduckdb-linux-aarch64.zip && \
-    unzip libduckdb-linux-aarch64.zip -d /tmp/duckdb && \
+RUN wget -q https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/libduckdb-linux-arm64.zip && \
+    unzip libduckdb-linux-arm64.zip -d /tmp/duckdb && \
     cp /tmp/duckdb/libduckdb.so /usr/local/lib/ && \
     cp /tmp/duckdb/duckdb.hpp /usr/local/include/ && \
     cp /tmp/duckdb/duckdb.h /usr/local/include/ && \
     ldconfig && \
-    rm -rf /tmp/duckdb libduckdb-linux-aarch64.zip
+    rm -rf /tmp/duckdb libduckdb-linux-arm64.zip
 
 # Install OpenCV
 ARG OPENCV_VERSION="4.12.0"
