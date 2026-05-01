@@ -27,22 +27,18 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Clean APT Cache
 RUN rm /var/lib/dpkg/info/libc-bin.*
-# Add APT Repo for PCIe drivers and Bazel.
-RUN apt-get update && apt-get install -y wget && \
-    echo "deb https://packages.cloud.google.com/apt coral-edgetpu-stable main" | tee /etc/apt/sources.list.d/coral-edgetpu.list && \
-    wget -q -O - https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 
 # Install Required Ubuntu Packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential lld cmake git gdb file tar libatlas-base-dev apt-transport-https iputils-ping \
     libswresample-dev libcanberra-gtk3-module zstd less libx264-dev libdrm-dev python-is-python3 \
-    libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools libssl-dev \
+    libeigen3-dev libglew-dev libgstreamer-plugins-base1.0-dev udev net-tools libssl-dev wget \
     libgstreamer-plugins-good1.0-dev libgstreamer1.0-dev libgtk-3-dev libjpeg-dev sudo usbutils \
     libjpeg8-dev libjpeg-turbo8-dev liblapack-dev liblapacke-dev libopenblas-dev libpng-dev tzdata \
-    libpostproc-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev gnuplot-nox \
+    libpostproc-dev libtbb-dev libtbb2 libtesseract-dev libtiff-dev libv4l-dev \
     libxine2-dev libxvidcore-dev libx264-dev libgtkglext1 libgtkglext1-dev pkg-config qv4l2 \
     v4l-utils zlib1g-dev python3-dev libboost-all-dev valgrind doxygen graphviz nano \
-    vim-common libedgetpu1-std gasket-dkms ca-certificates nlohmann-json3-dev curl \
+    vim-common ca-certificates nlohmann-json3-dev curl unzip \
     python3-dev python3-pip python3-numpy libaom-dev libass-dev libfdk-aac-dev libdav1d-dev libmp3lame-dev \
     libopus-dev libvorbis-dev libvpx-dev libx264-dev libx265-dev libusb-1.0-0-dev \
     libboost-all-dev libflann-dev libqhull-dev libopenni2-dev libsvm-dev \
@@ -98,6 +94,16 @@ RUN wget -q --no-check-certificate -O ZED_SDK_Linux.run \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Fusion.hpp && \
     sed -i '/#pragma message*/d' /usr/local/zed/include/sl/Camera.hpp && sed -i '/#warning*/d' /usr/local/zed/include/sl/Camera.hpp
 
+# Install DuckDB (arm64/aarch64)
+ARG DUCKDB_VERSION="1.5.2"
+RUN wget -q https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/libduckdb-linux-aarch64.zip && \
+    unzip libduckdb-linux-aarch64.zip -d /tmp/duckdb && \
+    cp /tmp/duckdb/libduckdb.so /usr/local/lib/ && \
+    cp /tmp/duckdb/duckdb.hpp /usr/local/include/ && \
+    cp /tmp/duckdb/duckdb.h /usr/local/include/ && \
+    ldconfig && \
+    rm -rf /tmp/duckdb libduckdb-linux-aarch64.zip
+
 # Install OpenCV
 ARG OPENCV_VERSION="4.12.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/arm64/opencv_${OPENCV_VERSION}_arm64.deb && \
@@ -109,12 +115,6 @@ ARG TORCH_VERSION="2.8.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/arm64/pytorch_${TORCH_VERSION}_arm64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_arm64.deb && \
     rm pytorch_${TORCH_VERSION}_arm64.deb
-
-# Install Tensorflow.
-ARG TENSORFLOW_VERSION="2.15.0"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/tensorflow/arm64/tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
-    dpkg -i tensorflow_${TENSORFLOW_VERSION}_arm64.deb && \
-    rm tensorflow_${TENSORFLOW_VERSION}_arm64.deb
 
 # Install FFMPEG
 ARG FFMPEG_VERSION="7.1.2"
@@ -128,7 +128,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/openms/ar
     dpkg -i openms_${OPENMS_VERSION}_arm64.deb && \
     rm openms_${OPENMS_VERSION}_arm64.deb
 
-# Install QT6
+    # Install QT6
 ARG QT6_VERSION="6.5.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/qt6/arm64/qt6_${QT6_VERSION}_arm64.deb && \
     dpkg -i qt6_${QT6_VERSION}_arm64.deb && \
@@ -139,13 +139,6 @@ ARG VTK_VERSION="9.5.1"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/arm64/vtk_${VTK_VERSION}_arm64.deb && \
     dpkg -i vtk_${VTK_VERSION}_arm64.deb && \
     rm vtk_${VTK_VERSION}_arm64.deb
-
-# Install Abseil.
-ARG ABSEIL_VERSION="20250814.0"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/abseil/arm64/abseil_${ABSEIL_VERSION}_arm64.deb && \
-    dpkg -i abseil_${ABSEIL_VERSION}_arm64.deb && \
-    rm abseil_${ABSEIL_VERSION}_arm64.deb
-
 # Install GeographicLib
 ARG GEOLIB_VERSION="2.5.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/geolib/arm64/geolib_${GEOLIB_VERSION}_arm64.deb && \
@@ -157,12 +150,6 @@ ARG LIBDATACHANNEL_VERSION="0.23.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/libdatachannel/arm64/libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
     dpkg -i libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb && \
     rm libdatachannel_${LIBDATACHANNEL_VERSION}_arm64.deb
-
-# Install MatPlotPlusPlus
-ARG MATPLOTPLUSPLUS_VERSION="master"
-RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/matplotplusplus/arm64/matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb && \
-    dpkg -i matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb && \
-    rm matplotplusplus_${MATPLOTPLUSPLUS_VERSION}_arm64.deb
 
 # Install PointCloudLibrary
 ARG PCL_VERSION="1.15.1"

@@ -12,7 +12,6 @@
 #define PREDICTIVE_STANLEY_CONTROLLER_H
 
 #include "../../util/GeospatialOperations.hpp"
-#include "../../util/logging/PathTracer.hpp"
 #include "../kinematics/UnicycleModel.hpp"
 
 /// \cond

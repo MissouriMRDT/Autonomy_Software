@@ -1,5 +1,5 @@
 /******************************************************************************
- * @brief Implementation of the LiDAR runtime query interface.
+ * @brief Implementation of the LiDAR runtime query interface using DuckDB.
  *
  * @file LiDARHandler.cpp
  * @author ClayJay3 (claytonraycowen@gmail.com), Eli Byrd (edbgkk@mst.edu)
@@ -16,15 +16,15 @@
  * @brief Construct a new LiDARHandler::LiDARHandler object.
  *
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2025-07-13
  ******************************************************************************/
 LiDARHandler::LiDARHandler()
 {
-    // Initialize member variables.
-    m_pSQLDatabase  = nullptr;
-    m_pSQLStatement = nullptr;
-    m_bIsDBOpen     = false;
+    // Ensure smart pointers are null natively.
+    m_pDB       = nullptr;
+    m_pConn     = nullptr;
+    m_bIsDBOpen = false;
 }
 
 /******************************************************************************
@@ -39,22 +39,16 @@ LiDARHandler::~LiDARHandler()
 }
 
 /******************************************************************************
- * @brief Initializes the LiDARHandler by opening the SQLite database and preparing the query.
+ * @brief Initializes the LiDARHandler by opening the DuckDB database.
  *
- * This method opens the specified SQLite database file and prepares the internal
- * SQL statement used to query nearby point records. It must be called before any
- * queries are made using GetNearbyPoints().
+ * This method securely opens the DuckDB file and instantiates a persistent
+ * connection object. DuckDB operates entirely in memory when querying,
+ * loading only the necessary compressed columns from disk.
  *
- * @param szDBPath Relative or absolute path to the SQLite database file. If a relative path
- *               is provided, it must be relative to the directory from which the
- *               final executable is launched (i.e., the current working directory).
+ * @param szDBPath Relative or absolute path to the DuckDB database file.
  *
- * @return true - If the database was successfully opened and the SQL statement prepared.
- * @return false - If there was an error opening the database or preparing the SQL statement.
- *
- * @note If the database file cannot be found or accessed, an error message will be printed
- *       via Quill Logger and this function will return false.
- *
+ * @return true - If the database was successfully opened.
+ * @return false - If there was an error opening the database.
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2025-07-13
  ******************************************************************************/
@@ -66,99 +60,72 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
     // Check if the database is already open.
     if (m_bIsDBOpen)
     {
-        // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "Database is already open. Closing existing connection before opening a new one.");
-        // Release lock before calling CloseDB to avoid deadlock.
         lkWriteLock.unlock();
         this->CloseDB();
         lkWriteLock.lock();
     }
 
-    // Attempt to open the SQLite database.
-    int nReturnCode = sqlite3_open(szDBPath.c_str(), &m_pSQLDatabase);
-    if (nReturnCode != SQLITE_OK)
+    try
     {
-        // Submit logger message.
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to open database at '{}': {}", szDBPath, sqlite3_errmsg(m_pSQLDatabase));
-        // Return false on failure.
+        // Instantiate the DuckDB instance and a distinct connection object.
+        // NOTE: Opening in READ_ONLY mode since we only query data at runtime.
+        // This prevents file locks and allows multiple processes to read simultaneously.
+        duckdb::DBConfig stConfig;
+        stConfig.SetOptionByName("access_mode", "READ_ONLY");
+
+        m_pDB   = std::make_unique<duckdb::DuckDB>(szDBPath, &stConfig);
+        m_pConn = std::make_unique<duckdb::Connection>(*m_pDB);
+    }
+    catch (const duckdb::Exception& stdError)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to open DuckDB at '{}': {}", szDBPath, stdError.what());
         return false;
     }
 
-    // Set the database open flag to true.
     m_bIsDBOpen = true;
-
-    // Log success.
-    LOG_INFO(logging::g_qSharedLogger, "Successfully opened database at '{}'.", szDBPath);
+    LOG_INFO(logging::g_qSharedLogger, "Successfully opened DuckDB analytics engine at '{}'.", szDBPath);
 
     return true;
 }
 
 /******************************************************************************
- * @brief Closes the currently open LiDAR database.
+ * @brief Closes the currently open LiDAR DuckDB connection.
  *
  * @return true - If the database was successfully closed.
  * @return false - If there was an error closing the database.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2025-07-13
  ******************************************************************************/
 bool LiDARHandler::CloseDB()
 {
-    // Acquire a write lock on the mutex to ensure thread safety.
     std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
 
-    // Handle the closing of the database and sqlite statement.
     if (m_bIsDBOpen)
     {
-        // Finalize the prepared statement if it exists. This is necessary because
-        // failing to do so can result in memory leaks. This just frees resources.
-        if (m_pSQLStatement)
-        {
-            int nReturnCode = sqlite3_finalize(m_pSQLStatement);
-            if (nReturnCode != SQLITE_OK)
-            {
-                // Submit logger message.
-                LOG_ERROR(logging::g_qSharedLogger, "Failed to finalize SQL statement: {}", sqlite3_errmsg(m_pSQLDatabase));
-                // Return false on failure.
-                return false;
-            }
-            m_pSQLStatement = nullptr;    // Reset the statement pointer.
-        }
-
-        // Close the database connection.
-        int nReturnCode = sqlite3_close(m_pSQLDatabase);
-        if (nReturnCode != SQLITE_OK)
-        {
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Failed to close database: {}", sqlite3_errmsg(m_pSQLDatabase));
-            // Return false on failure.
-            return false;
-        }
-
-        // Reset the database pointer and update the open flag.
-        m_pSQLDatabase = nullptr;    // Reset the database pointer.
-        m_bIsDBOpen    = false;      // Update the database open flag.
+        // Smart pointers automatically release resources and close database locks
+        // when reset. This avoids SQLite's manual finalize() memory leak issues.
+        m_pConn.reset();
+        m_pDB.reset();
+        m_bIsDBOpen = false;
     }
 
     return true;
 }
 
 /******************************************************************************
- * @brief Retrieves LiDAR data points from the database based on the specified filter.
+ * @brief Retrieves LiDAR data points from DuckDB based on the specified filter.
  *
  * @param stPointFilter - The filter criteria to apply when querying LiDAR data.
- * @return std::vector<LiDARHandler::PointRow> - A vector of PointRow structures containing the
- *         queried LiDAR data points.
+ * @return std::vector<LiDARHandler::PointRow> - Queried rows from the database.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2025-07-13
  ******************************************************************************/
 std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter& stPointFilter)
 {
-    // Acquire a read lock on the mutex to ensure thread safety.
     std::shared_lock<std::shared_mutex> lkReadLock(m_muQueryMutex);
-
-    // Record the start time for performance measurement.
     std::chrono::time_point<std::chrono::high_resolution_clock> tmStartTime = std::chrono::high_resolution_clock::now();
 
     if (!m_bIsDBOpen)
@@ -167,60 +134,46 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
         return {};
     }
 
-    // Build dynamic WHERE clauses and binders.
+    // Build dynamic WHERE clauses. DuckDB binds values natively into vectors.
     std::vector<std::string> vClauses;
-    std::vector<std::function<void(sqlite3_stmt*, int&)>> vBinders;
-    int nParamIndex = 1;
+    duckdb::vector<duckdb::Value> vBindValues;
 
-    // Spatial bounds are always present (using R-Tree index).
-    vClauses.emplace_back("idx.min_x BETWEEN ? AND ?");
-    vBinders.emplace_back(
-        [&](sqlite3_stmt* sqlSTMT, int& nIndex)
-        {
-            sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dEasting - stPointFilter.dRadius);
-            sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dEasting + stPointFilter.dRadius);
-        });
-    vClauses.emplace_back("idx.min_y BETWEEN ? AND ?");
-    vBinders.emplace_back(
-        [&](sqlite3_stmt* sqlSTMT, int& nIndex)
-        {
-            sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dNorthing - stPointFilter.dRadius);
-            sqlite3_bind_double(sqlSTMT, nIndex++, stPointFilter.dNorthing + stPointFilter.dRadius);
-        });
+    // Spatial bounds are applied directly to the columns. DuckDB uses underlying
+    // block Zonemaps to instantly skip unneeded file blocks on disk.
+    vClauses.emplace_back("p.easting BETWEEN ? AND ?");
+    vBindValues.push_back(duckdb::Value(stPointFilter.dEasting - stPointFilter.dRadius));
+    vBindValues.push_back(duckdb::Value(stPointFilter.dEasting + stPointFilter.dRadius));
 
-    // Optional classification filter.
-    // OPTIMIZATION: We filter against the joined 'Classifications' table (c.label).
+    vClauses.emplace_back("p.northing BETWEEN ? AND ?");
+    vBindValues.push_back(duckdb::Value(stPointFilter.dNorthing - stPointFilter.dRadius));
+    vBindValues.push_back(duckdb::Value(stPointFilter.dNorthing + stPointFilter.dRadius));
+
+    // Optional classification filter
     if (stPointFilter.szClassification && !stPointFilter.szClassification->empty())
     {
         vClauses.emplace_back("c.label = ?");
-        vBinders.emplace_back([&](sqlite3_stmt* sqlSTMT, int& nIndex)
-                              { sqlite3_bind_text(sqlSTMT, nIndex++, stPointFilter.szClassification->c_str(), -1, SQLITE_STATIC); });
+        vBindValues.push_back(duckdb::Value(*stPointFilter.szClassification));
     }
 
-    // Add optional filters for metrics.
-    this->AddRangeFilter(vClauses, vBinders, "p.normal_x", stPointFilter.dNormalX);
-    this->AddRangeFilter(vClauses, vBinders, "p.normal_y", stPointFilter.dNormalY);
-    this->AddRangeFilter(vClauses, vBinders, "p.normal_z", stPointFilter.dNormalZ);
-    this->AddRangeFilter(vClauses, vBinders, "p.slope", stPointFilter.dSlope);
-    this->AddRangeFilter(vClauses, vBinders, "p.rough", stPointFilter.dRoughness);
-    this->AddRangeFilter(vClauses, vBinders, "p.curvature", stPointFilter.dCurvature);
-    this->AddRangeFilter(vClauses, vBinders, "p.trav_score", stPointFilter.dTraversalScore);
+    // Add optional filters for metrics using COALESCE to safely treat NULL edge-points as 0.0.
+    this->AddRangeFilter(vClauses, vBindValues, "COALESCE(p.normal_x, 0.0)", stPointFilter.dNormalX);
+    this->AddRangeFilter(vClauses, vBindValues, "COALESCE(p.normal_y, 0.0)", stPointFilter.dNormalY);
+    this->AddRangeFilter(vClauses, vBindValues, "COALESCE(p.normal_z, 0.0)", stPointFilter.dNormalZ);
+    this->AddRangeFilter(vClauses, vBindValues, "COALESCE(p.slope, 0.0)", stPointFilter.dSlope);
+    this->AddRangeFilter(vClauses, vBindValues, "COALESCE(p.rough, 0.0)", stPointFilter.dRoughness);
+    this->AddRangeFilter(vClauses, vBindValues, "COALESCE(p.curvature, 0.0)", stPointFilter.dCurvature);
+    this->AddRangeFilter(vClauses, vBindValues, "COALESCE(p.trav_score, 0.0)", stPointFilter.dTraversalScore);
 
     // Construct final SQL query string.
     std::ostringstream stdOSS;
-
-    // OPTIMIZATION:
-    // 1. Select 'z.label' and 'c.label' to get human-readable text.
-    // 2. LEFT JOIN to handle cases where IDs might not map (prevents data loss).
     stdOSS << "SELECT p.id, p.easting, p.northing, p.altitude, z.label, c.label,"
-           << " p.normal_x, p.normal_y, p.normal_z, p.slope, p.rough, p.curvature, p.trav_score"
-           << " FROM ProcessedLiDARPoints_idx AS idx"
-           << " JOIN ProcessedLiDARPoints AS p ON p.id = idx.id"
+           << " COALESCE(p.normal_x, 0.0), COALESCE(p.normal_y, 0.0), COALESCE(p.normal_z, 0.0),"
+           << " COALESCE(p.slope, 0.0), COALESCE(p.rough, 0.0), COALESCE(p.curvature, 0.0), COALESCE(p.trav_score, 0.0)"
+           << " FROM ProcessedLiDARPoints AS p"
            << " LEFT JOIN Zones AS z ON p.zone_id = z.id"
            << " LEFT JOIN Classifications AS c ON p.class_code = c.code"
            << " WHERE ";
 
-    // Append all clauses to the SQL query.
     for (size_t siIter = 0; siIter < vClauses.size(); ++siIter)
     {
         if (siIter > 0)
@@ -228,61 +181,58 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
         stdOSS << vClauses[siIter];
     }
 
-    // Final SQL query string.
-    const std::string szSQLQuery = stdOSS.str();
-
-    // Prepare SQL statement.
-    sqlite3_stmt* sqlSTMT = nullptr;
-    int nRC               = sqlite3_prepare_v2(m_pSQLDatabase, szSQLQuery.c_str(), -1, &sqlSTMT, nullptr);
-    if (nRC != SQLITE_OK)
+    // DuckDB Prepared Statements protect against injections and compile the plan
+    duckdb::unique_ptr<duckdb::PreparedStatement> stPreparedStmt = m_pConn->Prepare(stdOSS.str());
+    if (stPreparedStmt->HasError())
     {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare DuckDB SQL: {}", stPreparedStmt->GetError());
         return {};
     }
 
-    // Bind parameters.
-    for (std::function<void(sqlite3_stmt*, int&)>& binder : vBinders)
+    // Execute the query passing the bound values
+    duckdb::unique_ptr<duckdb::QueryResult> stResult = stPreparedStmt->Execute(vBindValues);
+    if (stResult->HasError())
     {
-        binder(sqlSTMT, nParamIndex);
+        LOG_ERROR(logging::g_qSharedLogger, "Execution Error: {}", stResult->GetError());
+        return {};
     }
 
-    // Execute and collect results.
     std::vector<PointRow> vResults;
-    while ((nRC = sqlite3_step(sqlSTMT)) == SQLITE_ROW)
+
+    // DuckDB extracts data in vector chunks. Iterating via Fetch() is extremely performant
+    // and naturally manages memory without locking threads.
+    while (duckdb::unique_ptr<duckdb::DataChunk> stChunk = stResult->Fetch())
     {
-        PointRow stRow;
-        stRow.nID       = sqlite3_column_int(sqlSTMT, 0);
-        stRow.dEasting  = sqlite3_column_double(sqlSTMT, 1);
-        stRow.dNorthing = sqlite3_column_double(sqlSTMT, 2);
-        stRow.dAltitude = sqlite3_column_double(sqlSTMT, 3);
+        size_t siRows = stChunk->size();
+        for (size_t siIter = 0; siIter < siRows; siIter++)
+        {
+            PointRow stRow;
 
-        // Retrieve Zone (Column 4). Check for NULL (if LEFT JOIN failed).
-        const char* pszZone = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 4));
-        stRow.szZone        = pszZone ? pszZone : "Unknown";
+            // Extract native datatypes directly from the memory chunk.
+            stRow.nID              = stChunk->GetValue(0, siIter).GetValue<int32_t>();
+            stRow.dEasting         = stChunk->GetValue(1, siIter).GetValue<double>();
+            stRow.dNorthing        = stChunk->GetValue(2, siIter).GetValue<double>();
+            stRow.dAltitude        = stChunk->GetValue(3, siIter).IsNull() ? 0.0 : stChunk->GetValue(3, siIter).GetValue<double>();
 
-        // Retrieve Classification (Column 5). Check for NULL.
-        const char* pszClass   = reinterpret_cast<const char*>(sqlite3_column_text(sqlSTMT, 5));
-        stRow.szClassification = pszClass ? pszClass : "Unclassified";
+            auto valZone           = stChunk->GetValue(4, siIter);
+            stRow.szZone           = valZone.IsNull() ? "Unknown" : valZone.GetValue<std::string>();
 
-        stRow.dNormalX         = sqlite3_column_double(sqlSTMT, 6);
-        stRow.dNormalY         = sqlite3_column_double(sqlSTMT, 7);
-        stRow.dNormalZ         = sqlite3_column_double(sqlSTMT, 8);
-        stRow.dSlope           = sqlite3_column_double(sqlSTMT, 9);
-        stRow.dRoughness       = sqlite3_column_double(sqlSTMT, 10);
-        stRow.dCurvature       = sqlite3_column_double(sqlSTMT, 11);
-        stRow.dTraversalScore  = sqlite3_column_double(sqlSTMT, 12);
+            auto valClass          = stChunk->GetValue(5, siIter);
+            stRow.szClassification = valClass.IsNull() ? "Unclassified" : valClass.GetValue<std::string>();
 
-        vResults.push_back(stRow);
+            // Metrics are guaranteed to be non-null due to the COALESCE in the SELECT clause.
+            stRow.dNormalX        = stChunk->GetValue(6, siIter).GetValue<double>();
+            stRow.dNormalY        = stChunk->GetValue(7, siIter).GetValue<double>();
+            stRow.dNormalZ        = stChunk->GetValue(8, siIter).GetValue<double>();
+            stRow.dSlope          = stChunk->GetValue(9, siIter).GetValue<double>();
+            stRow.dRoughness      = stChunk->GetValue(10, siIter).GetValue<double>();
+            stRow.dCurvature      = stChunk->GetValue(11, siIter).GetValue<double>();
+            stRow.dTraversalScore = stChunk->GetValue(12, siIter).GetValue<double>();
+
+            vResults.push_back(stRow);
+        }
     }
 
-    // Finalize SQL statement.
-    if ((nRC = sqlite3_finalize(sqlSTMT)) != SQLITE_OK)
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to finalize statement: {}", sqlite3_errmsg(m_pSQLDatabase));
-        return {};
-    }
-
-    // Record the end time for performance measurement.
     std::chrono::time_point<std::chrono::high_resolution_clock> tmEndTime = std::chrono::high_resolution_clock::now();
     double dQueryTime                                                     = std::chrono::duration<double>(tmEndTime - tmStartTime).count();
 
@@ -299,65 +249,53 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
     {
         LOG_WARNING(logging::g_qSharedLogger, "Query returned no results.");
     }
-
     return vResults;
 }
 
 /******************************************************************************
  * @brief Checks if the database is currently open.
- *
  * @return true - If the database is open.
  * @return false - If the database is not open.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2025-07-14
  ******************************************************************************/
 bool LiDARHandler::IsDBOpen()
 {
-    // Acquire a read lock on the mutex to ensure thread safety.
     std::shared_lock<std::shared_mutex> lkReadLock(m_muQueryMutex);
-    // Return the database open status.
     return m_bIsDBOpen;
 }
 
 /******************************************************************************
- * @brief Adds a range filter to the SQL query clauses and binders.
+ * @brief Adds a range filter to the SQL query clauses and dynamically bound values.
  *
  * @tparam T - The data type of the range values.
  * @param vClauses - The vector of SQL clauses to which the range filter will be added.
- * @param vBinders - The vector of binders for the SQL statement.
+ * @param vBindValues - The duckdb value container storing runtime query parameters.
  * @param pColumn - The name of the column to apply the range filter on.
- * @param stdOptRange - The optional range to filter by. If it is not set, no filter will be added.
+ * @param stdOptRange - The optional range to filter by.
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2025-07-14
  ******************************************************************************/
 template<typename T>
 void LiDARHandler::AddRangeFilter(std::vector<std::string>& vClauses,
-                                  std::vector<std::function<void(sqlite3_stmt*, int&)>>& vBinders,
+                                  duckdb::vector<duckdb::Value>& vBindValues,
                                   const char* pColumn,
                                   const std::optional<PointFilter::Range<T>>& stdOptRange)
 {
-    // If the range is set, add the filter clause and binder.
     if (stdOptRange)
     {
-        // Add the range filter clause based on the type of T.
         if constexpr (std::is_floating_point<T>::value)
         {
-            // Only use >= by default for floats
             vClauses.emplace_back(std::string(pColumn) + " >= ?");
-            vBinders.emplace_back([&](sqlite3_stmt* sqlSTMT, int& nIndex) { sqlite3_bind_double(sqlSTMT, nIndex++, stdOptRange->tMin); });
+            vBindValues.push_back(duckdb::Value(stdOptRange->tMin));
         }
         else
         {
-            // Use BETWEEN for ints or guaranteed bounded ranges
             vClauses.emplace_back(std::string(pColumn) + " BETWEEN ? AND ?");
-            vBinders.emplace_back(
-                [&](sqlite3_stmt* sqlSTMT, int& nIndex)
-                {
-                    sqlite3_bind_double(sqlSTMT, nIndex++, stdOptRange->tMin);
-                    sqlite3_bind_double(sqlSTMT, nIndex++, stdOptRange->tMax);
-                });
+            vBindValues.push_back(duckdb::Value(stdOptRange->tMin));
+            vBindValues.push_back(duckdb::Value(stdOptRange->tMax));
         }
     }
 }

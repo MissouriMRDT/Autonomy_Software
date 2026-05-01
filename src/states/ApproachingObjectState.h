@@ -13,7 +13,6 @@
 
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
-#include "../util/logging/PathTracer.hpp"
 #include "../util/states/StuckDetection.hpp"
 #include "../util/vision/ObjectDetectionUtility.hpp"
 #include "../vision/objects/ObjectDetector.h"
@@ -41,7 +40,6 @@ namespace statemachine
             // Core Components
             std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
-            std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
 
             // State tracking
             States m_eTriggeringState;

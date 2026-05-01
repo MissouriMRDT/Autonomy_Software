@@ -48,11 +48,6 @@ namespace statemachine
                  m_stGoalWaypoint.nID,
                  StateToString(m_eTriggeringState));
 
-        // Initialize plot layers.
-        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
-        m_pRoverPathPlot->CreateDotLayer("FinalTag", "green");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
-
         // Fetch detectors.
         m_vTagDetectors = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                            globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
@@ -95,13 +90,12 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized   = false;
+        m_bInitialized  = false;
 
-        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                        constants::STUCK_CHECK_INTERVAL,
-                                                                        constants::STUCK_CHECK_VEL_THRESH,
-                                                                        constants::STUCK_CHECK_ROT_THRESH);
-        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("ApproachingMarkerRoverPath");
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                       constants::STUCK_CHECK_INTERVAL,
+                                                                       constants::STUCK_CHECK_VEL_THRESH,
+                                                                       constants::STUCK_CHECK_ROT_THRESH);
 
         if (!m_bInitialized)
         {
@@ -134,7 +128,6 @@ namespace statemachine
 
         // Get the current rover pose and add to plot.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
-        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
         // 1. Boundary Check: Verify rover radius from marker waypoint.
         geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
@@ -279,8 +272,6 @@ namespace statemachine
                     m_dHeadingSetPoint           = stTagMeasurement.dStartRelativeBearing;
                     m_stLastGeolocatedPosition   = stBestArucoTag.stGeolocatedPosition;
                     m_bHasLastGeolocatedPosition = true;
-
-                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
                 }
                 else
                 {
@@ -324,8 +315,6 @@ namespace statemachine
                     m_dHeadingSetPoint           = stTagMeasurement.dStartRelativeBearing;
                     m_stLastGeolocatedPosition   = stBestTorchTag.stGeolocatedPosition;
                     m_bHasLastGeolocatedPosition = true;
-
-                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
                 }
                 else
                 {
@@ -393,15 +382,6 @@ namespace statemachine
                        "ApproachingMarkerState: SUCCESS! Rover has reached the target marker! (Distance: {:.2f}m < Threshold: {:.2f}m)",
                        m_dDistanceFromTag,
                        constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
-
-            if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-            {
-                m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "FinalTag", 7);
-            }
-            if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-            {
-                m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "FinalTag", 7);
-            }
 
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedMarker, true);
             return;

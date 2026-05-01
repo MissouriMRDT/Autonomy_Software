@@ -63,8 +63,7 @@ namespace objectdetectutils
     };
 
     /******************************************************************************
-     * @brief Represents a single detected object. Combines attributes from TorchObject
-     *        and TensorflowObject structs.
+     * @brief Represents a single detected object.
      *
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
@@ -74,11 +73,11 @@ namespace objectdetectutils
     {
         public:
             // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();    // The bounding box of the detected object.
-            double dConfidence                               = 0.0;    // The detection confidence of the object (from Torch/Tensorflow models).
-            double dStraightLineDistance                     = 0.0;    // Distance between the object and the camera.
-            double dYawAngle                                 = 0.0;    // This is the yaw angle so roll and pitch are ignored.
-            std::string szClassName                          = "";     // The class name of the object (used in Torch/Tensorflow models).
+            std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();      // The bounding box of the detected object.
+            double dConfidence                               = 0.0;                                 // The detection confidence of the object (from Torch models).
+            double dStraightLineDistance                     = 0.0;                                 // Distance between the object and the camera.
+            double dYawAngle                                 = 0.0;                                 // This is the yaw angle so roll and pitch are ignored.
+            std::string szClassName                          = "";                                  // The class name of the object (used in Torch models).
             std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the minimum time point.
             ObjectDetectionMethod eDetectionMethod           = ObjectDetectionMethod::eUnknown;     // The detection method used to detect the object.
             ObjectDetectionType eDetectionType               = ObjectDetectionType::eUnknown;       // The detection type used to detect the object.

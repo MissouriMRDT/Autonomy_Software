@@ -7,7 +7,7 @@ to access things like cameras, tag detection, object detection, and drivers.
 
 ## Directory Structure
 
-The **Handlers** directory stores files representing the main classes of different modules, each of which will handle one or many objects created from classes within this codebase. For example, the TagDetectionHandler may store multiple objects of the ArUcoDetector and TensorflowDetector classes. Each
+The **Handlers** directory stores files representing the main classes of different modules, each of which will handle one or many objects created from classes within this codebase. For example, the TagDetectionHandler may store multiple objects of the TagDetector and ObjectDetector classes. Each
 of these classes achieve the same thing, but are initialized with different parameters (like different images to run detection on). The handler exists to
 provide a way for other class to access the results of the tag detections for the different object (each which runs detection on a different image). 
 

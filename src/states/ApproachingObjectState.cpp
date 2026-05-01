@@ -46,11 +46,6 @@ namespace statemachine
                  m_stGoalWaypoint.dRadius,
                  StateToString(m_eTriggeringState));
 
-        // Initialize plot layers.
-        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "blue");
-        m_pRoverPathPlot->CreateDotLayer("FinalObject", "green");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
-
         // Fetch detectors.
         m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
                               globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
@@ -92,13 +87,12 @@ namespace statemachine
     {
         LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
 
-        m_bInitialized   = false;
+        m_bInitialized  = false;
 
-        m_StuckDetector  = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                        constants::STUCK_CHECK_INTERVAL,
-                                                                        constants::STUCK_CHECK_VEL_THRESH,
-                                                                        constants::STUCK_CHECK_ROT_THRESH);
-        m_pRoverPathPlot = std::make_unique<logging::graphing::PathTracer>("ApproachingObjectRoverPath");
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
+                                                                       constants::STUCK_CHECK_INTERVAL,
+                                                                       constants::STUCK_CHECK_VEL_THRESH,
+                                                                       constants::STUCK_CHECK_ROT_THRESH);
 
         if (!m_bInitialized)
         {
@@ -131,7 +125,6 @@ namespace statemachine
 
         // Get the current rover pose and add to plot.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
-        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
 
         // 1. Boundary Check: Verify rover radius from object waypoint.
         geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
@@ -266,8 +259,6 @@ namespace statemachine
                 m_dHeadingSetPoint           = stObjectMeasurement.dStartRelativeBearing;
                 m_stLastGeolocatedPosition   = stBestObject.stGeolocatedPosition;
                 m_bHasLastGeolocatedPosition = true;
-
-                m_pRoverPathPlot->AddDot(stBestObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
             }
             else
             {
@@ -337,11 +328,6 @@ namespace statemachine
                        "ApproachingObjectState: SUCCESS! Rover has reached the target object! (Distance: {:.2f}m < Threshold: {:.2f}m)",
                        m_dDistanceFromObject,
                        constants::APPROACH_OBJECT_PROXIMITY_THRESHOLD);
-
-            if (stBestObject.dConfidence != 0.0 && stBestObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
-            {
-                m_pRoverPathPlot->AddDot(stBestObject.stGeolocatedPosition.GetUTMCoordinate(), "FinalObject", 7);
-            }
 
             globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, true);
             return;

@@ -64,10 +64,10 @@ namespace torchobject
             // Run inference on YOLO model with current image.
             std::vector<yolomodel::Detection> vOutputTensorTags = trPyTorchDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
 
-            // Repackage detections into tensorflow tags.
+            // Repackage detections into objects.
             for (const yolomodel::Detection& stTagDetection : vOutputTensorTags)
             {
-                // Create and initialize new TensorflowTag.
+                // Create and initialize new Object.
                 objectdetectutils::Object stDetectedTag;
                 stDetectedTag.dConfidence       = stTagDetection.fConfidence;
                 stDetectedTag.pBoundingBox      = std::make_shared<cv::Rect2d>(stTagDetection.cvBoundingBox);

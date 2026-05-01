@@ -55,17 +55,6 @@ namespace statemachine
         RemoveRedZonePoints(m_vSearchPath);
         m_vSearchPath = GeoPlanSearchPattern(m_vSearchPath);
 
-        // Add the search and rover path layers to the plot.
-        m_pRoverPathPlot->CreatePathLayer("SpiralSearchPattern", "-o");
-        m_pRoverPathPlot->CreatePathLayer("ReverseSpiralSearchPattern", "-o");
-        m_pRoverPathPlot->CreateDotLayer("SnakeSearchPattern", "-g");
-        m_pRoverPathPlot->CreateDotLayer("VerticalZigZagSearchPattern", "yellow");
-        m_pRoverPathPlot->CreateDotLayer("DetectedTags", "blue");
-        m_pRoverPathPlot->CreateDotLayer("DetectedObjects", "purple");
-        m_pRoverPathPlot->CreateDotLayer("PurePursuitTargetIndex", "or");
-        m_pRoverPathPlot->CreatePathLayer("RoverPath", "-k");
-        // Plot the search path on the rover path.
-        m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "SpiralSearchPattern", 0);
         // Plot the search path in the visualizer.
         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
 
@@ -192,15 +181,6 @@ namespace statemachine
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
-        // Add the current rover pose to the path plot.
-        m_pRoverPathPlot->AddPathPoint(stCurrentRoverPose.GetUTMCoordinate(), "RoverPath");
-
-        // Place a dot on the pure pursuit target index.
-        // geoops::Waypoint stPurePursuitTargetCoordinate =
-        //     m_pPurePursuitController->GetReferencePath().at(static_cast<size_t>(m_pPurePursuitController->GetReferencePathTargetIndex()));
-        // m_pRoverPathPlot->ClearLayer("PurePursuitTargetIndex");
-        // m_pRoverPathPlot->AddDot(stPurePursuitTargetCoordinate.GetUTMCoordinate(), "PurePursuitTargetIndex", 1);
-
         /*
             The overall flow of this state is as follows.
             1. Is there a tag -> MarkerSeen
@@ -228,19 +208,6 @@ namespace statemachine
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target marker!");
 
-                // Check if the OpenCV tag has a good absolute position.
-                if (stBestArucoTag.nID != -1 && stBestArucoTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestArucoTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-                // Check if the torch tag has a good absolute position.
-                if (stBestTorchTag.dConfidence != 0.0 && stBestTorchTag.stGeolocatedPosition.eType == geoops::WaypointType::eTagWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchTag.stGeolocatedPosition.GetUTMCoordinate(), "DetectedTags");
-                }
-
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eMarkerSeen, true);
                 // Don't execute the rest of the state.
@@ -266,13 +233,6 @@ namespace statemachine
             {
                 // Submit logger message.
                 LOG_NOTICE(logging::g_qSharedLogger, "SearchPatternState: Rover has seen a target object!");
-
-                // Check if the torch tag has a good absolute position.
-                if (stBestTorchObject.dConfidence != 0.0 && stBestTorchObject.stGeolocatedPosition.eType == geoops::WaypointType::eObjectWaypoint)
-                {
-                    // Add the tag to the path plot.
-                    m_pRoverPathPlot->AddDot(stBestTorchObject.stGeolocatedPosition.GetUTMCoordinate(), "DetectedObjects");
-                }
 
                 // Handle state transition and save the current search pattern state.
                 globals::g_pStateMachineHandler->HandleEvent(Event::eObjectSeen, true);
@@ -417,11 +377,9 @@ namespace statemachine
                         // Update current search pattern
                         m_eCurrentSearchPatternType = SearchPatternType::END;
 
-                        // m_vSearchPath               = GeoPlanSearchPattern(m_vSearchPath);
+                        // Reverse the previous path.
                         std::reverse(m_vSearchPath.begin(), m_vSearchPath.end());
 
-                        // Add the search and rover path layers to the plot.
-                        m_pRoverPathPlot->AddPathPoints(m_vSearchPath, "ReverseSpiralSearchPattern", 0);
                         // Plot the search path in the visualizer.
                         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
                         // Set the path of the pure pursuit controller.

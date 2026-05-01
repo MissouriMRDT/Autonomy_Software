@@ -18,7 +18,7 @@
  * @brief The TagDetectionHandler class is responsible for managing all of the
  *      different detectors that Autonomy_Software uses for AR tag detection.
  *      Whether it be for detection using OpenCV's ArUco or detection using a custom
- *      tensorflow model, the detectors are created and stored here.
+ *      model, the detectors are created and stored here.
  *
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)

@@ -168,6 +168,7 @@ dpkg
 driveboard
 DRIVEINDIVIDUAL
 DRIVELEFTRIGHT
+duckdb
 dumpversion
 DVTK
 DWITH
@@ -318,6 +319,7 @@ HPOL
 httpx
 HWDEVICE
 hyperthreaded
+icrawl
 IDLESTATE
 idxs
 IJEE
@@ -611,6 +613,7 @@ QPID
 qtbase
 qtdeclarative
 qtshadertools
+qwtel
 Raman
 RAMANREADING
 rcond
@@ -722,10 +725,6 @@ Targed
 tegra
 Tele
 TELEOP
-TENSORFLOWLITE
-tensorflowobject
-tensorflowtag
-tensorflowyolo
 tflite
 Tgsnwcv
 THREADFPS

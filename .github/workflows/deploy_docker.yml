@@ -4,7 +4,7 @@ on:
   # Run this workflow every time a pull request is opened or updated with the development branch as the base
   # and there is a change to the dockerfiles or any of the package build scripts.
   pull_request:
-    branches: ["development"]
+    branches: [ "development" ]
     paths:
       - ".devcontainer/Jammy.dockerfile"
       - ".devcontainer/JetPack.dockerfile"
@@ -14,7 +14,7 @@ on:
   # Or, run this workflow every time a push/merge is made to the development branch and there is a change to
   # the dockerfiles or any of the package build scripts.
   push:
-    branches: ["development"]
+    branches: [ "development" ]
     paths:
       - ".devcontainer/Jammy.dockerfile"
       - ".devcontainer/JetPack.dockerfile"
@@ -24,11 +24,11 @@ on:
   # Or, run this manually from the Actions tab in GitHub. This will run the workflow on the development branch.
   workflow_dispatch:
 
-# This workflow has concurrency protection enabled. This means that if the workflow is already running, it will
-# wait until the previous run is complete before starting a new run. This is to prevent multiple runs from
-# happening at the same time and causing conflicts. If there are more than (2) runs waiting in the queue, the
-# workflow will be cancelled. This is to prevent the queue from getting too long and causing delays in the
-# workflow. It will not cancel a run that is already in progress.
+    # This workflow has concurrency protection enabled. This means that if the workflow is already running, it will
+    # wait until the previous run is complete before starting a new run. This is to prevent multiple runs from
+    # happening at the same time and causing conflicts. If there are more than (2) runs waiting in the queue, the
+    # workflow will be cancelled. This is to prevent the queue from getting too long and causing delays in the
+    # workflow. It will not cancel a run that is already in progress.
 concurrency:
   group: "docker"
   cancel-in-progress: false
@@ -41,7 +41,7 @@ jobs:
   # job is run first so that all of the docker images are tagged with the same date and time. And is a dependency
   # for the other jobs.
   time-and-date:
-    runs-on: [ubuntu-latest]
+    runs-on: [ ubuntu-latest ]
     timeout-minutes: 360
 
     # This outputs the current date and time to the GitHub output. This is used to tag the docker images.
@@ -59,8 +59,8 @@ jobs:
   # hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It outputs a variable for
   # each package that is set to true if the package needs to be rebuilt. This job is only run on pull requests.
   check-amd64-packages:
-    needs: [time-and-date]
-    runs-on: [self-hosted, linux, X64]
+    needs: [ time-and-date ]
+    runs-on: [ self-hosted, linux, X64 ]
     timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
@@ -69,13 +69,10 @@ jobs:
     outputs:
       geolib-amd64: ${{ steps.changes.outputs.geolib-amd64 }}
       libdatachannel-amd64: ${{ steps.changes.outputs.libdatachannel-amd64 }}
-      matplotplusplus-amd64: ${{ steps.changes.outputs.matplotplusplus-amd64 }}
       ffmpeg-amd64: ${{ steps.changes.outputs.ffmpeg-amd64 }}
       gtest-amd64: ${{ steps.changes.outputs.gtest-amd64 }}
       opencv-amd64: ${{ steps.changes.outputs.opencv-amd64 }}
       pytorch-amd64: ${{ steps.changes.outputs.pytorch-amd64 }}
-      abseil-amd64: ${{ steps.changes.outputs.abseil-amd64 }}
-      tensorflow-amd64: ${{ steps.changes.outputs.tensorflow-amd64 }}
       quill-amd64: ${{ steps.changes.outputs.quill-amd64 }}
       pcl-amd64: ${{ steps.changes.outputs.pcl-amd64 }}
 
@@ -106,8 +103,6 @@ jobs:
               - 'tools/package-builders/geolib/geolib-amd64-pkg.sh'
             libdatachannel-amd64:
               - 'tools/package-builders/libdatachannel/libdatachannel-amd64-pkg.sh'
-            matplotplusplus-amd64:
-              - 'tools/package-builders/matplotplusplus/matplotplusplus-amd64-pkg.sh'
             ffmpeg-amd64:
               - 'tools/package-builders/ffmpeg/ffmpeg-amd64-pkg.sh'
             gtest-amd64:
@@ -116,10 +111,6 @@ jobs:
               - 'tools/package-builders/opencv/opencv-amd64-pkg.sh'
             pytorch-amd64:
               - 'tools/package-builders/pytorch/pytorch-amd64-pkg.sh'
-            abseil-amd64:
-              - 'tools/package-builders/abseil/abseil-amd64-pkg.sh'
-            tensorflow-amd64:
-              - 'tools/package-builders/tensorflow/tensorflow-amd64-pkg.sh'
             quill-amd64:
               - 'tools/package-builders/quill/quill-amd64-pkg.sh'
             pcl-amd64:
@@ -138,8 +129,8 @@ jobs:
   # separate job. This allows multiple packages to be rebuilt at the same time. This job is only run on pull
   # requests.
   build-updated-amd64-packages:
-    needs: [time-and-date, check-amd64-packages]
-    runs-on: [self-hosted, linux, X64]
+    needs: [ time-and-date, check-amd64-packages ]
+    runs-on: [ self-hosted, linux, X64 ]
     timeout-minutes: 1440
 
     environment:
@@ -159,11 +150,8 @@ jobs:
         package:
           - geolib
           - libdatachannel
-          - matplotplusplus
           - gtest
           - pytorch
-          - abseil
-          - tensorflow
           - quill
           - pcl
 
@@ -247,8 +235,8 @@ jobs:
           rm -rf /opt/Autonomy_Software
 
   build-updated-amd64-ffmpeg-and-opencv-packages:
-    needs: [time-and-date, check-amd64-packages]
-    runs-on: [self-hosted, linux, X64]
+    needs: [ time-and-date, check-amd64-packages ]
+    runs-on: [ self-hosted, linux, X64 ]
     timeout-minutes: 1440
     environment:
       name: docker-packages
@@ -447,8 +435,8 @@ jobs:
   # hosted runner because there is not an NVIDIA GPU available on the GitHub runners. It outputs a variable for
   # each package that is set to true if the package needs to be rebuilt. This job is only run on pull requests.
   check-arm64-packages:
-    needs: [time-and-date]
-    runs-on: [self-hosted, linux, ARM64]
+    needs: [ time-and-date ]
+    runs-on: [ self-hosted, linux, ARM64 ]
     timeout-minutes: 1440
     if: github.event_name == 'pull_request'
 
@@ -457,13 +445,10 @@ jobs:
     outputs:
       geolib-arm64: ${{ steps.changes.outputs.geolib-arm64 }}
       libdatachannel-arm64: ${{ steps.changes.outputs.libdatachannel-arm64 }}
-      matplotplusplus-arm64: ${{ steps.changes.outputs.matplotplusplus-arm64 }}
       ffmpeg-arm64: ${{ steps.changes.outputs.ffmpeg-arm64 }}
       gtest-arm64: ${{ steps.changes.outputs.gtest-arm64 }}
       opencv-arm64: ${{ steps.changes.outputs.opencv-arm64 }}
       pytorch-arm64: ${{ steps.changes.outputs.pytorch-arm64 }}
-      abseil-arm64: ${{ steps.changes.outputs.abseil-arm64 }}
-      tensorflow-arm64: ${{ steps.changes.outputs.tensorflow-arm64 }}
       quill-arm64: ${{ steps.changes.outputs.quill-arm64 }}
       pcl-arm64: ${{ steps.changes.outputs.pcl-arm64 }}
 
@@ -494,8 +479,6 @@ jobs:
               - 'tools/package-builders/geolib/geolib-arm64-pkg.sh'
             libdatachannel-arm64:
               - 'tools/package-builders/libdatachannel/libdatachannel-arm64-pkg.sh'
-            matplotplusplus-arm64:
-              - 'tools/package-builders/matplotplusplus/matplotplusplus-arm64-pkg.sh'
             ffmpeg-arm64:
               - 'tools/package-builders/ffmpeg/ffmpeg-arm64-pkg.sh'
             gtest-arm64:
@@ -504,10 +487,6 @@ jobs:
               - 'tools/package-builders/opencv/opencv-arm64-pkg.sh'
             pytorch-arm64:
               - 'tools/package-builders/pytorch/pytorch-arm64-pkg.sh'
-            abseil-arm64:
-              - 'tools/package-builders/abseil/abseil-arm64-pkg.sh'
-            tensorflow-arm64:
-              - 'tools/package-builders/tensorflow/tensorflow-arm64-pkg.sh'
             quill-arm64:
               - 'tools/package-builders/quill/quill-arm64-pkg.sh'
             pcl-arm64:
@@ -526,8 +505,8 @@ jobs:
   # separate job. This allows multiple packages to be rebuilt at the same time. This job is only run on pull
   # requests.
   build-updated-arm64-packages:
-    needs: [time-and-date, check-arm64-packages]
-    runs-on: [self-hosted, linux, ARM64]
+    needs: [ time-and-date, check-arm64-packages ]
+    runs-on: [ self-hosted, linux, ARM64 ]
     timeout-minutes: 1440
 
     environment:
@@ -546,11 +525,8 @@ jobs:
         package:
           - geolib
           - libdatachannel
-          - matplotplusplus
           - gtest
           - pytorch
-          - abseil
-          - tensorflow
           - quill
           - pcl
 
@@ -634,8 +610,8 @@ jobs:
           rm -rf /opt/Autonomy_Software
 
   build-updated-arm64-ffmpeg-and-opencv-packages:
-    needs: [time-and-date, check-arm64-packages]
-    runs-on: [self-hosted, linux, ARM64]
+    needs: [ time-and-date, check-arm64-packages ]
+    runs-on: [ self-hosted, linux, ARM64 ]
     timeout-minutes: 1440
     environment:
       name: docker-packages
@@ -737,7 +713,8 @@ jobs:
       # --- Rebuild OpenCV Package for ARM64 ---
       - name: Rebuild OpenCV Package
         id: rebuild_pkg_opencv_arm64
-        if: env.FFMPEG_NEEDS_REBUILD_ARM64 == 'true' || env.OPENCV_NEEDS_REBUILD_ARM64 == 'true'
+        if: env.FFMPEG_NEEDS_REBUILD_ARM64 == 'true' || env.OPENCV_NEEDS_REBUILD_ARM64
+          == 'true'
         run: |
           if [[ "$FFMPEG_REBUILT_ARM64" == "true" ]]; then
             apt remove -y ffmpeg-mrdt || true
@@ -830,7 +807,7 @@ jobs:
         build-updated-amd64-packages,
         build-updated-amd64-ffmpeg-and-opencv-packages,
       ]
-    runs-on: [self-hosted, linux, X64]
+    runs-on: [ self-hosted, linux, X64 ]
     timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}
 
@@ -882,7 +859,9 @@ jobs:
       # manual run. In either case the image is tagged with the date and time. It also saves a build cache so
       # that the next time the image is built, it has the potential to be faster.
       - name: Build and Push Jammy Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true') }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name ==
+          'workflow_dispatch' && github.ref == 'refs/heads/development' )) &&
+          (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -900,7 +879,8 @@ jobs:
       # the image is tagged with the date and time and the latest tag. It also saves a build cache so that the
       # next time the image is built, it has the potential to be faster.
       - name: Build and Push Jammy Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true') }}
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile ==
+          'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -934,7 +914,7 @@ jobs:
         build-updated-arm64-packages,
         build-updated-arm64-ffmpeg-and-opencv-packages,
       ]
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: [ self-hosted, linux, ARM64 ]
     timeout-minutes: 1440
     if: ${{ always() && !failure() && !cancelled() }}
 
@@ -986,7 +966,9 @@ jobs:
       # request or a manual run. In either case the image is tagged with the date and time. It also saves a
       # build cache so that the next time the image is built, it has the potential to be faster.
       - name: Build and Push JetPack Image with Date Tag
-        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/development' )) && (steps.changes.outputs.dockerfile == 'true') }}
+        if: ${{ ( github.event_name == 'pull_request' || ( github.event_name ==
+          'workflow_dispatch' && github.ref == 'refs/heads/development' )) &&
+          (steps.changes.outputs.dockerfile == 'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
@@ -1004,7 +986,8 @@ jobs:
       # this case the image is tagged with the date and time and the latest tag. It also saves a build cache so
       # that the next time the image is built, it has the potential to be faster.
       - name: Build and Push JetPack Image with Latest Tag
-        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile == 'true') }}
+        if: ${{ github.event_name == 'push' && (steps.changes.outputs.dockerfile ==
+          'true') }}
         uses: docker/build-push-action@v5
         with:
           context: ".devcontainer/"
