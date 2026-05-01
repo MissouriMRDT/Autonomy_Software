@@ -13,7 +13,6 @@
 #define PURE_PURSUIT_CONTROLLER_H
 
 #include "../../util/GeospatialOperations.hpp"
-#include "../../util/logging/PathTracer.hpp"
 
 /// \cond
 #include <vector>

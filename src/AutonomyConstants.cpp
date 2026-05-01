@@ -300,7 +300,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SIM_Flat.db";    // The path to the LiDAR database file.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SDELC.db";    // The path to the LiDAR database file.
 
     ///////////////////////////////////////////////////////////////////////////
 

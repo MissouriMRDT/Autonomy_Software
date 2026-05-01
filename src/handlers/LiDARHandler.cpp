@@ -42,15 +42,17 @@ LiDARHandler::~LiDARHandler()
  * @brief Initializes the LiDARHandler by opening the DuckDB database.
  *
  * This method securely opens the DuckDB file and instantiates a persistent
- * connection object. DuckDB operates entirely in memory when querying,
- * loading only the necessary compressed columns from disk.
+ * connection object. The connection is opened in default Read/Write mode
+ * to allow the autonomy system to dynamically modify the terrain and declare
+ * obstacles at runtime.
  *
  * @param szDBPath Relative or absolute path to the DuckDB database file.
  *
  * @return true - If the database was successfully opened.
  * @return false - If there was an error opening the database.
+ *
  * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2025-07-13
+ * @date 2026-05-01
  ******************************************************************************/
 bool LiDARHandler::OpenDB(const std::string& szDBPath)
 {
@@ -69,17 +71,13 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
     try
     {
         // Instantiate the DuckDB instance and a distinct connection object.
-        // NOTE: Opening in READ_ONLY mode since we only query data at runtime.
-        // This prevents file locks and allows multiple processes to read simultaneously.
-        duckdb::DBConfig stConfig;
-        stConfig.SetOptionByName("access_mode", "READ_ONLY");
-
-        m_pDB   = std::make_unique<duckdb::DuckDB>(szDBPath, &stConfig);
+        // Opened in default Read/Write mode so the rover can actively update the map.
+        m_pDB   = std::make_unique<duckdb::DuckDB>(szDBPath);
         m_pConn = std::make_unique<duckdb::Connection>(*m_pDB);
     }
-    catch (const duckdb::Exception& stdError)
+    catch (const duckdb::Exception& e)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to open DuckDB at '{}': {}", szDBPath, stdError.what());
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to open DuckDB at '{}': {}", szDBPath, e.what());
         return false;
     }
 
@@ -309,9 +307,9 @@ void LiDARHandler::AddRangeFilter(std::vector<std::string>& vClauses,
  * @return false - If the modification failed.
  *
  * @author clayjay3 (claytonraycowen@gmail.com), Sam Nolte (samnolte0302@gmail.com)
- * @date 2025-1-12
+ * @date 2026-05-01
  ******************************************************************************/
-bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dRadius)
+bool LiDARHandler::DeclareLiDARObstacle(const geoops::UTMCoordinate& stPoint, double dRadius)
 {
     // Acquire a write lock on the mutex to ensure thread safety.
     std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
@@ -323,62 +321,66 @@ bool LiDARHandler::DeclareLiDARObstacle(geoops::UTMCoordinate stPoint, double dR
         return false;
     }
 
-    // Prepare the SQL statements for inserting data.
-    const char* pSQL      = R"(
+    // Prepare the SQL statement for updating data.
+    // DuckDB zonemaps replace the need for the old RTree index table.
+    const char* pSQL    = R"(
         UPDATE ProcessedLiDARPoints
         SET trav_score = 0.01
-        WHERE id IN (
-            SELECT p.id
-            FROM ProcessedLiDARPoints_idx AS idx
-            JOIN ProcessedLiDARPoints AS p ON p.id = idx.id
-            WHERE
-                idx.min_x BETWEEN ? AND ?
-                AND idx.min_y BETWEEN ? AND ?
-                AND (p.easting - ?) * (p.easting - ?) + (p.northing - ?) * (p.northing - ?) <= ? * ?
-        )
+        WHERE easting BETWEEN ? AND ?
+          AND northing BETWEEN ? AND ?
+          AND (easting - ?) * (easting - ?) + (northing - ?) * (northing - ?) <= ?
     )";
 
-    sqlite3_stmt* sqlSTMT = nullptr;
-    int nRC               = sqlite3_prepare_v2(m_pSQLDatabase, pSQL, -1, &sqlSTMT, nullptr);
-    if (nRC != SQLITE_OK)
+    auto stPreparedStmt = m_pConn->Prepare(pSQL);
+    if (stPreparedStmt->HasError())
     {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare SQL: {}", sqlite3_errmsg(m_pSQLDatabase));
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare DuckDB SQL: {}", stPreparedStmt->GetError());
         return false;
     }
 
-    // for rtree
-    sqlite3_bind_double(sqlSTMT, 1, stPoint.dEasting - dRadius);
-    sqlite3_bind_double(sqlSTMT, 2, stPoint.dEasting + dRadius);
-    sqlite3_bind_double(sqlSTMT, 3, stPoint.dNorthing - dRadius);
-    sqlite3_bind_double(sqlSTMT, 4, stPoint.dNorthing + dRadius);
-    // for distance check
-    sqlite3_bind_double(sqlSTMT, 5, stPoint.dEasting);
-    sqlite3_bind_double(sqlSTMT, 6, stPoint.dEasting);
-    sqlite3_bind_double(sqlSTMT, 7, stPoint.dNorthing);
-    sqlite3_bind_double(sqlSTMT, 8, stPoint.dNorthing);
-    sqlite3_bind_double(sqlSTMT, 9, dRadius);
-    sqlite3_bind_double(sqlSTMT, 10, dRadius);
+    // Bind values to the prepared statement
+    duckdb::vector<duckdb::Value> vBindValues;
+
+    // Bounding box (zonemap fast-filter)
+    vBindValues.push_back(duckdb::Value(stPoint.dEasting - dRadius));
+    vBindValues.push_back(duckdb::Value(stPoint.dEasting + dRadius));
+    vBindValues.push_back(duckdb::Value(stPoint.dNorthing - dRadius));
+    vBindValues.push_back(duckdb::Value(stPoint.dNorthing + dRadius));
+
+    // Radial distance check (exact filtering)
+    vBindValues.push_back(duckdb::Value(stPoint.dEasting));
+    vBindValues.push_back(duckdb::Value(stPoint.dEasting));
+    vBindValues.push_back(duckdb::Value(stPoint.dNorthing));
+    vBindValues.push_back(duckdb::Value(stPoint.dNorthing));
+
+    // Pass the squared radius directly so we don't need ? * ? in the SQL
+    vBindValues.push_back(duckdb::Value(dRadius * dRadius));
 
     // Execute the statement.
-    nRC = sqlite3_step(sqlSTMT);
-    if (nRC != SQLITE_DONE)
+    auto stResult = stPreparedStmt->Execute(vBindValues);
+    if (stResult->HasError())
     {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to insert data: {}", sqlite3_errmsg(m_pSQLDatabase));
-        sqlite3_finalize(sqlSTMT);
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to update obstacle data: {}", stResult->GetError());
         return false;
     }
 
-    // Finalize the statement.
-    sqlite3_finalize(sqlSTMT);
+    // DuckDB UPDATE queries return a single column/row chunk containing the number of updated rows.
+    int64_t nRowsUpdated = 0;
+    if (auto stChunk = stResult->Fetch())
+    {
+        if (stChunk->size() > 0)
+        {
+            nRowsUpdated = stChunk->GetValue(0, 0).GetValue<int64_t>();
+        }
+    }
 
     // Log LiDAR changes
-    int rowsUpdated = sqlite3_changes(m_pSQLDatabase);
     LOG_INFO(logging::g_qSharedLogger,
              "Created new obstacle at ({}, {}), radius: {}. Updated {} points",
              (int) stPoint.dEasting,
              (int) stPoint.dNorthing,
              (int) dRadius,
-             rowsUpdated);
+             nRowsUpdated);
 
     return true;
 }

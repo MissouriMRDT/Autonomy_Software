@@ -156,7 +156,6 @@ namespace statemachine
                                                                             constants::STUCK_CHECK_INTERVAL,
                                                                             constants::STUCK_CHECK_VEL_THRESH,
                                                                             constants::STUCK_CHECK_ROT_THRESH);
-        m_pRoverPathPlot     = std::make_unique<logging::graphing::PathTracer>("SearchPatternRoverPath");
         m_pPursuitController = std::make_unique<controllers::PurePursuitController>();
 
         // Start state.
