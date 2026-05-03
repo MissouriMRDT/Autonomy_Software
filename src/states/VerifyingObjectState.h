@@ -15,6 +15,7 @@
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../vision/objects/ObjectDetector.h"
+#include <chrono>
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -26,7 +27,7 @@ namespace statemachine
 {
     /******************************************************************************
      * @brief The VerifyingObjectState class implements the Verifying Object state for
-     *        the Autonomy State Machine.
+     * the Autonomy State Machine.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
@@ -40,6 +41,10 @@ namespace statemachine
             std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
             std::chrono::system_clock::time_point m_tmObjectVerificationStartTime;
             std::chrono::system_clock::time_point m_tmObjectLastSeenTime;
+
+            // Time-based hit rate tracking
+            std::chrono::system_clock::time_point m_tmLastRunTime;
+            double m_dTotalValidTime;
 
         protected:
             void Start() override;
