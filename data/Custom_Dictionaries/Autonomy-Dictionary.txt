@@ -282,6 +282,8 @@ futex
 gcov
 gcovr
 geekyeggo
+geofence
+Geofence
 geographiclib
 geolib
 geoloc

@@ -48,7 +48,6 @@ namespace statemachine
 
             // Persistent tracking variables for Run()
             double m_dHeadingSetPoint;
-            double m_dDistanceFromObject;
             bool m_bDriveBackwards;
 
             // Geolocation fallback

@@ -54,7 +54,6 @@ namespace statemachine
 
         // Reset all persistent tracking variables for a clean slate.
         m_dHeadingSetPoint                  = 0.0;
-        m_dDistanceFromObject               = 0.0;
         m_bDriveBackwards                   = false;
         m_bHasLastGeolocatedPosition        = false;
         m_bHasSeenTarget                    = false;
@@ -112,13 +111,10 @@ namespace statemachine
         /******************************************************************************
          * STATE LOGIC FLOW:
          * 1. Geofence Check: Verify the rover is within the goal waypoint's radius.
-         * 2. Target Identification: Find the closest target across all cameras using screen area %.
-         * 3. Navigation Decision Tree:
-         * -> Target Unseen: Coast on last heading -> Drive to last GPS -> Timeout & Exit.
-         * -> Target Detected: Toggle Forward/Reverse based on camera (Front vs Rear).
-         * - Good Depth (> 0.0m): Calculate absolute GPS heading and save to history.
-         * - Bad Depth (== 0.0m): Fallback to pure relative vision heading (Yaw).
-         * 4. Execution: Send drive commands, check proximity for success, and run stuck detection.
+         * 2. Target Identification: Find the closest target across all cameras.
+         * 3. High Confidence Check: If object is highly confident, STOP and verify.
+         * 4. Navigation Decision Tree: Track low-confidence hits or fallbacks.
+         * 5. Execution: Send drive commands and run stuck detection.
          ******************************************************************************/
 
         LOG_DEBUG(logging::g_qSharedLogger, "ApproachingObjectState: Running state-specific behavior.");
@@ -151,130 +147,69 @@ namespace statemachine
             m_bHasLastGeolocatedPosition = false;
         }
 
-        // Variable for logging camera origin
-        std::string szCameraOrigin = "Unknown/None";
-
-        // 3. Update tracking states.
-        if (stBestObject.dConfidence == 0.0)
+        // 3. Object Detected -> IMMEDIATE STOP AND VERIFY (No distance check!)
+        if (stBestObject.dConfidence > 0.0)
         {
-            // Object unseen.
-            if (dSecondsSinceLastSeen > constants::APPROACH_OBJECT_LOST_GIVE_UP_TIME)
-            {
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "ApproachingObjectState: Object has been unseen for {:.2f}s (Threshold: {:.2f}s). Giving up and triggering ObjectUnseen.",
-                            dSecondsSinceLastSeen,
-                            constants::APPROACH_OBJECT_LOST_GIVE_UP_TIME);
-                globals::g_pStateMachineHandler->HandleEvent(Event::eObjectUnseen);
-                return;
-            }
+            LOG_NOTICE(logging::g_qSharedLogger, "ApproachingObjectState: OBJECT DETECTED ({:.2f}%). Halting to verify!", stBestObject.dConfidence * 100.0);
 
-            if (!m_bAlreadyPrintedLost)
-            {
-                m_bAlreadyPrintedLost = true;
-                LOG_WARNING(logging::g_qSharedLogger, "ApproachingObjectState: Tracking lost! No valid objects detected across any camera.");
-            }
+            globals::g_pDriveBoard->SendStop();
+            globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, true);
+            return;
+        }
 
-            // Fallback 1: Drive to last known geolocated position if available.
-            if (m_bHasLastGeolocatedPosition)
-            {
-                geoops::GeoMeasurement stLastMeasurement =
-                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stLastGeolocatedPosition.GetUTMCoordinate());
-                m_dHeadingSetPoint    = stLastMeasurement.dStartRelativeBearing;
-                m_dDistanceFromObject = stLastMeasurement.dDistanceMeters;
+        // 4. Object unseen fallback logic
+        if (dSecondsSinceLastSeen > constants::APPROACH_OBJECT_LOST_GIVE_UP_TIME)
+        {
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "ApproachingObjectState: Object has been unseen for {:.2f}s (Threshold: {:.2f}s). Giving up and triggering ObjectUnseen.",
+                        dSecondsSinceLastSeen,
+                        constants::APPROACH_OBJECT_LOST_GIVE_UP_TIME);
+            globals::g_pStateMachineHandler->HandleEvent(Event::eObjectUnseen);
+            return;
+        }
 
-                if (!m_bAlreadyPrintedVisualLostFallback)
-                {
-                    LOG_NOTICE(logging::g_qSharedLogger,
-                               "ApproachingObjectState: [FALLBACK 1] Visual lost. Driving to last known geolocated UTM: [{:.2f}E, {:.2f}N]. Current Dist: {:.2f}m, "
-                               "Target Bearing: {:.2f} degrees, Reverse: {}",
-                               m_stLastGeolocatedPosition.GetUTMCoordinate().dEasting,
-                               m_stLastGeolocatedPosition.GetUTMCoordinate().dNorthing,
-                               m_dDistanceFromObject,
-                               m_dHeadingSetPoint,
-                               m_bDriveBackwards);
-                    m_bAlreadyPrintedVisualLostFallback = true;
-                }
-            }
-            // Fallback 2: Coast along last known heading (Handles 0.0 distance depth dropouts).
-            else if (m_bHasSeenTarget)
+        if (!m_bAlreadyPrintedLost)
+        {
+            m_bAlreadyPrintedLost = true;
+            LOG_WARNING(logging::g_qSharedLogger, "ApproachingObjectState: Tracking lost! No valid objects detected across any camera.");
+        }
+
+        // Fallback 1: Drive to last known geolocated position if available.
+        if (m_bHasLastGeolocatedPosition)
+        {
+            geoops::GeoMeasurement stLastMeasurement =
+                geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stLastGeolocatedPosition.GetUTMCoordinate());
+            m_dHeadingSetPoint = stLastMeasurement.dStartRelativeBearing;
+
+            if (!m_bAlreadyPrintedVisualLostFallback)
             {
-                if (!m_bAlreadyPrintedVisualLostFallback)
-                {
-                    LOG_NOTICE(
-                        logging::g_qSharedLogger,
-                        "ApproachingObjectState: [FALLBACK 2] Visual lost & no geolocation history. Coasting along last known heading. Target Bearing: {:.2f} degrees, "
-                        "Reverse: {}",
-                        m_dHeadingSetPoint,
-                        m_bDriveBackwards);
-                    m_bAlreadyPrintedVisualLostFallback = true;
-                }
-            }
-            // Wait in place: We have never seen the object.
-            else
-            {
-                globals::g_pDriveBoard->SendStop();
-                return;
+                LOG_NOTICE(logging::g_qSharedLogger,
+                           "ApproachingObjectState: [FALLBACK 1] Visual lost. Driving to last known geolocated UTM: [{:.2f}E, {:.2f}N]. Target Bearing: {:.2f} degrees",
+                           m_stLastGeolocatedPosition.GetUTMCoordinate().dEasting,
+                           m_stLastGeolocatedPosition.GetUTMCoordinate().dNorthing,
+                           m_dHeadingSetPoint);
+                m_bAlreadyPrintedVisualLostFallback = true;
             }
         }
+        // Fallback 2: Coast along last known heading.
+        else if (m_bHasSeenTarget)
+        {
+            if (!m_bAlreadyPrintedVisualLostFallback)
+            {
+                LOG_NOTICE(logging::g_qSharedLogger,
+                           "ApproachingObjectState: [FALLBACK 2] Visual lost & no geolocation history. Coasting along last known heading. Target Bearing: {:.2f} degrees",
+                           m_dHeadingSetPoint);
+                m_bAlreadyPrintedVisualLostFallback = true;
+            }
+        }
+        // Wait in place: We have never seen the object.
         else
         {
-            // Object detected.
-            if (m_bAlreadyPrintedLost)
-            {
-                LOG_NOTICE(logging::g_qSharedLogger, "ApproachingObjectState: Tracking regained! Target re-acquired.");
-            }
-
-            // Reset temporal trackers.
-            m_tmLastSeenTime                    = tmCurrentTime;
-            m_bAlreadyPrintedLost               = false;
-            m_bAlreadyPrintedVisualLostFallback = false;
-            m_bHasSeenTarget                    = true;
-
-            // Update driving direction based on the camera that currently sees the object.
-            std::shared_ptr<ObjectDetector> pFrontDetector = globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam);
-            std::shared_ptr<ObjectDetector> pRearDetector  = globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam);
-
-            if (pFrontDetector != nullptr && stBestObject.szDetectorUUID == pFrontDetector->GetThreadUUID())
-            {
-                m_bDriveBackwards = false;
-                szCameraOrigin    = "Head Main Camera";
-            }
-            else if (pRearDetector != nullptr && stBestObject.szDetectorUUID == pRearDetector->GetThreadUUID())
-            {
-                m_bDriveBackwards = true;
-                szCameraOrigin    = "Rear Camera";
-            }
-            else
-            {
-                szCameraOrigin = "Unknown Camera";
-            }
-
-            m_dDistanceFromObject = stBestObject.dStraightLineDistance;
-
-            // Require distance to be greater than 0.0 to use Geolocation absolute tracking.
-            if (stBestObject.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN && m_dDistanceFromObject > 0.0)
-            {
-                geoops::GeoMeasurement stObjectMeasurement =
-                    geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), stBestObject.stGeolocatedPosition.GetUTMCoordinate());
-                m_dHeadingSetPoint           = stObjectMeasurement.dStartRelativeBearing;
-                m_stLastGeolocatedPosition   = stBestObject.stGeolocatedPosition;
-                m_bHasLastGeolocatedPosition = true;
-            }
-            else
-            {
-                // Fallback to purely relative tracking. (Current Heading + Yaw Angle).
-                double dVisionYawOffset = stBestObject.dYawAngle;
-                // If it's the rear camera, the object is physically 180 degrees behind the camera's center.
-                if (m_bDriveBackwards)
-                {
-                    dVisionYawOffset += 180.0;
-                }
-
-                m_dHeadingSetPoint = numops::InputAngleModulus(dVisionYawOffset + stCurrentRoverPose.GetCompassHeading(), 0.0, 360.0);
-            }
+            globals::g_pDriveBoard->SendStop();
+            return;
         }
 
-        // 4. Execute Move Commands.
+        // 5. Execute drive command based on the best available information and run stuck detection.
         diffdrive::DrivePowers stDrivePowers = globals::g_pDriveBoard->CalculateMove(constants::APPROACH_OBJECT_MOTOR_POWER,
                                                                                      m_dHeadingSetPoint,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
@@ -285,55 +220,7 @@ namespace statemachine
                                                                                      false);
         globals::g_pDriveBoard->SendDrive(stDrivePowers);
 
-        // 5. Output periodic logging (1Hz).
-        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime - m_tmLastLogTime).count() >= 1)
-        {
-            m_tmLastLogTime = tmCurrentTime;
-
-            if (stBestObject.dConfidence != 0.0)
-            {
-                std::string szTrackingType = (stBestObject.stGeolocatedPosition.eType != geoops::WaypointType::eUNKNOWN && m_dDistanceFromObject > 0.0)
-                                                 ? "Absolute (GPS Geolocation)"
-                                                 : "Relative (Vision Yaw Angle)";
-
-                LOG_NOTICE(logging::g_qSharedLogger,
-                           "ApproachingObjectState Status:\n"
-                           "  >> Camera      : {} \n"
-                           "  >> Target      : Conf: {:.2f}%, Dist: {:.2f}m, Yaw: {:.2f} degrees\n"
-                           "  >> Tracking    : Mode: {}, Reverse: {}\n"
-                           "  >> Navigation  : Curr Hdg: {:.2f} degrees, Tgt Hdg: {:.2f} degrees",
-                           szCameraOrigin,
-                           stBestObject.dConfidence * 100.0,
-                           m_dDistanceFromObject,
-                           stBestObject.dYawAngle,
-                           szTrackingType,
-                           m_bDriveBackwards ? "TRUE" : "FALSE",
-                           stCurrentRoverPose.GetCompassHeading(),
-                           m_dHeadingSetPoint);
-            }
-            else
-            {
-                LOG_NOTICE(logging::g_qSharedLogger,
-                           "ApproachingObjectState Status: Object not visible. Executing fallback logic. Target Hdg: {:.2f} degrees, Reverse: {}, Est. Dist: {:.2f}m",
-                           m_dHeadingSetPoint,
-                           m_bDriveBackwards,
-                           m_dDistanceFromObject);
-            }
-        }
-
-        // 6. Check if target is reached.
-        if (m_dDistanceFromObject != 0.0 && m_dDistanceFromObject < constants::APPROACH_OBJECT_PROXIMITY_THRESHOLD)
-        {
-            LOG_NOTICE(logging::g_qSharedLogger,
-                       "ApproachingObjectState: SUCCESS! Rover has reached the target object! (Distance: {:.2f}m < Threshold: {:.2f}m)",
-                       m_dDistanceFromObject,
-                       constants::APPROACH_OBJECT_PROXIMITY_THRESHOLD);
-
-            globals::g_pStateMachineHandler->HandleEvent(Event::eReachedObject, true);
-            return;
-        }
-
-        // 7. Check if the rover is stuck.
+        // Check if the rover is stuck.
         if (constants::APPROACH_OBJECT_ENABLE_STUCK_DETECT &&
             m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(), globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()))
         {
@@ -395,6 +282,12 @@ namespace statemachine
                 LOG_INFO(logging::g_qSharedLogger, "ApproachingObjectState: Handling ObjectUnseen event.");
                 // Change states.
                 eNextState = m_eTriggeringState;
+                break;
+            }
+            case Event::eStuck:
+            {
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Stuck event.");
+                eNextState = States::eStuck;
                 break;
             }
             case Event::eAbort:
