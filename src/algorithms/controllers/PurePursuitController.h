@@ -63,7 +63,7 @@ namespace controllers
             // Constructors and Destructors.
             /////////////////////////////////////////
 
-            PurePursuitController(const double dLookaheadDistance = 1.0, const int nLookaheadIndex = 5);
+            PurePursuitController(const double dLookaheadDistance = 0.0, const int nLookaheadIndex = 5);
             ~PurePursuitController() = default;
 
             /////////////////////////////////////////

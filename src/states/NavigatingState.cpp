@@ -63,7 +63,7 @@ namespace statemachine
      * @brief Construct a new State object.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     NavigatingState::NavigatingState() : State(States::eNavigating)
@@ -73,10 +73,10 @@ namespace statemachine
 
         // Initialize member variables.
         m_bInitialized       = false;
-        m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                            constants::STUCK_CHECK_INTERVAL,
-                                                                            constants::STUCK_CHECK_VEL_THRESH,
-                                                                            constants::STUCK_CHECK_ROT_THRESH);
+        m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::NAVIGATING_STUCK_CHECK_ATTEMPTS,
+                                                                            constants::NAVIGATING_STUCK_CHECK_INTERVAL,
+                                                                            constants::NAVIGATING_STUCK_CHECK_VEL_THRESH,
+                                                                            constants::NAVIGATING_STUCK_CHECK_ROT_THRESH);
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
                                                                                           constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
                                                                                           constants::STANLEY_PREDICTION_HORIZON,
