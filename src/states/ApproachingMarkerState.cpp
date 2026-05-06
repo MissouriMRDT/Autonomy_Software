@@ -83,7 +83,7 @@ namespace statemachine
     /******************************************************************************
      * @brief Accessor for the State private member. Returns the state as a string.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     ApproachingMarkerState::ApproachingMarkerState() : State(States::eApproachingMarker)
@@ -92,10 +92,10 @@ namespace statemachine
 
         m_bInitialized  = false;
 
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                       constants::STUCK_CHECK_INTERVAL,
-                                                                       constants::STUCK_CHECK_VEL_THRESH,
-                                                                       constants::STUCK_CHECK_ROT_THRESH);
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::APPROACH_MARKER_STUCK_CHECK_ATTEMPTS,
+                                                                       constants::APPROACH_MARKER_STUCK_CHECK_INTERVAL,
+                                                                       constants::APPROACH_MARKER_STUCK_CHECK_VEL_THRESH,
+                                                                       constants::APPROACH_MARKER_STUCK_CHECK_ROT_THRESH);
 
         if (!m_bInitialized)
         {

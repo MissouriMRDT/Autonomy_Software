@@ -258,9 +258,9 @@ void StateMachineHandler::ThreadedContinuousCode()
     // positioning.
     if (m_pCurrentState->GetState() == statemachine::States::eIdle && m_pMainCam->GetCameraIsOpen())
     {
-        // Check if the rover is currently not driving of turning. Use only GPS based and use stuck state parameters for checking.
-        if (globals::g_pNavigationBoard->GetVelocity() <= constants::STUCK_CHECK_VEL_THRESH &&
-            globals::g_pNavigationBoard->GetAngularVelocity() <= constants::STUCK_CHECK_ROT_THRESH)
+        // Check if the rover is currently not driving of turning. Use only GPS based and use realign parameters for checking.
+        if (globals::g_pNavigationBoard->GetVelocity() <= constants::ZED_REALIGN_VEL_THRESH &&
+            globals::g_pNavigationBoard->GetAngularVelocity() <= constants::ZED_REALIGN_ROT_THRESH)
         {
             // Get current compass heading.
             double dCurrentCompassHeading = globals::g_pNavigationBoard->GetHeading();

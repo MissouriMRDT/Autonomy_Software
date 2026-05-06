@@ -60,7 +60,6 @@ namespace statemachine
 
         // Set the path of the pure pursuit controller.
         m_pPursuitController->SetReferencePath(m_vSearchPath);
-        m_pPursuitController->SetLookaheadDistance(1.25);
         m_pPursuitController->SetLookaheadIndex(5);
 
         m_vTagDetectors    = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
@@ -142,7 +141,7 @@ namespace statemachine
      * @brief Construct a new State object.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     SearchPatternState::SearchPatternState() : State(States::eSearchPattern)
@@ -152,10 +151,10 @@ namespace statemachine
 
         // Initialize member variables.
         m_bInitialized       = false;
-        m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                            constants::STUCK_CHECK_INTERVAL,
-                                                                            constants::STUCK_CHECK_VEL_THRESH,
-                                                                            constants::STUCK_CHECK_ROT_THRESH);
+        m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::SEARCH_STUCK_CHECK_ATTEMPTS,
+                                                                            constants::SEARCH_STUCK_CHECK_INTERVAL,
+                                                                            constants::SEARCH_STUCK_CHECK_VEL_THRESH,
+                                                                            constants::SEARCH_STUCK_CHECK_ROT_THRESH);
         m_pPursuitController = std::make_unique<controllers::PurePursuitController>();
 
         // Start state.

@@ -88,10 +88,10 @@ namespace statemachine
 
         m_bInitialized  = false;
 
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::STUCK_CHECK_ATTEMPTS,
-                                                                       constants::STUCK_CHECK_INTERVAL,
-                                                                       constants::STUCK_CHECK_VEL_THRESH,
-                                                                       constants::STUCK_CHECK_ROT_THRESH);
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::APPROACH_OBJECT_STUCK_CHECK_ATTEMPTS,
+                                                                       constants::APPROACH_OBJECT_STUCK_CHECK_INTERVAL,
+                                                                       constants::APPROACH_OBJECT_STUCK_CHECK_VEL_THRESH,
+                                                                       constants::APPROACH_OBJECT_STUCK_CHECK_ROT_THRESH);
 
         if (!m_bInitialized)
         {
