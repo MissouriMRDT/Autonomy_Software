@@ -263,7 +263,7 @@ void DriveBoard::SendStop()
         network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Sent stop powers to drivetrain");
+    LOG_DEBUG(logging::g_qSharedLogger, "Sent stop powers to drivetrain.");
 }
 
 /******************************************************************************

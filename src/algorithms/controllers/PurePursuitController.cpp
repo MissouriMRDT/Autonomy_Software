@@ -95,11 +95,11 @@ namespace controllers
             }
 
             // Check if we have passed the end or are very close to it.
-            if (dNormalDistance >= 1.0)
+            if (dNormalDistance >= 1.0 || std::hypot(dRoverVectorX, dRoverVectorY) < 0.5)
             {
-                // We have reached or passed the end. Drive straight towards the final waypoint.
+                // We have reached or passed the end. Command the rover to stop.
                 double dHeadingToLastWaypoint = geoops::CalculateGeoMeasurement(stRoverPos, stLastPoint).dStartRelativeBearing;
-                return DriveVector{dHeadingToLastWaypoint, dMaxSpeed};
+                return DriveVector{dHeadingToLastWaypoint, 0.0};
             }
         }
 
@@ -231,7 +231,7 @@ namespace controllers
         size_t nSearchLimit = std::min(siWaypoints, static_cast<size_t>(m_nCurrentReferencePathTargetIndex + m_nLookaheadIndex));
 
         // Step through path to find next carrot on a stick point.
-        for (size_t siIter = static_cast<size_t>(m_nCurrentReferencePathTargetIndex); siIter < nSearchLimit - 1; ++siIter)
+        for (size_t siIter = static_cast<size_t>(m_nCurrentReferencePathTargetIndex); siIter < nSearchLimit; ++siIter)
         {
             const geoops::UTMCoordinate& stA = m_vReferencePath[siIter].GetUTMCoordinate();
 
@@ -241,7 +241,7 @@ namespace controllers
 
             if (dDistSq < dClosestDistanceSq)
             {
-                dClosestDistanceSq = std::max(dDistSq, constants::CLOSE_RANGE_PENALTY);
+                dClosestDistanceSq = dDistSq;
                 nBestSegmentIndex  = static_cast<int>(siIter);
             }
         }
@@ -265,7 +265,7 @@ namespace controllers
 
         // Search forward from the current closest point to find the carrot.
         // Limit the search so it tracks strictly along the path and does not jump rings.
-        for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < siWaypoints; ++siIter)
+        for (size_t siIter = m_nCurrentReferencePathTargetIndex + 1; siIter < siWaypoints; ++siIter)
         {
             const geoops::UTMCoordinate& stTarget = m_vReferencePath[siIter].GetUTMCoordinate();
 
