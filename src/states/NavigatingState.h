@@ -39,6 +39,15 @@ namespace statemachine
     {
         private:
             /////////////////////////////////////////
+            // Declare private member structs.
+            /////////////////////////////////////////
+            struct VirtualObstacle
+            {
+                    geoops::Waypoint stWaypoint;
+                    std::chrono::system_clock::time_point tmTimeDetected;
+            };
+
+            /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
             bool m_bFetchNewWaypoint;
@@ -50,6 +59,7 @@ namespace statemachine
             std::unique_ptr<logging::graphing::PathTracer> m_pRoverPathPlot;
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
             std::vector<geoops::Waypoint> m_vPathCoordinates;
+            std::vector<VirtualObstacle> m_vActiveVirtualObstacles;
 
         protected:
             /////////////////////////////////////////

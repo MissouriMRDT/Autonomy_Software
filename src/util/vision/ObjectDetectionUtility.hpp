@@ -16,6 +16,7 @@
 
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
+#include "../../util/NumberOperations.hpp"
 #include "../GeospatialOperations.hpp"
 
 /// \cond

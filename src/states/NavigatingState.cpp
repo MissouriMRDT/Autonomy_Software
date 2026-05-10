@@ -243,17 +243,48 @@ namespace statemachine
         /* --- Detect Obstacles --- */
         //////////////////////////////
 
+        std::chrono::system_clock::time_point tmNow = std::chrono::system_clock::now();
+        bool bObstaclesPruned                       = false;
+
+        std::vector<VirtualObstacle>::iterator it   = m_vActiveVirtualObstacles.begin();
+        while (it != m_vActiveVirtualObstacles.end())
+        {
+            // Check if the obstacle is older than our TTL threshold.
+            if (std::chrono::duration_cast<std::chrono::seconds>(tmNow - it->tmTimeDetected).count() >= constants::NAVIGATING_TIME_TO_LIVE_LIMIT)
+            {
+                it               = m_vActiveVirtualObstacles.erase(it);
+                bObstaclesPruned = true;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        // If old obstacles expired, resync the global handlers so the rover knows the path behind it is clear again.
+        if (bObstaclesPruned)
+        {
+            globals::g_pWaypointHandler->ClearObstacles();
+
+            for (size_t i = 0; i < m_vActiveVirtualObstacles.size(); ++i)
+            {
+                globals::g_pWaypointHandler->AddObstacle(m_vActiveVirtualObstacles[i].stWaypoint);
+            }
+
+            // Clear the GeoPlanner's tile cache so it drops the "painted" costmaps of the deleted obstacles
+            globals::g_pGeoPlanner->ClearGeoCache();
+        }
+
+        // Open the ZED.
         std::shared_ptr<ZEDCamera> pZED = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
         if (pZED)
         {
             cv::Mat cvPointCloud;
-            sl::Plane slFloorPlane;
 
-            // Request point cloud and floor plane.
+            // Request point cloud.
             std::future<bool> fuCloudStatus = pZED->RequestPointCloudCopy(cvPointCloud);
-            std::future<bool> fuPlaneStatus = pZED->RequestFloorPlaneCopy(slFloorPlane);
 
-            if (fuCloudStatus.get() && fuPlaneStatus.get() && !cvPointCloud.empty())
+            if (fuCloudStatus.get() && !cvPointCloud.empty())
             {
                 // Populate the obstacle vector.
                 std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesFromZED(cvPointCloud,
@@ -264,30 +295,36 @@ namespace statemachine
 
                 if (!vNewObstacles.empty())
                 {
-                    LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Extracted {} virtual obstacles from ZED.", vNewObstacles.size());
+                    // Log that we saw obstacles.
+                    LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Extracted {} obstacles from ZED.", vNewObstacles.size());
 
-                    // Add the new points to the WaypointHandler's global obstacle list
-                    for (const geoops::UTMCoordinate& stPoint : vNewObstacles)
+                    // Loop through obstacles.
+                    for (size_t i = 0; i < vNewObstacles.size(); ++i)
                     {
-                        // Assign a 1m radius.
-                        globals::g_pWaypointHandler->AddObstacle(stPoint, 0.5);
+                        // Create a waypoint with an inflated safety radius.
+                        geoops::Waypoint stObsWaypoint(vNewObstacles[i], geoops::WaypointType::eObstacleWaypoint, constants::NAVIGATING_OBSTACLE_RADIUS);
+
+                        // Track it locally to start its Time To Live timer.
+                        VirtualObstacle stTrackedObs;
+                        stTrackedObs.stWaypoint     = stObsWaypoint;
+                        stTrackedObs.tmTimeDetected = tmNow;
+                        m_vActiveVirtualObstacles.push_back(stTrackedObs);
+
+                        // Add it as an obstacle.
+                        globals::g_pWaypointHandler->AddObstacle(stObsWaypoint);
                     }
 
-                    // Dynamic local avoidance splicing using GeoPlanner.
+                    // Splicing the path around the obstacle.
                     size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
                     size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
                     geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
 
-                    // Clear the GeoPlanner's cache so it is forced to look at the new obstacles.
+                    // Clear cache to allow repathing.
                     globals::g_pGeoPlanner->ClearGeoCache();
 
                     // Plan the detour.
-                    std::vector<geoops::Waypoint> vDetour = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
-                                                                                             stCurrentRoverPose.GetUTMCoordinate(),
-                                                                                             stLocalRejoinGoal,
-                                                                                             2.0,       // Search Radius
-                                                                                             5.0,       // Max Search Time
-                                                                                             false);    // Plot Path
+                    std::vector<geoops::Waypoint> vDetour =
+                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stLocalRejoinGoal, 2.0, 5.0, false);
 
                     if (!vDetour.empty())
                     {
@@ -296,11 +333,12 @@ namespace statemachine
                         m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nCurrentIndex, vDetour.begin(), vDetour.end());
 
                         // Pass the updated path back to the controller.
+                        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
                         m_pStanleyController->SetReferencePath(m_vPathCoordinates);
                     }
                     else
                     {
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+                        LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe detour! Obstacle might be impassable.");
                     }
                 }
             }
