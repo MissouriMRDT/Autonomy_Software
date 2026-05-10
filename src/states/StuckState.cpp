@@ -204,15 +204,7 @@ namespace statemachine
                         // Submit logger message.
                         LOG_INFO(logging::g_qSharedLogger, "StuckState: Aligning rover heading {} degrees counter-clockwise...", constants::STUCK_ALIGN_DEGREES);
                         // Set aligning toggle.
-                        // m_bIsCurrentlyAligning = LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
-                        // TODO: uncomment
-                        m_bInitialized = false;
-
-                        if (!m_bInitialized)
-                        {
-                            Start();
-                            m_bInitialized = true;
-                        }
+                        m_bIsCurrentlyAligning = true;
 
                         // Update start heading.
                         m_dOriginalHeading = stCurrentRoverPose.GetCompassHeading();
@@ -393,17 +385,17 @@ namespace statemachine
         // Convert from compass degrees to unit circle radians.
         double dRadians = (90.0 - m_dOriginalHeading) * M_PI / 180.0;
         if (dRadians < 0)
+        {
             dRadians += 2 * M_PI;
-        // Get the obstacle's origin
+        }
+
+        // Get the obstacle's origin.
         geoops::UTMCoordinate stObstaclePosition = globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate();
         stObstaclePosition.dEasting += std::cos(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
         stObstaclePosition.dNorthing += std::sin(dRadians) * constants::STUCK_OBSTACLE_DISTANCE;
 
-        // Insert obstacle into lidar data
-        globals::g_pLiDARHandler->DeclareLiDARObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
-
         // TODO: There is no way another obstacle could be added between now and when it is accessed in navigating, right?
         // Add obstacle to Waypoint handler to be accessed later in navigating state
-        globals::g_pWaypointHandler->AddObstacle(stObstaclePosition);
+        globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS);
     }
 }    // namespace statemachine

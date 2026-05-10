@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "GeoPlanner.h"
+#include "../../AutonomyGlobals.h"
 #include "../../AutonomyNetworking.h"
 
 /******************************************************************************
@@ -354,6 +355,50 @@ namespace pathplanners
 
         // Dilate the existing valid cells to bridge structural void gaps in sparse clouds.
         this->FillGridHoles();
+
+        // Overlay dynamic obstacles from the WaypointHandler to ensure stuck state and object detection block paths dynamically in memory.
+        std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+
+        // Loop through the obstacles.
+        for (const geoops::Waypoint& stObstacle : vObstacles)
+        {
+            // Get obstacle UTM coordinate and radius.
+            geoops::UTMCoordinate stObsUTM = stObstacle.GetUTMCoordinate();
+            double dRadius                 = stObstacle.dRadius;
+
+            // Convert the obstacle's UTM center to grid array coordinates.
+            int nObsGridX = static_cast<int>((stObsUTM.dEasting - m_dGridOriginEasting) / m_dGridResolution);
+            int nObsGridY = static_cast<int>((stObsUTM.dNorthing - m_dGridOriginNorthing) / m_dGridResolution);
+
+            // Determine the bounding box of the obstacle in grid cells.
+            int nRadiusCells = static_cast<int>(std::ceil(dRadius / m_dGridResolution));
+
+            // Looping through the grid cells of the radius.
+            for (int nDx = -nRadiusCells; nDx <= nRadiusCells; ++nDx)
+            {
+                for (int nDy = -nRadiusCells; nDy <= nRadiusCells; ++nDy)
+                {
+                    // Increase the X and Y values.
+                    int nX = nObsGridX + nDx;
+                    int nY = nObsGridY + nDy;
+
+                    // Ensure the target indices are within valid 2D grid bounds.
+                    if (nX >= 0 && nX < m_nGridWidth && nY >= 0 && nY < m_nGridHeight)
+                    {
+                        // Make sure that we're checking within the radius with distance formula.
+                        double dDistSq = (nDx * m_dGridResolution) * (nDx * m_dGridResolution) + (nDy * m_dGridResolution) * (nDy * m_dGridResolution);
+
+                        // Check if the distance is less than radius squared.
+                        if (dDistSq <= (dRadius * dRadius))
+                        {
+                            // If so, set the grid index to a low trav score.
+                            int nIdx                    = GetGridIndex(nX, nY);
+                            m_vCostmap[nIdx].dTravScore = 0.01;
+                        }
+                    }
+                }
+            }
+        }
 
         // Calculate starting array indices based on geographic coordinate locations.
         int nStartX = static_cast<int>((stStart.dEasting - m_dGridOriginEasting) / m_dGridResolution);
