@@ -393,7 +393,7 @@ namespace pathplanners
                         {
                             // If so, set the grid index to a low trav score.
                             int nIdx                    = GetGridIndex(nX, nY);
-                            m_vCostmap[nIdx].dTravScore = 0.01;
+                            m_vCostmap[nIdx].dTravScore = 0.0;
                         }
                     }
                 }

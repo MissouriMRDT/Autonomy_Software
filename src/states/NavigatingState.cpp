@@ -37,13 +37,14 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_bWasStuck            = false;
-        m_dStuckDistanceToGoal = 0;
-        m_bFetchNewWaypoint    = true;
-        m_vTagDetectors        = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                                  globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
-        m_vObjectDetectors     = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
-                                  globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
+        m_bWasStuck             = false;
+        m_dStuckDistanceToGoal  = 0;
+        m_bFetchNewWaypoint     = true;
+        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
+        m_vObjectDetectors      = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+                                   globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
+        m_tmLastAvoidanceUpdate = std::chrono::system_clock::time_point::min();
     }
 
     /******************************************************************************
@@ -267,80 +268,86 @@ namespace statemachine
             globals::g_pGeoPlanner->ClearGeoCache();
         }
 
-        // Open the ZED.
-        std::shared_ptr<ZEDCamera> pZED = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-        if (pZED)
+        // TODO: CHANGE 1000 to a constant
+        // Check when the last time we found an obstacle was.
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(tmNow - m_tmLastAvoidanceUpdate).count() >= 1000)
         {
-            // Request a copy of the pointcloud.
-            cv::Mat cvPointCloud;
-            std::future<bool> fuCloudStatus = pZED->RequestPointCloudCopy(cvPointCloud);
+            // Update the last avoidance.
+            m_tmLastAvoidanceUpdate = std::chrono::system_clock::now();
 
-            if (fuCloudStatus.get() && !cvPointCloud.empty())
+            // Open the main ZED.
+            std::shared_ptr<ZEDCamera> pZED = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+            if (pZED)
             {
-                // Get any new obstacles from the ZED.
-                std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesFromZED(cvPointCloud,
-                                                                                                              stCurrentRoverPose,
-                                                                                                              constants::NAVIGATING_POINTCLOUD_SUBSAMPLES,
-                                                                                                              constants::NAVIGATING_GRID_CELL_SIZE_METERS,
-                                                                                                              constants::NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD);
+                // Request a copy of the pointcloud.
+                cv::Mat cvPointCloud;
+                std::future<bool> fuCloudStatus = pZED->RequestPointCloudCopy(cvPointCloud);
 
-                // Check if we have detected any new obstacles.
-                if (!vNewObstacles.empty())
+                // Add a very short timeout to the future so the state machine never hangs if the ZED disconnects.
+                if (fuCloudStatus.wait_for(std::chrono::milliseconds(200)) == std::future_status::ready && fuCloudStatus.get() && !cvPointCloud.empty())
                 {
-                    // Loop through the new obstacles.
-                    for (size_t i = 0; i < vNewObstacles.size(); ++i)
+                    // Look for obstacles in the ZED.
+                    std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesFromZED(cvPointCloud,
+                                                                                                                  stCurrentRoverPose,
+                                                                                                                  constants::NAVIGATING_POINTCLOUD_SUBSAMPLES,
+                                                                                                                  constants::NAVIGATING_GRID_CELL_SIZE_METERS,
+                                                                                                                  constants::NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD);
+
+                    // Check if new obstacles populated.
+                    if (!vNewObstacles.empty())
                     {
-                        // Wrap with a radius to inflate the costmap.
-                        geoops::Waypoint stObsWaypoint(vNewObstacles[i], geoops::WaypointType::eObstacleWaypoint, constants::NAVIGATING_OBSTACLE_RADIUS);
+                        for (size_t i = 0; i < vNewObstacles.size(); ++i)
+                        {
+                            // Create new obstacle waypoint.
+                            geoops::Waypoint stObsWaypoint(vNewObstacles[i], geoops::WaypointType::eObstacleWaypoint, constants::NAVIGATING_OBSTACLE_RADIUS);
 
-                        // Create new variables to track virtual ZED obstacles.
-                        VirtualObstacle stTrackedObs;
-                        stTrackedObs.stWaypoint     = stObsWaypoint;
-                        stTrackedObs.tmTimeDetected = tmNow;
-                        m_vActiveVirtualObstacles.push_back(stTrackedObs);
+                            // Create variables for tracking the new obstacle.
+                            VirtualObstacle stTrackedObs;
+                            stTrackedObs.stWaypoint     = stObsWaypoint;
+                            stTrackedObs.tmTimeDetected = tmNow;
+                            m_vActiveVirtualObstacles.push_back(stTrackedObs);
 
-                        // Add it as an obstacle to the waypoint handler.
-                        globals::g_pWaypointHandler->AddObstacle(stObsWaypoint);
-                    }
+                            globals::g_pWaypointHandler->AddObstacle(stObsWaypoint);
+                        }
 
-                    // Create variables to splice around the obstacle.
-                    size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
-                    size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
-                    geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
+                        // First, check if the path is empty.
+                        if (m_vPathCoordinates.empty())
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Cannot splice detour, global path is empty!");
+                            return;
+                        }
 
-                    globals::g_pGeoPlanner->ClearGeoCache();
+                        // Create variables to splice the new path.
+                        size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
+                        size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
+                        geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
 
-                    // Generate spliced detour using the GeoPlanner.
-                    std::vector<geoops::Waypoint> vDetour =
-                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stLocalRejoinGoal, 2.0, 5.0, 100.0);
+                        globals::g_pGeoPlanner->ClearGeoCache();
 
-                    // Check if the detour vector is populated with waypoints.
-                    if (!vDetour.empty())
-                    {
-                        // Remove past points and insert new spliced points.
-                        m_vPathCoordinates.erase(m_vPathCoordinates.begin() + nCurrentIndex, m_vPathCoordinates.begin() + nRejoinIndex);
-                        m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nCurrentIndex, vDetour.begin(), vDetour.end());
+                        // TODO: CREATE CONSTANTS AND MAKE COMMENTS
+                        // Generate local detour natively using the existing GeoPlanner.
+                        std::vector<geoops::Waypoint> vDetour =
+                            globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stLocalRejoinGoal, 2.0, 5.0, 5.0);
 
-                        // Store the path and set Stanley onto the new path.
-                        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
-                        m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-                    }
+                        if (!vDetour.empty())
+                        {
+                            m_vPathCoordinates.erase(m_vPathCoordinates.begin() + nCurrentIndex, m_vPathCoordinates.begin() + nRejoinIndex);
+                            m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nCurrentIndex, vDetour.begin(), vDetour.end());
 
-                    // TODO: see if transitioning to stuck state is necessary
-                    // If we can not safely reroute for some reason, trigger stuck state.
-                    else
-                    {
-                        LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe detour!");
+                            globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
+                            m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+                        }
+                        else
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe detour! Rover is trapped.");
+                            m_dHeadingBeforeStuck = stCurrentRoverPose.GetCompassHeading();
+                            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+                            m_bWasStuck = true;
+                            return;
+                        }
 
-                        // Save heading.
-                        m_dHeadingBeforeStuck = stCurrentRoverPose.GetCompassHeading();
-
-                        // Trigger stuck state to reverse out of the dead end.
-                        globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-                        m_bWasStuck = true;
-
-                        // Don't execute the rest of the state.
-                        return;
+                        // Reset the cooldown timer so the rover has time to drive the new path.
+                        m_tmLastAvoidanceUpdate = std::chrono::system_clock::now();
                     }
                 }
             }

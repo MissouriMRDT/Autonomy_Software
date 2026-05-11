@@ -61,6 +61,7 @@ namespace statemachine
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
             std::vector<geoops::Waypoint> m_vPathCoordinates;
             std::vector<VirtualObstacle> m_vActiveVirtualObstacles;
+            std::chrono::system_clock::time_point m_tmLastAvoidanceUpdate;
 
             /////////////////////////////////////////
             // Declare private class methods.

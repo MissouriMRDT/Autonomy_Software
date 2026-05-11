@@ -211,7 +211,7 @@ namespace objectdetectutils
                                                                       const double& dObstacleVarianceThreshold)
     {
         // Declaring a temporary map to act as a 2.5D elevation grid.
-        std::unordered_map<std::string, std::pair<double, double>> umElevationGrid;
+        std::unordered_map<uint64_t, std::pair<double, double>> umElevationGrid;
 
         // Storing the raw global coordinates here so we don't have to recalculate the trig later.
         std::vector<geoops::UTMCoordinate> vAllGlobalPoints;
@@ -252,20 +252,21 @@ namespace objectdetectutils
                 vAllGlobalPoints.emplace_back(dEasting, dNorthing, stRoverUTM.nZone, stRoverUTM.bWithinNorthernHemisphere, dAltitude);
 
                 // Determine which grid bucket this point falls into.
-                int nGridX            = static_cast<int>(std::floor(dEasting / dGridCellSize));
-                int nGridY            = static_cast<int>(std::floor(dNorthing / dGridCellSize));
-                std::string szGridKey = std::to_string(nGridX) + "_" + std::to_string(nGridY);
+                int nGridX = static_cast<int>(std::floor(dEasting / dGridCellSize));
+                int nGridY = static_cast<int>(std::floor(dNorthing / dGridCellSize));
 
-                // Update the min and max altitude for this grid cell.
-                if (umElevationGrid.find(szGridKey) == umElevationGrid.end())
+                // Use a bitwise shift to pack the two 32-bit ints into a single 64-bit key
+                uint64_t nGridKey = (static_cast<uint64_t>(static_cast<uint32_t>(nGridX)) << 32) | static_cast<uint32_t>(nGridY);
+
+                // Check for the grid key in the elevation grid.
+                if (umElevationGrid.find(nGridKey) == umElevationGrid.end())
                 {
-                    umElevationGrid[szGridKey] = {dAltitude, dAltitude};
+                    umElevationGrid[nGridKey] = {dAltitude, dAltitude};
                 }
-
                 else
                 {
-                    umElevationGrid[szGridKey].first  = std::min(umElevationGrid[szGridKey].first, dAltitude);
-                    umElevationGrid[szGridKey].second = std::max(umElevationGrid[szGridKey].second, dAltitude);
+                    umElevationGrid[nGridKey].first  = std::min(umElevationGrid[nGridKey].first, dAltitude);
+                    umElevationGrid[nGridKey].second = std::max(umElevationGrid[nGridKey].second, dAltitude);
                 }
             }
         }
@@ -273,19 +274,22 @@ namespace objectdetectutils
         // Declare a vector to store the obstacles.
         std::vector<geoops::UTMCoordinate> vObstacles;
 
+        // Loop through the points.
         for (size_t i = 0; i < vAllGlobalPoints.size(); ++i)
         {
+            // Grab points to construct into grid.
             const geoops::UTMCoordinate& stPoint = vAllGlobalPoints[i];
+            int nGridX                           = static_cast<int>(std::floor(stPoint.dEasting / dGridCellSize));
+            int nGridY                           = static_cast<int>(std::floor(stPoint.dNorthing / dGridCellSize));
 
-            // Re-calculate the grid key to check the cell's final variance
-            int nGridX            = static_cast<int>(std::floor(stPoint.dEasting / dGridCellSize));
-            int nGridY            = static_cast<int>(std::floor(stPoint.dNorthing / dGridCellSize));
-            std::string szGridKey = std::to_string(nGridX) + "_" + std::to_string(nGridY);
+            // Use the exact same bitwise hash for lookup.
+            uint64_t nGridKey = (static_cast<uint64_t>(static_cast<uint32_t>(nGridX)) << 32) | static_cast<uint32_t>(nGridY);
 
-            double dMinAlt        = umElevationGrid[szGridKey].first;
-            double dMaxAlt        = umElevationGrid[szGridKey].second;
+            // Grab minimum and maximum altitude values.
+            double dMinAlt = umElevationGrid[nGridKey].first;
+            double dMaxAlt = umElevationGrid[nGridKey].second;
 
-            // If the height difference in this cell exceeds our threshold, it's an obstacle
+            // If the minimum and maximum altitude values are above our threshold, it is an obstacle.
             if ((dMaxAlt - dMinAlt) > dObstacleVarianceThreshold)
             {
                 vObstacles.push_back(stPoint);
