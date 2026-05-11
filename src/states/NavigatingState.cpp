@@ -13,6 +13,7 @@
 #include "../AutonomyNetworking.h"
 #include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/states/TagDetectionChecker.hpp"
+#include "../util/vision/ObjectDetectionUtility.hpp"
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -50,13 +51,20 @@ namespace statemachine
      *        the state.
      *
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void NavigatingState::Exit()
     {
         // Clean up the state before exiting
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Exiting state.");
+
+        // Wipe all virtual obstacles from local memory.
+        m_vActiveVirtualObstacles.clear();
+
+        // Wipe the global handlers so the next state/waypoint starts with a clean slate.
+        globals::g_pWaypointHandler->ClearObstacles();
+        globals::g_pGeoPlanner->ClearGeoCache();
     }
 
     /******************************************************************************
@@ -93,7 +101,7 @@ namespace statemachine
     /******************************************************************************
      * @brief Run the state machine. Returns the next state.
      *
-     * @author Eli Byrd (edbgkk@mst.edu)
+     * @author Eli Byrd (edbgkk@mst.edu), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void NavigatingState::Run()
@@ -224,7 +232,119 @@ namespace statemachine
         /* --- Detect Obstacles --- */
         //////////////////////////////
 
-        // TODO: Add obstacle detection to Navigating state
+        // Implement Time To Live for detected obstacles.
+        std::chrono::system_clock::time_point tmNow = std::chrono::system_clock::now();
+        bool bObstaclesPruned                       = false;
+
+        std::vector<VirtualObstacle>::iterator it   = m_vActiveVirtualObstacles.begin();
+
+        // Iterate through detected active obstacles.
+        while (it != m_vActiveVirtualObstacles.end())
+        {
+            // If it has existed longer than the limit, remove it.
+            if (std::chrono::duration_cast<std::chrono::seconds>(tmNow - it->tmTimeDetected).count() >= constants::NAVIGATING_TIME_TO_LIVE_LIMIT)
+            {
+                it               = m_vActiveVirtualObstacles.erase(it);
+                bObstaclesPruned = true;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        // Check if we have removed any obstacles.
+        if (bObstaclesPruned)
+        {
+            // Remove them from the waypoint handler.
+            globals::g_pWaypointHandler->ClearObstacles();
+
+            // Loop through the active obstacles.
+            for (size_t i = 0; i < m_vActiveVirtualObstacles.size(); ++i)
+            {
+                globals::g_pWaypointHandler->AddObstacle(m_vActiveVirtualObstacles[i].stWaypoint);
+            }
+            globals::g_pGeoPlanner->ClearGeoCache();
+        }
+
+        // Open the ZED.
+        std::shared_ptr<ZEDCamera> pZED = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+        if (pZED)
+        {
+            // Request a copy of the pointcloud.
+            cv::Mat cvPointCloud;
+            std::future<bool> fuCloudStatus = pZED->RequestPointCloudCopy(cvPointCloud);
+
+            if (fuCloudStatus.get() && !cvPointCloud.empty())
+            {
+                // Get any new obstacles from the ZED.
+                std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesFromZED(cvPointCloud,
+                                                                                                              stCurrentRoverPose,
+                                                                                                              constants::NAVIGATING_POINTCLOUD_SUBSAMPLES,
+                                                                                                              constants::NAVIGATING_GRID_CELL_SIZE_METERS,
+                                                                                                              constants::NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD);
+
+                // Check if we have detected any new obstacles.
+                if (!vNewObstacles.empty())
+                {
+                    // Loop through the new obstacles.
+                    for (size_t i = 0; i < vNewObstacles.size(); ++i)
+                    {
+                        // Wrap with a radius to inflate the costmap.
+                        geoops::Waypoint stObsWaypoint(vNewObstacles[i], geoops::WaypointType::eObstacleWaypoint, constants::NAVIGATING_OBSTACLE_RADIUS);
+
+                        // Create new variables to track virtual ZED obstacles.
+                        VirtualObstacle stTrackedObs;
+                        stTrackedObs.stWaypoint     = stObsWaypoint;
+                        stTrackedObs.tmTimeDetected = tmNow;
+                        m_vActiveVirtualObstacles.push_back(stTrackedObs);
+
+                        // Add it as an obstacle to the waypoint handler.
+                        globals::g_pWaypointHandler->AddObstacle(stObsWaypoint);
+                    }
+
+                    // Create variables to splice around the obstacle.
+                    size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
+                    size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
+                    geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
+
+                    globals::g_pGeoPlanner->ClearGeoCache();
+
+                    // Generate spliced detour using the GeoPlanner.
+                    std::vector<geoops::Waypoint> vDetour =
+                        globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stLocalRejoinGoal, 2.0, 5.0, 100.0);
+
+                    // Check if the detour vector is populated with waypoints.
+                    if (!vDetour.empty())
+                    {
+                        // Remove past points and insert new spliced points.
+                        m_vPathCoordinates.erase(m_vPathCoordinates.begin() + nCurrentIndex, m_vPathCoordinates.begin() + nRejoinIndex);
+                        m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nCurrentIndex, vDetour.begin(), vDetour.end());
+
+                        // Store the path and set Stanley onto the new path.
+                        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
+                        m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+                    }
+
+                    // TODO: see if transitioning to stuck state is necessary
+                    // If we can not safely reroute for some reason, trigger stuck state.
+                    else
+                    {
+                        LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe detour!");
+
+                        // Save heading.
+                        m_dHeadingBeforeStuck = stCurrentRoverPose.GetCompassHeading();
+
+                        // Trigger stuck state to reverse out of the dead end.
+                        globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+                        m_bWasStuck = true;
+
+                        // Don't execute the rest of the state.
+                        return;
+                    }
+                }
+            }
+        }
 
         ///////////////////////////////////////
         /* --- Navigate to goal waypoint --- */

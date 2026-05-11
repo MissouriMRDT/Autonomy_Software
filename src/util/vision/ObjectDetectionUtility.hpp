@@ -16,6 +16,7 @@
 
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
+#include "../../util/NumberOperations.hpp"
 #include "../GeospatialOperations.hpp"
 
 /// \cond
@@ -188,6 +189,110 @@ namespace objectdetectutils
 
         // For the distance, we'll just use the screen percentage of the tag.
         stTag.dStraightLineDistance = (stTag.pBoundingBox->area() / (stTag.cvImageResolution.width * stTag.cvImageResolution.height)) * 100.0;
+    }
+
+    /******************************************************************************
+     * @brief This method processes the ZED LiDAR data to look for obstacles in the camera view.
+     *
+     * @param cvPointCloud - The ZED point cloud.
+     * @param stCurrentPose - The current RoverPose.
+     * @param nPointCloudSubsample - 1/subsamples amount of points to look at through ZED.
+     * @param dGridCellSize - The size of each grid cell for global points.
+     * @param dObstacleVarianceThreshold - How different a point needs to be to be considered an obstacle.
+     * @return std::vector<geoops::UTMCoordinate> - A vector of coordinates where obstacles are.
+     *
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @date 2026-04-13
+     ******************************************************************************/
+    inline std::vector<geoops::UTMCoordinate> ExtractObstaclesFromZED(const cv::Mat& cvPointCloud,
+                                                                      const geoops::RoverPose& stCurrentPose,
+                                                                      const int& nPointCloudSubsample,
+                                                                      const double& dGridCellSize,
+                                                                      const double& dObstacleVarianceThreshold)
+    {
+        // Declaring a temporary map to act as a 2.5D elevation grid.
+        std::unordered_map<std::string, std::pair<double, double>> umElevationGrid;
+
+        // Storing the raw global coordinates here so we don't have to recalculate the trig later.
+        std::vector<geoops::UTMCoordinate> vAllGlobalPoints;
+        vAllGlobalPoints.reserve(cvPointCloud.rows * cvPointCloud.cols / (nPointCloudSubsample * nPointCloudSubsample));
+
+        // Calculate heading once.
+        double dAdjustedHeading                 = numops::InputAngleModulus((stCurrentPose.GetCompassHeading() * -1.0) + 90.0, 0.0, 360.0);
+        double dHeadingRad                      = dAdjustedHeading * M_PI / 180.0;
+        const geoops::UTMCoordinate& stRoverUTM = stCurrentPose.GetUTMCoordinate();
+
+        // Loop through the pointcloud points.
+        for (int nY = 0; nY < cvPointCloud.rows; nY += nPointCloudSubsample)
+        {
+            for (int nX = 0; nX < cvPointCloud.cols; nX += nPointCloudSubsample)
+            {
+                // Initialize a point.
+                cv::Vec4f cvPoint = cvPointCloud.at<cv::Vec4f>(nY, nX);
+
+                // Continue to next iteration if invalid point.
+                if (std::isnan(cvPoint[2]) || cvPoint[2] <= 0)
+                {
+                    continue;
+                }
+
+                // Setting local XYZ points.
+                float fLocalX = cvPoint[0];
+                float fLocalY = cvPoint[1];
+                float fLocalZ = cvPoint[2];
+
+                // TODO: This does NOT account for if the rover isn't very flat and is on a hill or something else.
+                // TODO: so we'll need to add some logic here for that if we want
+                // Transform to global frame.
+                double dEasting  = stRoverUTM.dEasting + (fLocalZ * cos(dHeadingRad) + fLocalX * sin(dHeadingRad));
+                double dNorthing = stRoverUTM.dNorthing + (fLocalZ * sin(dHeadingRad) - fLocalX * cos(dHeadingRad));
+                double dAltitude = stRoverUTM.dAltitude + fLocalY;
+
+                // Adding to the global points vector.
+                vAllGlobalPoints.emplace_back(dEasting, dNorthing, stRoverUTM.nZone, stRoverUTM.bWithinNorthernHemisphere, dAltitude);
+
+                // Determine which grid bucket this point falls into.
+                int nGridX            = static_cast<int>(std::floor(dEasting / dGridCellSize));
+                int nGridY            = static_cast<int>(std::floor(dNorthing / dGridCellSize));
+                std::string szGridKey = std::to_string(nGridX) + "_" + std::to_string(nGridY);
+
+                // Update the min and max altitude for this grid cell.
+                if (umElevationGrid.find(szGridKey) == umElevationGrid.end())
+                {
+                    umElevationGrid[szGridKey] = {dAltitude, dAltitude};
+                }
+
+                else
+                {
+                    umElevationGrid[szGridKey].first  = std::min(umElevationGrid[szGridKey].first, dAltitude);
+                    umElevationGrid[szGridKey].second = std::max(umElevationGrid[szGridKey].second, dAltitude);
+                }
+            }
+        }
+
+        // Declare a vector to store the obstacles.
+        std::vector<geoops::UTMCoordinate> vObstacles;
+
+        for (size_t i = 0; i < vAllGlobalPoints.size(); ++i)
+        {
+            const geoops::UTMCoordinate& stPoint = vAllGlobalPoints[i];
+
+            // Re-calculate the grid key to check the cell's final variance
+            int nGridX            = static_cast<int>(std::floor(stPoint.dEasting / dGridCellSize));
+            int nGridY            = static_cast<int>(std::floor(stPoint.dNorthing / dGridCellSize));
+            std::string szGridKey = std::to_string(nGridX) + "_" + std::to_string(nGridY);
+
+            double dMinAlt        = umElevationGrid[szGridKey].first;
+            double dMaxAlt        = umElevationGrid[szGridKey].second;
+
+            // If the height difference in this cell exceeds our threshold, it's an obstacle
+            if ((dMaxAlt - dMinAlt) > dObstacleVarianceThreshold)
+            {
+                vObstacles.push_back(stPoint);
+            }
+        }
+
+        return vObstacles;
     }
 }    // namespace objectdetectutils
 

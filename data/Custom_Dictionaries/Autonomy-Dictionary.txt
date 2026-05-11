@@ -714,6 +714,7 @@ structs
 STUCKSTATE
 Styleguides
 SUBPIX
+SUBSAMPLES
 Subteam
 Subteams
 superres
