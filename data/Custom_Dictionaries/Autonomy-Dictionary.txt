@@ -74,6 +74,7 @@ CELLCRITICAL
 CELLUNDERVOLTAGE
 CELLVOLTAGE
 certresolver
+cfloat
 CHANGECAMERAS
 charconv
 chromaprint
@@ -269,6 +270,9 @@ flann
 flatbuffer
 flatbuffers
 flightsticks
+floorf
+fmaxf
+fminf
 fmtp
 fmtquill
 FNDA
@@ -360,6 +364,7 @@ IPPN
 IPSC
 iputils
 IRKSA
+isnan
 Iteratorpp
 IZNKS
 IZNS
@@ -512,6 +517,7 @@ MAINCAN
 mainpage
 Makefiles
 MAKEFLAGS
+Malloc
 MAPANGLE
 MAPRANGE
 markeredgecolor
@@ -528,6 +534,7 @@ maxy
 MDRS
 MEDIANFLOW
 Memcheck
+Memcpy
 MERICA
 microcontrollers
 miniflann
@@ -564,6 +571,7 @@ nvcr
 OBJDETECTION
 OBJECTDETECT
 OBJECTDETECTOR
+objectdetectutils
 Objectness
 occl
 odometry

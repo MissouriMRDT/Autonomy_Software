@@ -422,7 +422,6 @@ namespace constants
     extern const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS;
     extern const double NAVIGATING_STUCK_CHECK_ROT_THRESH;
     extern const double NAVIGATING_STUCK_CHECK_VEL_THRESH;
-    extern const int NAVIGATING_POINTCLOUD_SUBSAMPLES;
     extern const float NAVIGATING_GRID_CELL_SIZE_METERS;
     extern const float NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD;
     extern const int NAVIGATING_TIME_TO_LIVE_LIMIT;

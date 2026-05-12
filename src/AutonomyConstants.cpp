@@ -411,11 +411,10 @@ namespace constants
     const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;       // Max number of failed checks of the rover's rotation before next attempt.
     const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
     const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.5;     // Minimum velocity required to consider the rover as actively moving.
-    const int NAVIGATING_POINTCLOUD_SUBSAMPLES         = 5;       // This is 1/subsamples points we look at in the pointcloud for each axis.
-    const float NAVIGATING_GRID_CELL_SIZE_METERS       = 0.2;     // The size of the grid cells in meters in the ZED view.
-    const float NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD = 0.2;     // The variance in m between the ground and top of obstacle to affirm it's an obstacle.
+    const float NAVIGATING_GRID_CELL_SIZE_METERS       = 0.6;     // The size of the grid cells in meters in the ZED view.
+    const float NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD = 0.15;    // The variance in m between the ground and top of obstacle to affirm it's an obstacle.
     const int NAVIGATING_TIME_TO_LIVE_LIMIT            = 15;      // The number of seconds an obstacle will be remembered from the ZED.
-    const double NAVIGATING_OBSTACLE_RADIUS            = 2.0;     // The radius of an obstacle to navigate around.
+    const double NAVIGATING_OBSTACLE_RADIUS            = 1.0;     // The radius of an obstacle to navigate around.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

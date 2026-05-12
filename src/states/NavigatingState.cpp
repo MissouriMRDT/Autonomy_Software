@@ -14,6 +14,8 @@
 #include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/states/TagDetectionChecker.hpp"
 #include "../util/vision/ObjectDetectionUtility.hpp"
+#include "../util/vision/ObstacleDetectionCUDA.h"
+#include <opencv2/core/cuda.hpp>
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -270,7 +272,7 @@ namespace statemachine
 
         // TODO: CHANGE 1000 to a constant
         // Check when the last time we found an obstacle was.
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(tmNow - m_tmLastAvoidanceUpdate).count() >= 1000)
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(tmNow - m_tmLastAvoidanceUpdate).count() >= 250)
         {
             // Update the last avoidance.
             m_tmLastAvoidanceUpdate = std::chrono::system_clock::now();
@@ -280,18 +282,27 @@ namespace statemachine
             if (pZED)
             {
                 // Request a copy of the pointcloud.
-                cv::Mat cvPointCloud;
-                std::future<bool> fuCloudStatus = pZED->RequestPointCloudCopy(cvPointCloud);
+                cv::cuda::GpuMat cvGPUPointCloud;
+                std::future<bool> fuCloudStatus = pZED->RequestPointCloudCopy(cvGPUPointCloud);
 
-                // Add a very short timeout to the future so the state machine never hangs if the ZED disconnects.
-                if (fuCloudStatus.wait_for(std::chrono::milliseconds(200)) == std::future_status::ready && fuCloudStatus.get() && !cvPointCloud.empty())
+                // Check for success.
+                if (fuCloudStatus.get() && !cvGPUPointCloud.empty())
                 {
-                    // Look for obstacles in the ZED.
-                    std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesFromZED(cvPointCloud,
-                                                                                                                  stCurrentRoverPose,
-                                                                                                                  constants::NAVIGATING_POINTCLOUD_SUBSAMPLES,
-                                                                                                                  constants::NAVIGATING_GRID_CELL_SIZE_METERS,
-                                                                                                                  constants::NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD);
+                    if (!cvGPUPointCloud.isContinuous())
+                    {
+                        cvGPUPointCloud = cvGPUPointCloud.clone();
+                    }
+
+                    // Extract the raw VRAM memory pointer from the OpenCV GpuMat.
+                    float4* pPointCloud = reinterpret_cast<float4*>(cvGPUPointCloud.data);
+                    int nTotalPoints    = cvGPUPointCloud.rows * cvGPUPointCloud.cols;
+
+                    // Send the GPU pointer straight to our custom CUDA Kernel.
+                    std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesCUDA(pPointCloud,
+                                                                                                               nTotalPoints,
+                                                                                                               stCurrentRoverPose,
+                                                                                                               constants::NAVIGATING_GRID_CELL_SIZE_METERS,
+                                                                                                               constants::NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD);
 
                     // Check if new obstacles populated.
                     if (!vNewObstacles.empty())
@@ -310,22 +321,20 @@ namespace statemachine
                             globals::g_pWaypointHandler->AddObstacle(stObsWaypoint);
                         }
 
-                        // First, check if the path is empty.
+                        // Splice the new path.
                         if (m_vPathCoordinates.empty())
                         {
                             LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Cannot splice detour, global path is empty!");
                             return;
                         }
 
-                        // Create variables to splice the new path.
+                        // TODO: ADD COMMENTS AND CONSTANTS
                         size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
                         size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
                         geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
 
                         globals::g_pGeoPlanner->ClearGeoCache();
 
-                        // TODO: CREATE CONSTANTS AND MAKE COMMENTS
-                        // Generate local detour natively using the existing GeoPlanner.
                         std::vector<geoops::Waypoint> vDetour =
                             globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stLocalRejoinGoal, 2.0, 5.0, 5.0);
 
@@ -345,9 +354,6 @@ namespace statemachine
                             m_bWasStuck = true;
                             return;
                         }
-
-                        // Reset the cooldown timer so the rover has time to drive the new path.
-                        m_tmLastAvoidanceUpdate = std::chrono::system_clock::now();
                     }
                 }
             }

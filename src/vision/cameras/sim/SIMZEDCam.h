@@ -52,6 +52,7 @@ class SIMZEDCam : public ZEDCamera
         std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
         std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
         std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
+        std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud) override;
         std::future<bool> RequestPositionalPoseCopy(Pose& stPose) override;
         std::future<bool> RequestSensorsCopy(sl::SensorsData& slSensorsData) override;
         sl::ERROR_CODE ResetPositionalTracking() override;
@@ -180,6 +181,7 @@ class SIMZEDCam : public ZEDCamera
 
         std::queue<containers::DataFetchContainer<Pose>> m_qPoseCopySchedule;
         std::queue<containers::DataFetchContainer<sl::SensorsData>> m_qSensorsCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::cuda::GpuMat>> m_qGPUPointCloudCopySchedule;
 
         // Mutexes for copying frames from the WebRTC connection to the OpenCV Mats.
 
@@ -189,6 +191,7 @@ class SIMZEDCam : public ZEDCamera
         // Mutexes for copying frames from the ZEDSDK to the OpenCV Mats in PoolLinearCode.
         std::shared_mutex m_muPoseCopyMutex;
         std::shared_mutex m_muSensorsCopyMutex;
+        std::shared_mutex m_muGPUPointCloudCopyMutex;
 
         // Atomic flags for checking if data is queued.
 

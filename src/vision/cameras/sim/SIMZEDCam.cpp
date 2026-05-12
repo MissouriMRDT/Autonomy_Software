@@ -330,10 +330,10 @@ void SIMZEDCam::ThreadedContinuousCode()
     // Acquire a shared_lock on the frame copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the frame copy queue is empty.
-    if (!m_qFrameCopySchedule.empty() || !m_qPoseCopySchedule.empty() || !m_qSensorsCopySchedule.empty())
+    if (!m_qFrameCopySchedule.empty() || !m_qPoseCopySchedule.empty() || !m_qSensorsCopySchedule.empty() || !m_qGPUPointCloudCopySchedule.empty())
     {
         // Add the length of all queues together to determine the number of tasks to create.
-        size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qPoseCopySchedule.size() + m_qSensorsCopySchedule.size();
+        size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qPoseCopySchedule.size() + m_qSensorsCopySchedule.size() + m_qGPUPointCloudCopySchedule.size();
 
         // Acquire shared lock on the WebRTC mutex, so that the WebRTC connection doesn't try to write to the Mats while they are being copied in the thread pool.
         std::shared_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
@@ -380,7 +380,7 @@ void SIMZEDCam::ThreadedContinuousCode()
  *      Grab methods.
  *
  *
- * @author clayjay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
 void SIMZEDCam::PooledLinearCode()
@@ -495,6 +495,33 @@ void SIMZEDCam::PooledLinearCode()
         // Release lock.
         lkSensorsQueue.unlock();
     }
+
+    /////////////////////////////
+    //  GPU Point Cloud queue.
+    /////////////////////////////
+    // Acquire mutex for getting data out of the GPU queue.
+    std::unique_lock<std::shared_mutex> lkGPUQueue(m_muGPUPointCloudCopyMutex);
+    // Check if the queue is empty.
+    if (!m_qGPUPointCloudCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer = m_qGPUPointCloudCopySchedule.front();
+        // Pop out of queue.
+        m_qGPUPointCloudCopySchedule.pop();
+        // Release lock.
+        lkGPUQueue.unlock();
+
+        // Upload the CPU point cloud to the GpuMat.
+        stContainer.pFrame->upload(m_cvPointCloud);
+
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedFrameStatus->set_value(true);
+    }
+    else
+    {
+        // Release lock.
+        lkGPUQueue.unlock();
+    }
 }
 
 /******************************************************************************
@@ -585,6 +612,33 @@ std::future<bool> SIMZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
+    lkSchedulers.unlock();
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+
+/******************************************************************************
+ * @brief Requests a point cloud image from the camera and queues it to be
+ * uploaded to a GPU Mat via the thread pool.
+ *
+ * @param cvGPUPointCloud - A reference to the cv::cuda::GpuMat to copy the point cloud frame to.
+ * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
+ * Value will be true if frame was successfully retrieved.
+ *
+ * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+ * @date 2026-05-11
+ ******************************************************************************/
+std::future<bool> SIMZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
+{
+    // Assemble the FrameFetchContainer for the GpuMat.
+    containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, PIXEL_FORMATS::eXYZ);
+
+    // Acquire lock on the schedule queue.
+    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    // Append frame fetch container to the GPU schedule queue.
+    m_qGPUPointCloudCopySchedule.push(stContainer);
+    // Release lock on the schedule queue.
     lkSchedulers.unlock();
 
     // Return the future from the promise stored in the container.

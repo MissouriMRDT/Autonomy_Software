@@ -2,7 +2,7 @@
 ##                                               Autonomy Software                                                ##
 ##                                              24.05.00 - Build 001                                              ##
 ##                                             Mars Rover Design Team                                             ##
-##                                      Copyright 2024 - All Rights Reserved                                      ##
+##                                      Copyright 2026 - All Rights Reserved                                      ##
 ####################################################################################################################
 
 ## Set CMake Minimum Version
@@ -49,7 +49,7 @@ set(CMAKE_UNITY_BUILD_BATCH_SIZE 8) # Adjust batch size based on project size. L
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
@@ -152,7 +152,7 @@ endif()
 ## Print All CMake Variables
 if (LIST_ALL_VARS)
     message("--   [x]: Print All CMake Variables: Enabled")
-    
+
 else()
     message("--   [ ]: Print All CMake Variables: Disabled")
 endif()
@@ -243,7 +243,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 
-## Fine PointCloudLibrary.
+## Find PointCloudLibrary.
 find_package(PCL REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
@@ -275,7 +275,7 @@ endif()
 ####################################################################################################################
 
 ## Search Project Directories for CPP Files
-file(GLOB_RECURSE SRC           CONFIGURE_DEPENDS  "src/*.cpp")
+file(GLOB_RECURSE SRC           CONFIGURE_DEPENDS  "src/*.cpp" "src/*.cu")
 file(GLOB_RECURSE Examples_SRC  CONFIGURE_DEPENDS  "examples/*/*.cpp")
 file(GLOB_RECURSE External_SRC  CONFIGURE_DEPENDS  "external/src/*.cpp")
 
@@ -289,7 +289,13 @@ endif()
 if (MSVC)
     target_compile_options(${EXE_NAME} PRIVATE /W4 /WX)
 else()
-    target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+   target_compile_options(${EXE_NAME} PRIVATE 
+        -Wall 
+        -Wextra 
+        # Apply pedantic only to standard C and C++ files, ignoring CUDA (.cu)
+        $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
+        $<$<COMPILE_LANGUAGE:C>:-Wpedantic>
+    )
 endif()
 
 ## Link Libraries
@@ -359,7 +365,7 @@ if (BUILD_TESTS_MODE)
 
         add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${TEST_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
-        
+
         # Apply precompiled headers to Unit Tests
         target_precompile_headers(${EXE_NAME}_UnitTests PRIVATE
             <vector>
@@ -417,7 +423,7 @@ if (BUILD_TESTS_MODE)
             list(APPEND GCOVR_EXCLUDE_ARGS --exclude)
             list(APPEND GCOVR_EXCLUDE_ARGS ".*/${EXCLUDE_DIR}.*")
         endforeach()
-        
+
         # Build lcov exclude arguments properly
         set(LCOV_EXCLUDE_ARGS "--remove")
         list(APPEND LCOV_EXCLUDE_ARGS "coverage_raw.info")
