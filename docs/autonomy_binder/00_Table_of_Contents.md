@@ -13,6 +13,14 @@ Welcome to the Autonomy Binder! This is the centralized reference for all things
 - [Path Planning](04_Subsystems_Deep_Dive/Path_Planning.md)
 - [Control and Actuation](04_Subsystems_Deep_Dive/Control_and_Actuation.md)
 
+### Handlers
+- [State Machine Handler](08_Handlers/StateMachineHandler.md)
+- [Camera Handler](08_Handlers/CameraHandler.md)
+- [Tag Detection Handler](08_Handlers/TagDetectionHandler.md)
+- [Object Detection Handler](08_Handlers/ObjectDetectionHandler.md)
+- [LiDAR Handler](08_Handlers/LiDARHandler.md)
+- [Waypoint Handler](08_Handlers/WaypointHandler.md)
+
 ### Board Drivers
 - [Drive Board](07_Board_Drivers/DriveBoard.md)
 - [Navigation Board](07_Board_Drivers/NavigationBoard.md)
