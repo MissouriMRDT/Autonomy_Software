@@ -348,7 +348,7 @@ namespace constants
     const double ZED_REALIGN_VEL_THRESH             = 0.3;     // Minimum velocity required to consider the rover as actively moving.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.15;    // The amount of power the motors use when approaching the marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
     const bool APPROACH_MARKER_VERIFY_POSITION        = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
@@ -361,7 +361,7 @@ namespace constants
     const double APPROACH_MARKER_STUCK_CHECK_VEL_THRESH     = 0.3;     // Minimum velocity required to consider the rover as actively moving.
 
     // Approaching Object State
-    const double APPROACH_OBJECT_MOTOR_POWER            = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the object.
+    const double APPROACH_OBJECT_MOTOR_POWER            = DRIVE_MAX_SAFE_POWER * 0.15;    // The amount of power the motors use when approaching the object.
     const double APPROACH_OBJECT_PROXIMITY_THRESHOLD    = 2.0;     // How close in meters the rover must be to the target object before completing its approach.
     const double APPROACH_OBJECT_LOST_GIVE_UP_TIME      = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the object is lost.
     const bool APPROACH_OBJECT_VERIFY_POSITION          = true;    // Whether or not the rover should sit and watch the object for a while before moving on.
@@ -389,7 +389,7 @@ namespace constants
     const bool REVERSE_MAINTAIN_HEADING    = true;                          // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.4;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.3;    // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES       = 57.0;                          // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING             = 1.0;                           // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING             = 4.0;                           // The spacing between successive points in the zigzag (meters).

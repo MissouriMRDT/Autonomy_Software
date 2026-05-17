@@ -73,10 +73,7 @@ namespace statemachine
 
         // Initialize member variables.
         m_bInitialized       = false;
-        m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::NAVIGATING_STUCK_CHECK_ATTEMPTS,
-                                                                            constants::NAVIGATING_STUCK_CHECK_INTERVAL,
-                                                                            constants::NAVIGATING_STUCK_CHECK_VEL_THRESH,
-                                                                            constants::NAVIGATING_STUCK_CHECK_ROT_THRESH);
+        m_StuckDetector      = statemachine::TimeIntervalBasedStuckDetector(constants::NAVIGATING_STUCK_CHECK_ATTEMPTS, constants::NAVIGATING_STUCK_CHECK_INTERVAL);
         m_pStanleyController = std::make_unique<controllers::PredictiveStanleyController>(constants::STANLEY_CROSSTRACK_CONTROL_GAIN,
                                                                                           constants::STANLEY_ANGULAR_VELOCITY_LIMIT,
                                                                                           constants::STANLEY_PREDICTION_HORIZON,
@@ -329,7 +326,10 @@ namespace statemachine
 
         // Check if stuck.
         if (constants::NAVIGATING_ENABLE_STUCK_DETECT &&
-            m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(), globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()))
+            m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity() * globals::g_pDriveBoard->GetMaxDriveEffort(),
+                                         globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity(),
+                                         constants::NAVIGATING_STUCK_CHECK_VEL_THRESH * globals::g_pDriveBoard->GetMaxDriveEffort(),
+                                         constants::NAVIGATING_STUCK_CHECK_ROT_THRESH))
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");

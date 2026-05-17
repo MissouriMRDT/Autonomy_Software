@@ -92,10 +92,7 @@ namespace statemachine
 
         m_bInitialized  = false;
 
-        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::APPROACH_MARKER_STUCK_CHECK_ATTEMPTS,
-                                                                       constants::APPROACH_MARKER_STUCK_CHECK_INTERVAL,
-                                                                       constants::APPROACH_MARKER_STUCK_CHECK_VEL_THRESH,
-                                                                       constants::APPROACH_MARKER_STUCK_CHECK_ROT_THRESH);
+        m_StuckDetector = statemachine::TimeIntervalBasedStuckDetector(constants::APPROACH_MARKER_STUCK_CHECK_ATTEMPTS, constants::APPROACH_MARKER_STUCK_CHECK_INTERVAL);
 
         if (!m_bInitialized)
         {
@@ -389,7 +386,10 @@ namespace statemachine
 
         // 7. Check if the rover is stuck.
         if (constants::APPROACH_MARKER_ENABLE_STUCK_DETECT &&
-            m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(), globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()))
+            m_StuckDetector.CheckIfStuck(globals::g_pStateMachineHandler->SmartRetrieveVelocity(),
+                                         globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity(),
+                                         constants::APPROACH_MARKER_STUCK_CHECK_VEL_THRESH * globals::g_pDriveBoard->GetMaxDriveEffort(),
+                                         constants::APPROACH_MARKER_STUCK_CHECK_ROT_THRESH))
         {
             LOG_WARNING(logging::g_qSharedLogger,
                         "ApproachingMarkerState: Rover has become stuck! Triggering Stuck event. Curr Vel: {:.2f}, Ang Vel: {:.2f}",

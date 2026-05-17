@@ -33,8 +33,6 @@ DriveBoard::DriveBoard()
     // Initialize member variables.
     m_stDrivePowers.dLeftDrivePower  = 0.0;
     m_stDrivePowers.dRightDrivePower = 0.0;
-    m_fMinDriveEffort                = constants::DRIVE_MIN_POWER;
-    m_fMaxDriveEffort                = constants::DRIVE_MAX_POWER;
     m_fDriveEffortMultiplier         = 1.0f;
 
     // Configure PID controller for heading hold function.
@@ -208,14 +206,6 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
     }
     // -------------------------------------------------------------------------
 
-    // If the min and max drive effort have been set to 0, then just send zero powers.
-    if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
-    {
-        // Limit the power to max and min effort defined in constants (Slope Safety).
-        m_stDrivePowers.dLeftDrivePower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-        m_stDrivePowers.dRightDrivePower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-    }
-
     // Construct a RoveComm packet with the drive data.
     rovecomm::RoveCommPacket<float> stPacket;
     stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
@@ -330,8 +320,8 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
     float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
 
     // Update member variables.
-    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier;
-    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier;
+    std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+    m_fDriveEffortMultiplier = fClampedMaxDriveEffortMultiplier;
 }
 
 /******************************************************************************
@@ -346,4 +336,20 @@ diffdrive::DrivePowers DriveBoard::GetDrivePowers() const
 {
     // Return the current drive powers.
     return m_stDrivePowers;
+}
+
+/******************************************************************************
+ * @brief Accessor for the current max drive effort multiplier.
+ *
+ * @return float - The current drive effort multiplier being applied to the drive powers. This is a value between 0 and 1 that is multiplied by the constants
+ * DRIVE_MIN_POWER and DRIVE_MAX_POWER to set the current power limits of the drive.
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2026-05-17
+ ******************************************************************************/
+float DriveBoard::GetMaxDriveEffort() const
+{
+    // Return the current max drive effort multiplier.
+    std::shared_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+    return m_fDriveEffortMultiplier;
 }
