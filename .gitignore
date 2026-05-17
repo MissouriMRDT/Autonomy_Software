@@ -581,3 +581,5 @@ FodyWeavers.xsd
 
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
+docs/autonomy_binder/Autonomy_Binder.pdf
+docs/autonomy_binder/Autonomy_Binder_Compiled.md
