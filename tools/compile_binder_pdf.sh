@@ -17,7 +17,7 @@ OUTPUT_PDF="docs/autonomy_binder/Autonomy_Binder.pdf"
 rm -f "$OUTPUT_MD" "$OUTPUT_PDF"
 
 # Create title page
-cat << 'TITLE' > "$OUTPUT_MD"
+cat << TITLE > "$OUTPUT_MD"
 ---
 title: Autonomy Software Binder
 author: Mars Rover Design Team
@@ -31,20 +31,29 @@ date: $(date +'%Y-%m-%d')
 </div>
 
 <div style="page-break-after: always;"></div>
+
+# Table of Contents
+<!-- toc -->
+
+<div style="page-break-after: always;"></div>
 TITLE
 
 # Append files in order
 # Read from the Table of Contents to get the correct order
 
-echo "Reading Table of Contents..."
-# Get all markdown file links from TOC
-grep -o '([0-9a-zA-Z_/]*\.md)' "$BINDER_DIR/00_Table_of_Contents.md" | tr -d '()' | while read -r file; do
+echo "Reading index to compile sections..."
+# Get all markdown file links from TOC, excluding the 00_Table_of_Contents itself so we don't have two tables of contents
+grep -o '([0-9a-zA-Z_/]*\.md)' "$BINDER_DIR/00_Table_of_Contents.md" | tr -d '()' | grep -v '00_Table_of_Contents.md' | while read -r file; do
     if [ -f "$BINDER_DIR/$file" ]; then
         echo "Appending $file..."
         cat "$BINDER_DIR/$file" >> "$OUTPUT_MD"
         echo -e "\n\n<div style=\"page-break-after: always;\"></div>\n\n" >> "$OUTPUT_MD"
     fi
 done
+
+echo "Injecting automatic Table of Contents..."
+# We use npx to dynamically pull and execute markdown-toc to replace the <!-- toc --> tag
+npx markdown-toc -i --maxdepth 3 "$OUTPUT_MD"
 
 echo "Compiled markdown saved to $OUTPUT_MD."
 
