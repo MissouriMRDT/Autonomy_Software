@@ -58,4 +58,10 @@ Welcome to the Autonomy Binder! This is the centralized reference for all things
 
 ## Cheat Sheet
 
-(Placeholder for top 5 most commonly used commands)
+| Action | Command |
+| :--- | :--- |
+| **Clean Build Directory** | `rm -rf build/*` |
+| **Standard Build Config** | `cmake -DCMAKE_BUILD_TYPE=Release -B build/` |
+| **Compile** | `make -C build/ -j$(nproc)` |
+| **Run Autonomy** | `./build/Autonomy_Software` |
+| **Run Tests** | `cd build && ctest` |
