@@ -13,6 +13,12 @@ Welcome to the Autonomy Binder! This is the centralized reference for all things
 - [Path Planning](04_Subsystems_Deep_Dive/Path_Planning.md)
 - [Control and Actuation](04_Subsystems_Deep_Dive/Control_and_Actuation.md)
 
+### Vision
+- [Cameras](12_Vision/Cameras.md)
+- [ArUco Tag Detection](12_Vision/ArUco_Tag_Detection.md)
+- [Object Detection](12_Vision/Object_Detection.md)
+- [Vision Utilities](12_Vision/Vision_Utilities.md)
+
 ### Handlers
 - [State Machine Handler](08_Handlers/StateMachineHandler.md)
 - [Camera Handler](08_Handlers/CameraHandler.md)
