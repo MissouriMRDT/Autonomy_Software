@@ -22,6 +22,7 @@ docs/Doxygen/*
 !docs/Doxygen/resources
 # Also don't ignore the docs/Whitepapers directory.
 !docs/WhitePapers
+!docs/autonomy_binder
 
 # Data. Ignore optimized models, but push base model.
 data/models/zed/.*
