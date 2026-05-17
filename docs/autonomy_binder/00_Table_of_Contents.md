@@ -13,6 +13,11 @@ Welcome to the Autonomy Binder! This is the centralized reference for all things
 - [Path Planning](04_Subsystems_Deep_Dive/Path_Planning.md)
 - [Control and Actuation](04_Subsystems_Deep_Dive/Control_and_Actuation.md)
 
+### Board Drivers
+- [Drive Board](07_Board_Drivers/DriveBoard.md)
+- [Navigation Board](07_Board_Drivers/NavigationBoard.md)
+- [Multimedia Board](07_Board_Drivers/MultimediaBoard.md)
+
 ### Configuration and Tuning
 - [Autonomy Constants](05_Configuration_and_Tuning/Autonomy_Constants.md)
 - [CMake Options](05_Configuration_and_Tuning/CMake_Options.md)
