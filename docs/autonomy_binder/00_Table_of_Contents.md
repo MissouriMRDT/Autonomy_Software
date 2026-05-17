@@ -13,6 +13,10 @@ Welcome to the Autonomy Binder! This is the centralized reference for all things
 - [Path Planning](04_Subsystems_Deep_Dive/Path_Planning.md)
 - [Control and Actuation](04_Subsystems_Deep_Dive/Control_and_Actuation.md)
 
+### Controllers
+- [PID Controller](13_Controllers/PID_Controller.md)
+- [Predictive Stanley Controller](13_Controllers/Predictive_Stanley_Controller.md)
+
 ### Vision
 - [Cameras](12_Vision/Cameras.md)
 - [ArUco Tag Detection](12_Vision/ArUco_Tag_Detection.md)
