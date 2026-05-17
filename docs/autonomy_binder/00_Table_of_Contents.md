@@ -33,6 +33,12 @@ Welcome to the Autonomy Binder! This is the centralized reference for all things
 ### Networking
 - [RoveComm Protocol](10_Networking/RoveComm.md)
 
+### Logs, Data, and Visualization
+- [Log Files & Quill](11_Logs_and_Data/Log_Files.md)
+- [Camera Feeds & Recording](11_Logs_and_Data/Camera_Feeds_and_Recording.md)
+- [Path Plots & Matplot++](11_Logs_and_Data/Path_Plots.md)
+- [3D Interactive Visualization](11_Logs_and_Data/Visualization.md)
+
 ### Configuration and Tuning
 - [Autonomy Constants](05_Configuration_and_Tuning/Autonomy_Constants.md)
 - [CMake Options](05_Configuration_and_Tuning/CMake_Options.md)
