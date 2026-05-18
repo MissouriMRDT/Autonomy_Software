@@ -7,6 +7,7 @@ Welcome to the Autonomy Binder! This is the centralized reference for all things
 - [01. Quick Start and Operations](01_Quick_Start_and_Ops.md)
 - [02. Architecture Overview](02_Architecture_Overview.md)
 - [03. The State Machine](03_The_State_Machine.md)
+- [URC Autonomy Rules](14_URC_Rules/URC_Autonomy_Rules.md)
 
 ### Subsystems Deep Dive
 - [Perception](04_Subsystems_Deep_Dive/Perception.md)
