@@ -34,4 +34,4 @@ docker run -it --rm --runtime=nvidia --network=host --privileged \
 -v /mnt/wslg:/mnt/wslg \
 -v /tmp/.X11-unix:/tmp/.X11-unix \
 -v ../../Autonomy_Software:/opt/Autonomy_Software \
-ghcr.io/missourimrdt/autonomy-jetpack:2025-11-06-19-13-36 /usr/bin/fish
+ghcr.io/missourimrdt/autonomy-jetpack:2026-05-01-15-42-01 /usr/bin/fish

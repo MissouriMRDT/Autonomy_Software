@@ -112,7 +112,7 @@ class DriveBoard
             }
 
             // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", stPacket.vData[0]);
+            LOG_NOTICE(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", fClampedMultiplier);
         };
 };
 #endif

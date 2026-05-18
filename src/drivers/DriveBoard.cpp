@@ -165,12 +165,13 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
  ******************************************************************************/
 void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bool bEnableVariableDriveEffort)
 {
+    // FIXME: Make this not fucking overwrite our max speed shit.
     // Enable or disable variable drive effort.
-    if (bEnableVariableDriveEffort)
-    {
-        float fMultiplier = VariableDriveEffort();
-        SetMaxDriveEffort(fMultiplier);
-    }
+    //if (bEnableVariableDriveEffort)
+    //{
+    //    float fMultiplier = VariableDriveEffort();
+    //    SetMaxDriveEffort(fMultiplier);
+    //}
 
     // Limit input values (-1.0 to 1.0).
     double dLeftInput  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
@@ -205,6 +206,10 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
         dRightSpeed /= dMaxMagnitude;
     }
     // -------------------------------------------------------------------------
+    // If the min and max drive effort have been set to 0, then just send zero powers.
+    // Limit the power to max and min effort defined in constants (Slope Safety).
+    m_stDrivePowers.dLeftDrivePower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    m_stDrivePowers.dRightDrivePower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
 
     // Construct a RoveComm packet with the drive data.
     rovecomm::RoveCommPacket<float> stPacket;

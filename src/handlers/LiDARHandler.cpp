@@ -123,7 +123,7 @@ bool LiDARHandler::CloseDB()
  ******************************************************************************/
 std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter& stPointFilter)
 {
-    std::shared_lock<std::shared_mutex> lkReadLock(m_muQueryMutex);
+    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
     std::chrono::time_point<std::chrono::high_resolution_clock> tmStartTime = std::chrono::high_resolution_clock::now();
 
     if (!m_bIsDBOpen)
