@@ -84,9 +84,9 @@ Teams are permitted to do programming (e.g., entering GNSS waypoints, making cha
 
 | Target Type | Required Stop Distance | Initial GNSS Accuracy (Search Radius) | Detection Specs |
 | :--- | :--- | :--- | :--- |
-| **GNSS-Only 1 & 2** | ≤ 3 meters | Highly Accurate (Exact target) | None |
-| **AR Post 1** | ≤ 2 meters | 5 to 10 meters off target | `DICT_4X4_50`, 2.5cm cells |
-| **AR Post 2** | ≤ 2 meters | 10 to 20 meters off target | `DICT_4X4_50`, 2.5cm cells |
+| **GNSS-Only 1 & 2** | <= 3 meters | Highly Accurate (Exact target) | None |
+| **AR Post 1** | <= 2 meters | 5 to 10 meters off target | `DICT_4X4_50`, 2.5cm cells |
+| **AR Post 2** | <= 2 meters | 10 to 20 meters off target | `DICT_4X4_50`, 2.5cm cells |
 | **Object 1 & 2** | Any distance | < 3 meters off target | Visual Bounding Box (Mallet/Hammer) |
 | **Object 3** | Any distance | < 10 meters off target | Visual Bounding Box (Water Bottle) |
 

@@ -583,3 +583,5 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 docs/autonomy_binder/Autonomy_Binder.pdf
 docs/autonomy_binder/Autonomy_Binder_Compiled.md
+docs/autonomy_binder/Autonomy_Binder_Pandoc.pdf
+docs/autonomy_binder/Autonomy_Binder_Pandoc.md
