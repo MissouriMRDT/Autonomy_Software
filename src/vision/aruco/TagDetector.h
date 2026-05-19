@@ -72,6 +72,7 @@ class TagDetector : public AutonomyThread<void>
                     const bool bUsingGpuMats                      = false);
         ~TagDetector();
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
+        std::future<bool> RequestLastGoodOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<tagdetectutils::ArucoTag>& vArucoTags);
         bool InitTorchDetection(const std::string& szModelPath,
                                 yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
@@ -140,15 +141,18 @@ class TagDetector : public AutonomyThread<void>
         cv::Mat m_cvFrame;
         cv::cuda::GpuMat m_cvGPUFrame;
         cv::Mat m_cvArucoProcFrame;
+        cv::Mat m_cvLastGoodDetectionOverlayFrame;
         cv::Mat m_cvPointCloud;
         cv::cuda::GpuMat m_cvGPUPointCloud;
 
         // Queues and mutexes for scheduling and copying data to other threads.
 
-        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedTagDrawnOverlayFramesCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectionOverlayFramesCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qLastGoodDetectionOverlayFramesCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<tagdetectutils::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
-        std::shared_mutex m_muFrameCopyMutex;
+        std::shared_mutex m_muDetectionOverlayCopyMutex;
+        std::shared_mutex m_muLastGoodDetectionOverlayCopyMutex;
         std::shared_mutex m_muArucoDataCopyMutex;
 };
 

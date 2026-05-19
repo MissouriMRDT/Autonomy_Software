@@ -191,7 +191,7 @@ namespace statemachine
                 {
                     if (pObjectDetector->GetThreadUUID() == m_stBestObject.szDetectorUUID)
                     {
-                        std::future<bool> fuFrame = pObjectDetector->RequestDetectionOverlayFrame(cvSnapshot);
+                        std::future<bool> fuFrame = pObjectDetector->RequestLastGoodDetectionOverlayFrame(cvSnapshot);
                         if (!fuFrame.get())
                         {
                             LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Failed to request detection overlay frame.");
