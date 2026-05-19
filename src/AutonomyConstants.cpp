@@ -395,7 +395,7 @@ namespace constants
     const double SEARCH_ZIGZAG_SPACING             = 4.0;                           // The spacing between successive points in the zigzag (meters).
     const double SEARCH_SNAKE_SLITHERS             = 2.0;                           // The number of slithers in the snake pattern.
     const double SEARCH_WAYPOINT_PROXIMITY         = 2.0;                           // How close a rover must be to a point to have it count as visited.
-    const bool SEARCH_ENABLE_STUCK_DETECT          = false;                         // Whether or not to enable the stuck detection algorithm when searching for a marker.
+    const bool SEARCH_ENABLE_STUCK_DETECT          = true;                          // Whether or not to enable the stuck detection algorithm when searching for a marker.
     const double SEARCH_STUCK_CHECK_INTERVAL       = 2.0;                           // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS = 3;                             // Max number of failed checks of the rover's rotation before next attempt.
     const double SEARCH_STUCK_CHECK_ROT_THRESH     = 20.0;                          // Minimum angular velocity required to consider the rover as actively rotating.
@@ -406,7 +406,7 @@ namespace constants
     const double NAVIGATING_REACHED_GOAL_RADIUS        = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
     const bool NAVIGATING_VERIFY_POSITION              = true;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME         = 30.0;    // The time in seconds to collect GPS points before verifying the rover's GPS position.
-    const bool NAVIGATING_ENABLE_STUCK_DETECT          = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
+    const bool NAVIGATING_ENABLE_STUCK_DETECT          = true;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
     const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;       // Max number of failed checks of the rover's rotation before next attempt.
     const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
