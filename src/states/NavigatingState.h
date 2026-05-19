@@ -41,6 +41,7 @@ namespace statemachine
             // Declare private member variables.
             /////////////////////////////////////////
             bool m_bWasStuck;
+            bool m_bWithinWaypointRadius;
             double m_dStuckDistanceToGoal;
             double m_dHeadingBeforeStuck;
             bool m_bFetchNewWaypoint;

@@ -116,7 +116,7 @@ namespace geoloc
         // Handle edge case: No valid points found (Stereovision failure)
         if (vRawZ.empty())
         {
-            LOG_WARNING(logging::g_qSharedLogger, "GeolocateBox: Stereovision failed for pixel ({}, {}). Attempting Monocular Fallback.", cvPixel.x, cvPixel.y);
+            LOG_DEBUG(logging::g_qSharedLogger, "GeolocateBox: Stereovision failed for pixel ({}, {}). Attempting Monocular Fallback.", cvPixel.x, cvPixel.y);
 
             // MONOCULAR GROUND PLANE FALLBACK.
             // Calculate the geometric intersection of the pixel with the ground plane.
@@ -130,12 +130,12 @@ namespace geoloc
             float fCameraHeight = static_cast<float>(stCameraUTM.dAltitude);
 
             float fRayAngleY    = atan2(nBottomY - fCy, fFy);
-            float fTotalAngle   = fRayAngleY;    // Assuming level physical pitch since it's accounted for in the pose
+            float fTotalAngle   = fRayAngleY;    // Assuming level physical pitch since it's accounted for in the pose.
 
             // If the total angle is too small, the point is likely on or above the horizon, which is unreliable for geolocation.
             if (fTotalAngle <= 0.01f)
             {
-                LOG_WARNING(logging::g_qSharedLogger, "GeolocateBox: Fallback failed. Object is on or above the horizon line.");
+                LOG_DEBUG(logging::g_qSharedLogger, "GeolocateBox: Fallback failed. Object is on or above the horizon line.");
                 return geoops::Waypoint();    // Total failure.
             }
 

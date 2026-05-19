@@ -165,14 +165,6 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
  ******************************************************************************/
 void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bool bEnableVariableDriveEffort)
 {
-    // FIXME: Make this not fucking overwrite our max speed shit.
-    // Enable or disable variable drive effort.
-    //if (bEnableVariableDriveEffort)
-    //{
-    //    float fMultiplier = VariableDriveEffort();
-    //    SetMaxDriveEffort(fMultiplier);
-    //}
-
     // Limit input values (-1.0 to 1.0).
     double dLeftInput  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
     double dRightInput = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
@@ -184,13 +176,24 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
     double dLinearPower  = (dLeftInput + dRightInput) / 2.0;
     double dAngularPower = (dLeftInput - dRightInput) / 2.0;
 
-    // Apply the Speed Multiplier ONLY to the Linear component.
-    // This slows down the travel speed but keeps full turning torque available.
-    // Use a shared lock to prevent data races when reading the multiplier.
+    // Fetch the base operator-set speed multiplier safely.
+    float fCombinedMultiplier = 1.0f;
     {
         std::shared_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
-        dLinearPower *= m_fDriveEffortMultiplier;
+        fCombinedMultiplier = m_fDriveEffortMultiplier;
     }
+
+    // If variable drive effort is enabled, scale the base RoveComm multiplier further based on terrain.
+    if (bEnableVariableDriveEffort)
+    {
+        float fTerrainDampening = VariableDriveEffort();
+        fCombinedMultiplier *= fTerrainDampening;
+    }
+
+    // Apply the Combined Speed Multiplier ONLY to the Linear component.
+    // This slows down the travel speed based on operator limits AND terrain safety,
+    // but keeps full turning torque available.
+    dLinearPower *= fCombinedMultiplier;
 
     // Reconstruct Left and Right powers.
     double dLeftSpeed  = dLinearPower + dAngularPower;
@@ -205,6 +208,7 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
         dLeftSpeed /= dMaxMagnitude;
         dRightSpeed /= dMaxMagnitude;
     }
+
     // -------------------------------------------------------------------------
     // If the min and max drive effort have been set to 0, then just send zero powers.
     // Limit the power to max and min effort defined in constants (Slope Safety).
@@ -218,6 +222,7 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
     stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
     stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
     stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
+
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
@@ -226,6 +231,7 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
         // Send packet.
         network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
+
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
 }

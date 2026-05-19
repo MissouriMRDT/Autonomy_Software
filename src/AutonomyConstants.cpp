@@ -75,7 +75,7 @@ namespace constants
     // NOTE: NEVER CHANGE THESE VALUES UNLESS DRIVE BOARD HARDWARE IS CHANGED.
     const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
     const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
-    const float DRIVE_MAX_SAFE_POWER = 1.0;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
+    const float DRIVE_MAX_SAFE_POWER = 0.7;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL      = 0.01;      // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -402,15 +402,15 @@ namespace constants
     const double SEARCH_STUCK_CHECK_VEL_THRESH     = 0.3;                           // Minimum velocity required to consider the rover as actively moving.
 
     // Navigating State.
-    const double NAVIGATING_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.9;    // The speed to drive at when navigating.
+    const double NAVIGATING_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS        = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
-    const bool NAVIGATING_VERIFY_POSITION              = true;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
-    const double NAVIGATING_VERIFY_SAMPLE_TIME         = 30.0;    // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const bool NAVIGATING_VERIFY_POSITION              = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
+    const double NAVIGATING_VERIFY_SAMPLE_TIME         = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
     const bool NAVIGATING_ENABLE_STUCK_DETECT          = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
-    const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
-    const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;       // Max number of failed checks of the rover's rotation before next attempt.
-    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.3;     // Minimum velocity required to consider the rover as actively moving.
+    const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;      // Period in seconds between consecutive checks of if the rover's rotating.
+    const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;        // Max number of failed checks of the rover's rotation before next attempt.
+    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;     // Minimum angular velocity required to consider the rover as actively rotating.
+    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.3;      // Minimum velocity required to consider the rover as actively moving.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

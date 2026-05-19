@@ -12,6 +12,11 @@
 #include "../AutonomyGlobals.h"
 #include "../AutonomyLogging.h"
 
+/// \cond
+#include <filesystem>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Construct a new LiDARHandler::LiDARHandler object.
  *
@@ -23,7 +28,6 @@ LiDARHandler::LiDARHandler()
 {
     // Ensure smart pointers are null natively.
     m_pDB       = nullptr;
-    m_pConn     = nullptr;
     m_bIsDBOpen = false;
 }
 
@@ -56,28 +60,37 @@ LiDARHandler::~LiDARHandler()
  ******************************************************************************/
 bool LiDARHandler::OpenDB(const std::string& szDBPath)
 {
+    // Check if the file actually exists on disk before doing anything.
+    if (!std::filesystem::exists(szDBPath))
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Failed to open DuckDB: File does not exist at '{}'", szDBPath);
+        return false;
+    }
+
     // Acquire a write lock on the mutex to ensure thread safety.
     std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
 
-    // Check if the database is already open.
+    // Reset existing connection if already open (fixing the previous race condition)
     if (m_bIsDBOpen)
     {
         LOG_WARNING(logging::g_qSharedLogger, "Database is already open. Closing existing connection before opening a new one.");
-        lkWriteLock.unlock();
-        this->CloseDB();
-        lkWriteLock.lock();
+        m_pDB.reset();
+        m_bIsDBOpen = false;
     }
 
     try
     {
-        // Instantiate the DuckDB instance and a distinct connection object.
-        // Opened in default Read/Write mode so the rover can actively update the map.
-        m_pDB   = std::make_unique<duckdb::DuckDB>(szDBPath);
-        m_pConn = std::make_unique<duckdb::Connection>(*m_pDB);
+        // Instantiate the DuckDB instance.
+        m_pDB = std::make_unique<duckdb::DuckDB>(szDBPath);
     }
     catch (const duckdb::Exception& e)
     {
         LOG_ERROR(logging::g_qSharedLogger, "Failed to open DuckDB at '{}': {}", szDBPath, e.what());
+        return false;
+    }
+    catch (const std::exception& e)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "Standard exception while opening DuckDB: {}", e.what());
         return false;
     }
 
@@ -104,7 +117,6 @@ bool LiDARHandler::CloseDB()
     {
         // Smart pointers automatically release resources and close database locks
         // when reset. This avoids SQLite's manual finalize() memory leak issues.
-        m_pConn.reset();
         m_pDB.reset();
         m_bIsDBOpen = false;
     }
@@ -123,7 +135,7 @@ bool LiDARHandler::CloseDB()
  ******************************************************************************/
 std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter& stPointFilter)
 {
-    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
+    std::shared_lock<std::shared_mutex> lkReadLock(m_muQueryMutex);
     std::chrono::time_point<std::chrono::high_resolution_clock> tmStartTime = std::chrono::high_resolution_clock::now();
 
     if (!m_bIsDBOpen)
@@ -179,56 +191,72 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
         stdOSS << vClauses[siIter];
     }
 
-    // DuckDB Prepared Statements protect against injections and compile the plan
-    duckdb::unique_ptr<duckdb::PreparedStatement> stPreparedStmt = m_pConn->Prepare(stdOSS.str());
-    if (stPreparedStmt->HasError())
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare DuckDB SQL: {}", stPreparedStmt->GetError());
-        return {};
-    }
-
-    // Execute the query passing the bound values
-    duckdb::unique_ptr<duckdb::QueryResult> stResult = stPreparedStmt->Execute(vBindValues);
-    if (stResult->HasError())
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Execution Error: {}", stResult->GetError());
-        return {};
-    }
-
     std::vector<PointRow> vResults;
 
-    // DuckDB extracts data in vector chunks. Iterating via Fetch() is extremely performant
-    // and naturally manages memory without locking threads.
-    while (duckdb::unique_ptr<duckdb::DataChunk> stChunk = stResult->Fetch())
+    try
     {
-        size_t siRows = stChunk->size();
-        for (size_t siIter = 0; siIter < siRows; siIter++)
+        // Thread-local connection to avoid stepping on pending chunk states
+        duckdb::Connection stLocalConn(*m_pDB);
+
+        // DuckDB Prepared Statements protect against injections and compile the plan
+        duckdb::unique_ptr<duckdb::PreparedStatement> stPreparedStmt = stLocalConn.Prepare(stdOSS.str());
+        if (stPreparedStmt->HasError())
         {
-            PointRow stRow;
-
-            // Extract native datatypes directly from the memory chunk.
-            stRow.nID              = stChunk->GetValue(0, siIter).GetValue<int32_t>();
-            stRow.dEasting         = stChunk->GetValue(1, siIter).GetValue<double>();
-            stRow.dNorthing        = stChunk->GetValue(2, siIter).GetValue<double>();
-            stRow.dAltitude        = stChunk->GetValue(3, siIter).IsNull() ? 0.0 : stChunk->GetValue(3, siIter).GetValue<double>();
-
-            auto valZone           = stChunk->GetValue(4, siIter);
-            stRow.szZone           = valZone.IsNull() ? "Unknown" : valZone.GetValue<std::string>();
-
-            auto valClass          = stChunk->GetValue(5, siIter);
-            stRow.szClassification = valClass.IsNull() ? "Unclassified" : valClass.GetValue<std::string>();
-
-            // Metrics are guaranteed to be non-null due to the COALESCE in the SELECT clause.
-            stRow.dNormalX        = stChunk->GetValue(6, siIter).GetValue<double>();
-            stRow.dNormalY        = stChunk->GetValue(7, siIter).GetValue<double>();
-            stRow.dNormalZ        = stChunk->GetValue(8, siIter).GetValue<double>();
-            stRow.dSlope          = stChunk->GetValue(9, siIter).GetValue<double>();
-            stRow.dRoughness      = stChunk->GetValue(10, siIter).GetValue<double>();
-            stRow.dCurvature      = stChunk->GetValue(11, siIter).GetValue<double>();
-            stRow.dTraversalScore = stChunk->GetValue(12, siIter).GetValue<double>();
-
-            vResults.push_back(stRow);
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare DuckDB SQL: {}", stPreparedStmt->GetError());
+            return {};
         }
+
+        // Execute the query passing the bound values
+        duckdb::unique_ptr<duckdb::QueryResult> stResult = stPreparedStmt->Execute(vBindValues);
+        if (stResult->HasError())
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "Execution Error: {}", stResult->GetError());
+            return {};
+        }
+
+        // DuckDB extracts data in vector chunks. Iterating via Fetch() is extremely performant
+        // and naturally manages memory without locking threads.
+        while (duckdb::unique_ptr<duckdb::DataChunk> stChunk = stResult->Fetch())
+        {
+            size_t siRows = stChunk->size();
+            for (size_t siIter = 0; siIter < siRows; siIter++)
+            {
+                PointRow stRow;
+
+                // Extract native datatypes directly from the memory chunk.
+                stRow.nID              = stChunk->GetValue(0, siIter).GetValue<int32_t>();
+                stRow.dEasting         = stChunk->GetValue(1, siIter).GetValue<double>();
+                stRow.dNorthing        = stChunk->GetValue(2, siIter).GetValue<double>();
+                stRow.dAltitude        = stChunk->GetValue(3, siIter).IsNull() ? 0.0 : stChunk->GetValue(3, siIter).GetValue<double>();
+
+                duckdb::Value valZone  = stChunk->GetValue(4, siIter);
+                stRow.szZone           = valZone.IsNull() ? "Unknown" : valZone.GetValue<std::string>();
+
+                duckdb::Value valClass = stChunk->GetValue(5, siIter);
+                stRow.szClassification = valClass.IsNull() ? "Unclassified" : valClass.GetValue<std::string>();
+
+                // Metrics are guaranteed to be non-null due to the COALESCE in the SELECT clause.
+                stRow.dNormalX        = stChunk->GetValue(6, siIter).GetValue<double>();
+                stRow.dNormalY        = stChunk->GetValue(7, siIter).GetValue<double>();
+                stRow.dNormalZ        = stChunk->GetValue(8, siIter).GetValue<double>();
+                stRow.dSlope          = stChunk->GetValue(9, siIter).GetValue<double>();
+                stRow.dRoughness      = stChunk->GetValue(10, siIter).GetValue<double>();
+                stRow.dCurvature      = stChunk->GetValue(11, siIter).GetValue<double>();
+                stRow.dTraversalScore = stChunk->GetValue(12, siIter).GetValue<double>();
+
+                vResults.push_back(stRow);
+            }
+        }
+    }
+    catch (const duckdb::Exception& e)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "DuckDB threw an exception in GetLiDARData: {}", e.what());
+        return {};
+    }
+    catch (const std::exception& e)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "A standard exception was thrown in GetLiDARData: {}", e.what());
+        return {};
     }
 
     std::chrono::time_point<std::chrono::high_resolution_clock> tmEndTime = std::chrono::high_resolution_clock::now();
@@ -284,17 +312,9 @@ void LiDARHandler::AddRangeFilter(std::vector<std::string>& vClauses,
 {
     if (stdOptRange)
     {
-        if constexpr (std::is_floating_point<T>::value)
-        {
-            vClauses.emplace_back(std::string(pColumn) + " >= ?");
-            vBindValues.push_back(duckdb::Value(stdOptRange->tMin));
-        }
-        else
-        {
-            vClauses.emplace_back(std::string(pColumn) + " BETWEEN ? AND ?");
-            vBindValues.push_back(duckdb::Value(stdOptRange->tMin));
-            vBindValues.push_back(duckdb::Value(stdOptRange->tMax));
-        }
+        vClauses.emplace_back(std::string(pColumn) + " BETWEEN ? AND ?");
+        vBindValues.push_back(duckdb::Value(stdOptRange->tMin));
+        vBindValues.push_back(duckdb::Value(stdOptRange->tMax));
     }
 }
 
@@ -323,20 +343,13 @@ bool LiDARHandler::DeclareLiDARObstacle(const geoops::UTMCoordinate& stPoint, do
 
     // Prepare the SQL statement for updating data.
     // DuckDB zonemaps replace the need for the old RTree index table.
-    const char* pSQL    = R"(
+    const char* pSQL = R"(
         UPDATE ProcessedLiDARPoints
         SET trav_score = 0.01
         WHERE easting BETWEEN ? AND ?
           AND northing BETWEEN ? AND ?
           AND (easting - ?) * (easting - ?) + (northing - ?) * (northing - ?) <= ?
     )";
-
-    auto stPreparedStmt = m_pConn->Prepare(pSQL);
-    if (stPreparedStmt->HasError())
-    {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare DuckDB SQL: {}", stPreparedStmt->GetError());
-        return false;
-    }
 
     // Bind values to the prepared statement
     duckdb::vector<duckdb::Value> vBindValues;
@@ -356,22 +369,46 @@ bool LiDARHandler::DeclareLiDARObstacle(const geoops::UTMCoordinate& stPoint, do
     // Pass the squared radius directly so we don't need ? * ? in the SQL
     vBindValues.push_back(duckdb::Value(dRadius * dRadius));
 
-    // Execute the statement.
-    auto stResult = stPreparedStmt->Execute(vBindValues);
-    if (stResult->HasError())
+    int64_t nRowsUpdated = 0;
+    try
     {
-        LOG_ERROR(logging::g_qSharedLogger, "Failed to update obstacle data: {}", stResult->GetError());
+        // Thread-local connection to safely issue commands without bleeding pending states
+        duckdb::Connection stLocalConn(*m_pDB);
+
+        duckdb::unique_ptr<duckdb::PreparedStatement> stPreparedStmt = stLocalConn.Prepare(pSQL);
+        if (stPreparedStmt->HasError())
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to prepare DuckDB SQL: {}", stPreparedStmt->GetError());
+            return false;
+        }
+
+        // Execute the statement.
+        auto stResult = stPreparedStmt->Execute(vBindValues);
+        if (stResult->HasError())
+        {
+            LOG_ERROR(logging::g_qSharedLogger, "Failed to update obstacle data: {}", stResult->GetError());
+            return false;
+        }
+
+        // DuckDB UPDATE queries return a single column/row chunk containing the number of updated rows.
+        // It's critical to loop over Fetch() until it returns null to exhaust the result set.
+        while (auto stChunk = stResult->Fetch())
+        {
+            if (stChunk->size() > 0 && nRowsUpdated == 0)
+            {
+                nRowsUpdated = stChunk->GetValue(0, 0).GetValue<int64_t>();
+            }
+        }
+    }
+    catch (const duckdb::Exception& e)
+    {
+        LOG_ERROR(logging::g_qSharedLogger, "DuckDB threw an exception in DeclareLiDARObstacle: {}", e.what());
         return false;
     }
-
-    // DuckDB UPDATE queries return a single column/row chunk containing the number of updated rows.
-    int64_t nRowsUpdated = 0;
-    if (auto stChunk = stResult->Fetch())
+    catch (const std::exception& e)
     {
-        if (stChunk->size() > 0)
-        {
-            nRowsUpdated = stChunk->GetValue(0, 0).GetValue<int64_t>();
-        }
+        LOG_ERROR(logging::g_qSharedLogger, "A standard exception was thrown in DeclareLiDARObstacle: {}", e.what());
+        return false;
     }
 
     // Log LiDAR changes
