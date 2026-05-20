@@ -182,7 +182,7 @@ namespace constants
     const bool ZED_MAINCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
     const bool ZED_MAINCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 3;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAM_SERIAL                    = 31237348;    // The serial number of the camera. Set to 0 to open the next available one. DEFAULT = 31237348
     const double ZED_MAINCAM_EASTING_OFFSET         = 0.0;    // The easting offset to apply to the GPS data that way we know where it is relative to the rover center.
     const double ZED_MAINCAM_NORTHING_OFFSET        = 0.0;    // The northing offset to apply to the GPS data that way we know where it is relative to the rover center.
@@ -203,7 +203,7 @@ namespace constants
     const bool ZED_REARCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
     const bool ZED_REARCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_REARCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS   = 5;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS   = 3;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_REARCAM_SERIAL                    = 39163798;    // The serial number of the camera. Set to 0 to open the next available one. DEFAULT = 31237348
     const double ZED_REARCAM_EASTING_OFFSET         = 0.0;     // The easting offset to apply to the GPS data that way we know where it is relative to the rover center.
     const double ZED_REARCAM_NORTHING_OFFSET        = -0.5;    // The northing offset to apply to the GPS data that way we know where it is relative to the rover center.
@@ -219,7 +219,7 @@ namespace constants
     const int BASICCAM_CAM_FPS                     = 30;      // The FPS to use for the basiccam.
     const int BASICCAM_CAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
     const int BASICCAM_CAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
-    const int BASICCAM_CAM_FRAME_RETRIEVAL_THREADS = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int BASICCAM_CAM_FRAME_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int BASICCAM_CAM_INDEX                   = 0;       // The /dev/video index of the camera.
     const PIXEL_FORMATS BASICCAM_CAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
     ///////////////////////////////////////////////////////////////////////////
@@ -300,7 +300,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SDELC.db";    // The path to the LiDAR database file.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SIM_Flat.db";    // The path to the LiDAR database file.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -395,7 +395,7 @@ namespace constants
     const double SEARCH_ZIGZAG_SPACING             = 4.0;                           // The spacing between successive points in the zigzag (meters).
     const double SEARCH_SNAKE_SLITHERS             = 2.0;                           // The number of slithers in the snake pattern.
     const double SEARCH_WAYPOINT_PROXIMITY         = 2.0;                           // How close a rover must be to a point to have it count as visited.
-    const bool SEARCH_ENABLE_STUCK_DETECT          = false;                         // Whether or not to enable the stuck detection algorithm when searching for a marker.
+    const bool SEARCH_ENABLE_STUCK_DETECT          = true;                          // Whether or not to enable the stuck detection algorithm when searching for a marker.
     const double SEARCH_STUCK_CHECK_INTERVAL       = 2.0;                           // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS = 3;                             // Max number of failed checks of the rover's rotation before next attempt.
     const double SEARCH_STUCK_CHECK_ROT_THRESH     = 20.0;                          // Minimum angular velocity required to consider the rover as actively rotating.
@@ -404,13 +404,13 @@ namespace constants
     // Navigating State.
     const double NAVIGATING_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS        = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
-    const bool NAVIGATING_VERIFY_POSITION              = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
-    const double NAVIGATING_VERIFY_SAMPLE_TIME         = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
-    const bool NAVIGATING_ENABLE_STUCK_DETECT          = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
-    const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;      // Period in seconds between consecutive checks of if the rover's rotating.
-    const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;        // Max number of failed checks of the rover's rotation before next attempt.
-    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;     // Minimum angular velocity required to consider the rover as actively rotating.
-    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.3;      // Minimum velocity required to consider the rover as actively moving.
+    const bool NAVIGATING_VERIFY_POSITION              = true;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
+    const double NAVIGATING_VERIFY_SAMPLE_TIME         = 30.0;    // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const bool NAVIGATING_ENABLE_STUCK_DETECT          = true;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
+    const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
+    const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;       // Max number of failed checks of the rover's rotation before next attempt.
+    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
+    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.3;     // Minimum velocity required to consider the rover as actively moving.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
