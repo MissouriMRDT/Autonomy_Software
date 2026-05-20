@@ -135,10 +135,9 @@ class LiDARHandler
         // Private Members
         ////////////////////////////////////
 
-        std::unique_ptr<duckdb::DuckDB> m_pDB;          // DuckDB database instance.
-        std::unique_ptr<duckdb::Connection> m_pConn;    // DuckDB connection wrapper.
+        std::unique_ptr<duckdb::DuckDB> m_pDB;    // DuckDB database instance.
         bool m_bIsDBOpen;
-        std::shared_mutex m_muQueryMutex;               // Mutex for thread-safe access to the database.
+        std::shared_mutex m_muQueryMutex;         // Mutex for thread-safe access to the database.
 };
 
 #endif

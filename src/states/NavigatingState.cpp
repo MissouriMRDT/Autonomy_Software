@@ -36,12 +36,13 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Scheduling next run of state logic.");
 
         // Initialize member variables.
-        m_bWasStuck         = false;
-        m_bFetchNewWaypoint = true;
-        m_vTagDetectors     = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
-                               globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
-        m_vObjectDetectors  = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
-                               globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
+        m_bWasStuck             = false;
+        m_bWithinWaypointRadius = false;
+        m_bFetchNewWaypoint     = true;
+        m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
+                                   globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
+        m_vObjectDetectors      = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
+                                   globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
     }
 
     /******************************************************************************
@@ -216,20 +217,41 @@ namespace statemachine
         // Check if we are at the goal waypoint.
         if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
         {
-            // NOTE: Optional - Uncomment the above code and comment out the below code to use stanley control to navigate to the goal waypoint.
-            // Use stanley to calculate drive move/powers.
-            controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose);
-            // Calculate move from goal heading and desired speed.
-            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-                                                                                         stDriveVector.dThetaHeading,
-                                                                                         stCurrentRoverPose.GetCompassHeading(),
-                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
-            // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
-            //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
-            //                                                                              stCurrentRoverPose.GetCompassHeading(),
-            //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
-            // Send drive powers over RoveComm.
-            globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+            // Check if we are at least withing the radius of the goal waypoint. If we are, slow down to search pattern speeds.
+            if (stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
+            {
+                // Check if this is the first time entering the radius
+                if (!m_bWithinWaypointRadius)
+                {
+                    LOG_NOTICE(logging::g_qSharedLogger,
+                               "NavigatingState: Rover is now within waypoint radius of {}. Slowing down to search pattern speed...",
+                               m_stGoalWaypoint.dRadius);
+                    m_bWithinWaypointRadius = true;
+                }
+
+                // Use stanley to calculate drive move/powers.
+                controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose, constants::SEARCH_MOTOR_POWER);
+                // Calculate move from goal heading and desired speed.
+                diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+                                                                                             stDriveVector.dThetaHeading,
+                                                                                             stCurrentRoverPose.GetCompassHeading(),
+                                                                                             diffdrive::DifferentialControlMethod::eArcadeDrive);
+                // Send drive powers over RoveComm.
+                globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+            }
+            else
+            {
+                // Use stanley to calculate drive move/powers.
+                controllers::PredictiveStanleyController::DriveVector stDriveVector =
+                    m_pStanleyController->Calculate(stCurrentRoverPose, constants::NAVIGATING_MOTOR_POWER);
+                // Calculate move from goal heading and desired speed.
+                diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+                                                                                             stDriveVector.dThetaHeading,
+                                                                                             stCurrentRoverPose.GetCompassHeading(),
+                                                                                             diffdrive::DifferentialControlMethod::eArcadeDrive);
+                // Send drive powers over RoveComm.
+                globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+            }
         }
         else
         {
@@ -247,7 +269,9 @@ namespace statemachine
                         m_stGoalWaypoint.nID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::CONTINUOUSNAVIGATE))
                     {
                         // Submit logger message.
-                        LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: The current waypoint ID is {}. Continuing to next waypoint...", m_stGoalWaypoint.nID);
+                        LOG_NOTICE(logging::g_qSharedLogger,
+                                   "NavigatingState: The current waypoint ID is signalling continuous navigation ({}). Continuing to next waypoint...",
+                                   m_stGoalWaypoint.nID);
                         // Pop the next waypoint.
                         globals::g_pWaypointHandler->PopNextWaypoint();
                         // Trigger new waypoint event.
@@ -410,6 +434,10 @@ namespace statemachine
                 {
                     // Submit logger message.
                     LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
+
+                    // Reset radius toggle for the new waypoint
+                    m_bWithinWaypointRadius = false;
+
                     // Get and store new goal waypoint.
                     m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
                     // Plan a new path using the GeoPlanner.

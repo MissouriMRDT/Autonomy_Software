@@ -49,7 +49,7 @@ namespace statemachine
         // Calculate the search path.
         m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
-                                                                       15.0,
+                                                                       m_stSearchPatternCenter.dRadius,
                                                                        // m_stSearchPatternCenter.dRadius,
                                                                        stCurrentRoverPose.GetCompassHeading(),
                                                                        constants::SEARCH_SPIRAL_SPACING);
@@ -319,10 +319,6 @@ namespace statemachine
                                                                                      stDriveVector.dThetaHeading,
                                                                                      stCurrentRoverPose.GetCompassHeading(),
                                                                                      diffdrive::DifferentialControlMethod::eArcadeDrive);
-        // diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(constants::NAVIGATING_MOTOR_POWER,
-        //                                                                              stGoalWaypointMeasurement.dStartRelativeBearing,
-        //                                                                              stCurrentRoverPose.GetCompassHeading(),
-        //                                                                              diffdrive::DifferentialControlMethod::eArcadeDrive);
         // Send drive powers over RoveComm.
         globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
 

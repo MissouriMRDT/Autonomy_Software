@@ -371,15 +371,21 @@ void TagDetector::ThreadedContinuousCode()
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
+
+        // Check if the detected tags vector is empty. If not, set the last good detection overlay frame to the current one with detections drawn on it.
+        if (!m_vDetectedArucoTags.empty())
+        {
+            m_cvLastGoodDetectionOverlayFrame = m_cvArucoProcFrame.clone();
+        }
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
     // Acquire a shared_lock on the detected tags copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the detected tag copy queue is empty.
-    if (!m_qDetectedTagDrawnOverlayFramesCopySchedule.empty() || !m_qDetectedArucoTagCopySchedule.empty())
+    if (!m_qDetectionOverlayFramesCopySchedule.empty() || !m_qDetectedArucoTagCopySchedule.empty())
     {
-        size_t siQueueLength = m_qDetectedTagDrawnOverlayFramesCopySchedule.size() + m_qDetectedArucoTagCopySchedule.size();
+        size_t siQueueLength = m_qDetectionOverlayFramesCopySchedule.size() + m_qDetectedArucoTagCopySchedule.size();
         // Start the thread pool to store multiple copies of the detected tags to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumDetectedTagsRetrievalThreads);
         // Wait for thread pool to finish.
@@ -405,14 +411,14 @@ void TagDetector::PooledLinearCode()
     //  Detection Overlay Frame queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedTagCopySchedule.
-    std::unique_lock<std::shared_mutex> lkTagOverlayFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock<std::shared_mutex> lkTagOverlayFrameQueue(m_muDetectionOverlayCopyMutex);
     // Check if there are unfulfilled requests.
-    if (!m_qDetectedTagDrawnOverlayFramesCopySchedule.empty())
+    if (!m_qDetectionOverlayFramesCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedTagDrawnOverlayFramesCopySchedule.front();
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectionOverlayFramesCopySchedule.front();
         // Pop out of queue.
-        m_qDetectedTagDrawnOverlayFramesCopySchedule.pop();
+        m_qDetectionOverlayFramesCopySchedule.pop();
         // Release lock.
         lkTagOverlayFrameQueue.unlock();
 
@@ -421,6 +427,32 @@ void TagDetector::PooledLinearCode()
         {
             case PIXEL_FORMATS::eArucoDetection: *stContainer.pFrame = m_cvArucoProcFrame.clone(); break;
             default: *stContainer.pFrame = m_cvArucoProcFrame.clone(); break;
+        }
+
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedFrameStatus->set_value(true);
+    }
+
+    /////////////////////////////
+    //  Last Good Detection Overlay Frame queue.
+    /////////////////////////////
+    // Acquire sole writing access to the detectedTagCopySchedule.
+    std::unique_lock<std::shared_mutex> lkLastGoodDetectionOverlayFrameQueue(m_muLastGoodDetectionOverlayCopyMutex);
+    // Check if there are unfulfilled requests.
+    if (!m_qLastGoodDetectionOverlayFramesCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qLastGoodDetectionOverlayFramesCopySchedule.front();
+        // Pop out of queue.
+        m_qLastGoodDetectionOverlayFramesCopySchedule.pop();
+        // Release lock.
+        lkLastGoodDetectionOverlayFrameQueue.unlock();
+
+        // Check which frame we should copy.
+        switch (stContainer.eFrameType)
+        {
+            case PIXEL_FORMATS::eArucoDetection: *stContainer.pFrame = m_cvLastGoodDetectionOverlayFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvLastGoodDetectionOverlayFrame.clone(); break;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -469,7 +501,34 @@ std::future<bool> TagDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
-    m_qDetectedTagDrawnOverlayFramesCopySchedule.push(stContainer);
+    m_qDetectionOverlayFramesCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkScheduler.unlock();
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+
+/******************************************************************************
+ * @brief Request a copy of a frame containing the last good tag detection overlays from the
+ *      aruco and torch library.
+ *
+ * @param cvFrame - The frame to copy the detection overlay image to.
+ * @return std::future<bool> - The future that should be waited on before using the passed in frame.
+ *                      Future will be true or false based on whether or not the frame was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-11
+ ******************************************************************************/
+std::future<bool> TagDetector::RequestLastGoodOverlayFrame(cv::Mat& cvFrame)
+{
+    // Assemble the DataFetchContainer.
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eArucoDetection);
+
+    // Acquire lock on pool copy queue.
+    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qLastGoodDetectionOverlayFramesCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
 
