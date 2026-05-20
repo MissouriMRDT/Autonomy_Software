@@ -38,7 +38,6 @@ namespace statemachine
         // Initialize member variables.
         m_bWasStuck             = false;
         m_bWithinWaypointRadius = false;
-        m_dStuckDistanceToGoal  = 0;
         m_bFetchNewWaypoint     = true;
         m_vTagDetectors         = {globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eHeadMainCam),
                                    globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
@@ -99,6 +98,19 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
+        // If navigating was previously stuck, then re-path plan stuck area
+        if (m_bWasStuck)
+        {
+            // Retrieve modified path from stuck
+            m_vPathCoordinates = globals::g_pWaypointHandler->RetrievePath("unstuckPath");
+
+            // Update visualizer and stanley
+            globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
+            m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+
+            m_bWasStuck = false;
+        }
+
         // Check if we should get a new goal waypoint and that the waypoint handler has one for us.
         if (m_bFetchNewWaypoint && globals::g_pWaypointHandler->GetWaypointCount() > 0)
         {
@@ -110,33 +122,8 @@ namespace statemachine
         // Get Current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
-        // If navigating was previously stuck, then re-path plan stuck area
-        if (m_bWasStuck)
-        {
-            // Change the path to reflect the new obstacle
-            geoops::UTMCoordinate stLastStuckPoint = ModifyPathAfterStuckState();
-
-            // Change Control Gain to turn around the obstacle and the distance from goal in which Control Gain can be changed back to normal
-            m_dStuckDistanceToGoal = geoops::CalculateGeoMeasurement(stLastStuckPoint, m_stGoalWaypoint.GetUTMCoordinate()).dDistanceMeters;
-            m_pStanleyController->SetControlGain(1);
-
-            // Update visualizer and stanley
-            globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
-            m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-
-            m_StuckDetector.ResetStuckChecks();
-            m_bWasStuck = false;
-        }
-
         // Calculate distance and bearing from goal waypoint.
         geoops::GeoMeasurement stGoalWaypointMeasurement = geoops::CalculateGeoMeasurement(stCurrentRoverPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
-
-        // Change the Control Gain back to normal once we are past the stuck obstacle
-        if (m_dStuckDistanceToGoal != 0 && m_dStuckDistanceToGoal > stGoalWaypointMeasurement.dDistanceMeters)
-        {
-            m_pStanleyController->SetControlGain(constants::STANLEY_CROSSTRACK_CONTROL_GAIN);
-            m_dStuckDistanceToGoal = 0;
-        }
 
         // Only print out every so often.
         static bool bAlreadyPrinted = false;
@@ -357,11 +344,11 @@ namespace statemachine
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
-            // Save heading
-            m_dHeadingBeforeStuck = stCurrentRoverPose.GetCompassHeading();
+            // Save rover path for modification in stuck state
+            globals::g_pWaypointHandler->StorePath("stuckPath", m_vPathCoordinates);
+            m_bWasStuck = true;
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-            m_bWasStuck = true;
             // Don't execute the rest of the state.
             return;
         }
@@ -549,179 +536,5 @@ namespace statemachine
         }
 
         return eNextState;
-    }
-
-    /******************************************************************************
-     * @brief Modify path after stuck state to avoid the stuck obstacle
-     *
-     * 1) Filter out any points that are a specific distance away from the obstacle
-     * 2) Connect the rover position to the path to the first node of the vector by path-planning. If the rover is inside the obstacle, then first path plan it to
-     *      the close edge of the obstacle.
-     * 3) Iteratively go through the points of the path vector. If the point is inside the obstacle remove it. If the next point isn't being removed then
-     *      connect the "hole" in the path by path-planning
-     *
-     *
-     * @author Sam Nolte (samnolte0302@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
-     * @date 2026-04-13
-     ******************************************************************************/
-    geoops::UTMCoordinate NavigatingState::ModifyPathAfterStuckState()
-    {
-        geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
-        geoops::UTMCoordinate furthestPoint;
-
-        // Get the obstacle's origin and radians from rover to obstacle.
-        int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount();
-        geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex - 1).GetUTMCoordinate();
-        LOG_INFO(logging::g_qSharedLogger, "Retrieved Obstacle: ({}, {})", stObstaclePosition.dEasting, stObstaclePosition.dNorthing);
-
-        // Inflate the obstacle so Stanley will avoid it.
-        globals::g_pWaypointHandler->AddObstacle(stObstaclePosition, constants::STUCK_OBSTACLE_RADIUS * 2);
-
-        // Get the point on the obstacle's border which the rover came from.
-        double dHeadingRad = (90.0 - m_dHeadingBeforeStuck) * M_PI / 180.0;
-        if (dHeadingRad < 0)
-        {
-            dHeadingRad += 2 * M_PI;
-        }
-
-        // Grab starting coordinate and goal coordinate.
-        geoops::UTMCoordinate stStartCoordinate = stCurrentRoverPose.GetUTMCoordinate();
-        geoops::UTMCoordinate stGoalCoordinate  = stObstaclePosition;
-
-        // Get goal coordinate eating and northing.
-        stGoalCoordinate.dEasting -= std::cos(dHeadingRad) * constants::STUCK_OBSTACLE_RADIUS;
-        stGoalCoordinate.dNorthing -= std::sin(dHeadingRad) * constants::STUCK_OBSTACLE_RADIUS;
-
-        // Create variables for splicing the path.
-        std::vector<geoops::Waypoint> vSplicePathCoordinates;
-        std::vector<geoops::Waypoint>::iterator it = m_vPathCoordinates.begin();
-        int nPointsAdded                           = 0;
-        int nPointsRemoved                         = 0;
-
-        // Unload affected LiDAR tile save data
-        globals::g_pGeoPlanner->UnloadLiDARTiles(stObstaclePosition.dEasting - constants::STUCK_OBSTACLE_RADIUS,
-                                                 stObstaclePosition.dEasting + constants::STUCK_OBSTACLE_RADIUS,
-                                                 stObstaclePosition.dNorthing - constants::STUCK_OBSTACLE_RADIUS,
-                                                 stObstaclePosition.dNorthing + constants::STUCK_OBSTACLE_RADIUS);
-
-        // Find the node closest to the rover's current position to determine what has already been passed.
-        std::vector<geoops::Waypoint>::iterator itClosest = m_vPathCoordinates.begin();
-        double dMinDistSq                                 = std::numeric_limits<double>::max();
-
-        // Loop through the waypoints.
-        for (std::vector<geoops::Waypoint>::iterator itSearch = m_vPathCoordinates.begin(); itSearch != m_vPathCoordinates.end(); ++itSearch)
-        {
-            // Get easting and northing coordinates and determine the distance squared.
-            double dx      = itSearch->GetUTMCoordinate().dEasting - stCurrentRoverPose.GetUTMCoordinate().dEasting;
-            double dy      = itSearch->GetUTMCoordinate().dNorthing - stCurrentRoverPose.GetUTMCoordinate().dNorthing;
-            double dDistSq = dx * dx + dy * dy;
-
-            // If our distance is too small, update the minimum value and closest iterator point.
-            if (dDistSq < dMinDistSq)
-            {
-                dMinDistSq = dDistSq;
-                itClosest  = itSearch;
-            }
-        }
-
-        // Delete all points in the path prior to the closest point, as they are behind the rover.
-        if (itClosest != m_vPathCoordinates.begin())
-        {
-            nPointsRemoved += std::distance(m_vPathCoordinates.begin(), itClosest);
-            it = m_vPathCoordinates.erase(m_vPathCoordinates.begin(), itClosest);
-        }
-
-        // Else, set it to the beginning of the path.
-        else
-        {
-            it = m_vPathCoordinates.begin();
-        }
-
-        // If rover is in the obstacle path it out first and connect it to previous path
-        double dx = stCurrentRoverPose.GetUTMCoordinate().dEasting - stObstaclePosition.dEasting;
-        double dy = stCurrentRoverPose.GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
-        if (sqrt(dx * dx + dy * dy) <= constants::STUCK_OBSTACLE_RADIUS)
-        {
-            geoops::UTMCoordinate stFirstNodeOfOriginalPath = m_vPathCoordinates.front().GetUTMCoordinate();
-
-            // Splice in a new path from rover's current location to outside of the obstacle
-            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-            it                     = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), vSplicePathCoordinates.end());
-            it += vSplicePathCoordinates.size();
-            nPointsAdded += vSplicePathCoordinates.size();
-
-            // Splice in a new path from outside of the obstacle to the end of the previous path
-            stStartCoordinate      = (vSplicePathCoordinates.size() >= 2) ? std::prev(vSplicePathCoordinates.end())->GetUTMCoordinate() : stStartCoordinate;
-            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stFirstNodeOfOriginalPath);
-            if (vSplicePathCoordinates.size() >= 3)
-            {
-                it = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                nPointsAdded += vSplicePathCoordinates.size() - 2;
-            }
-        }
-
-        // Rover is not inside obstacle, so just connect it to previous path.
-        else
-        {
-            // Splice in a new path from rover's current location to the end of the previous path
-            stGoalCoordinate       = m_vPathCoordinates.front().GetUTMCoordinate();
-            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-            if (vSplicePathCoordinates.size() >= 2)
-            {
-                it = m_vPathCoordinates.insert(m_vPathCoordinates.begin(), vSplicePathCoordinates.begin(), std::prev(vSplicePathCoordinates.end()));
-                nPointsAdded += vSplicePathCoordinates.size() - 1;
-            }
-        }
-
-        // Remove all points that are in stuck zone.
-        bool bLastDeleted = false;
-        while (it != std::prev(m_vPathCoordinates.end()))
-        {
-            double dDifferenceX = it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting;
-            double dDifferenceY = it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
-
-            // If path coord is inside stuck zone, then remove it.
-            if (sqrt(dDifferenceX * dDifferenceX + dDifferenceY * dDifferenceY) <= constants::STUCK_OBSTACLE_RADIUS)
-            {
-                bLastDeleted = true;
-                it           = m_vPathCoordinates.erase(it);
-                ++nPointsRemoved;
-            }
-            // If the previous node was deleted, then connect the dots correctly by splicing a new path in between.
-            else if (bLastDeleted)
-            {
-                //  Plan a new path to the next remaining path node.
-                stStartCoordinate      = (it != m_vPathCoordinates.begin()) ? std::prev(it)->GetUTMCoordinate() : stCurrentRoverPose.GetUTMCoordinate();
-                stGoalCoordinate       = it->GetUTMCoordinate();
-                vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-                if (vSplicePathCoordinates.size() >= 3)
-                {
-                    it           = m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                    bLastDeleted = false;
-                    it += vSplicePathCoordinates.size() - 1;
-                    nPointsAdded += vSplicePathCoordinates.size() - 2;
-                }
-            }
-            else
-            {
-                ++it;
-            }
-        }
-        if (bLastDeleted)
-        {
-            // Plan a new path to the next remaining path node
-            stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
-            stGoalCoordinate       = it->GetUTMCoordinate();
-            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-            m_vPathCoordinates.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-            nPointsAdded += vSplicePathCoordinates.size() - 2;
-        }
-
-        // Pop inflated obstacle
-        globals::g_pWaypointHandler->DeleteObstacle(nObstacleIndex);
-
-        LOG_INFO(logging::g_qSharedLogger, "Stuck state modified rover path: {} nodes added, {} nodes removed", nPointsAdded, nPointsRemoved);
-
-        return stGoalCoordinate;
     }
 }    // namespace statemachine

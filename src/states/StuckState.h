@@ -66,6 +66,8 @@ namespace statemachine
             /////////////////////////////////////////
             bool SamePosition(const geoops::GPSCoordinate& stOriginalPosition, const geoops::GPSCoordinate& stCurrPosition);
             void DeclareObstacle();
+            void ModifyPath();
+            void SplicePath(std::vector<geoops::Waypoint>& vPath, geoops::UTMCoordinate stObstaclePosition);
 
         protected:
             /////////////////////////////////////////
