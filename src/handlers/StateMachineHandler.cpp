@@ -383,68 +383,15 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
 
     if ((bIMUHeading) && !constants::MODE_SIM && m_pMainCam->GetCameraIsOpen())
     {
-        // Create instance variables.
-        sl::SensorsData slCurrentCameraVIOPose;
+        // DYNAMIC REALIGNMENT. (The Drift/Lag Fix using GPS)
+        double dVelocity   = this->SmartRetrieveVelocity();
+        double dAngularVel = this->SmartRetrieveAngularVelocity();
 
-        // Get the current camera pose from the ZEDCam.
-        std::future<bool> fuResultStatus = m_pMainCam->RequestSensorsCopy(slCurrentCameraVIOPose);
-
-        // Wait for future to be fulfilled.
-        if (fuResultStatus.get())
+        // If driving forward fast enough (> Xm/s) and NOT turning. (angular vel near 0)
+        if ((m_pCurrentState != nullptr && m_pCurrentState->GetState() == statemachine::States::eIdle) || (std::abs(dVelocity) > constants::ZED_REALIGN_VEL_THRESH && std::abs(dAngularVel) < constants::ZED_REALIGN_ROT_THRESH))
         {
-            // Get compass heading based off of the ZED's aligned accelerometer.
-            double dRawZEDHeading = slCurrentCameraVIOPose.imu.pose.getEulerAngles(false).y;
-            // Convert -180/180 to 0/360 purely for modulus math (keeps 0 at 0).
-            if (dRawZEDHeading < 0)
-                dRawZEDHeading += 360.0;
-
-            // JUMP DETECTION. (Instant Fix for Resets/Disconnects)
-            if (!m_bFirstHeadingLoop)
-            {
-                // Calculate shortest angular difference. (handles 360 wrap around)
-                double dDifference   = std::fmod(std::abs(dRawZEDHeading - m_dLastRawZEDHeading), 360.0);
-                double dShortestDist = dDifference > 180.0 ? 360.0 - dDifference : dDifference;
-
-                // If heading changes by more than X degrees in one tick, it's a reset/glitch.
-                if (dShortestDist > constants::ZED_REALIGN_ROT_THRESH)
-                {
-                    LOG_WARNING(logging::g_qSharedLogger, "ZED Heading Reset Detected! Recovering offset...");
-
-                    // Recover the offset using the last known good fused heading.
-                    m_dZEDHeadingOffset = m_dLastFusedHeading - dRawZEDHeading;
-                    m_dZEDHeadingOffset = numops::InputAngleModulus(m_dZEDHeadingOffset, 0.0, 360.0);
-                }
-            }
-
-            // Apply the offset.
-            dFusedHeading = numops::InputAngleModulus(dRawZEDHeading + m_dZEDHeadingOffset, 0.0, 360.0);
-
-            // DYNAMIC REALIGNMENT. (The Drift/Lag Fix using GPS)
-            double dVelocity   = this->SmartRetrieveVelocity();
-            double dAngularVel = this->SmartRetrieveAngularVelocity();
-
-            // If driving forward fast enough (> Xm/s) and NOT turning. (angular vel near 0)
-            if (dVelocity > constants::ZED_REALIGN_VEL_THRESH && std::abs(dAngularVel) < constants::ZED_REALIGN_VEL_THRESH)
-            {
-                // Calculate what the offset should be according to GPS.
-                double dTargetOffset = dCurrentGPSHeading - dRawZEDHeading;
-                dTargetOffset        = numops::InputAngleModulus(dTargetOffset, 0.0, 360.0);
-
-                // Slowly slew the actual offset toward the target offset. (Low-Pass Filter using shortest path)
-                double dAlpha = 0.05;
-
-                // Calculate the shortest angular distance from our current offset to the target offset.
-                double dOffsetError = numops::AngularDifference(m_dZEDHeadingOffset, dTargetOffset);
-                // Apply the alpha to the error, and add it to our current offset.
-                m_dZEDHeadingOffset += (dAlpha * dOffsetError);
-                // Re-wrap the final value to ensure it stays cleanly between 0 and 360.
-                m_dZEDHeadingOffset = numops::InputAngleModulus(m_dZEDHeadingOffset, 0.0, 360.0);
-            }
-
-            // Update history for the next loop.
-            m_dLastRawZEDHeading = dRawZEDHeading;
-            m_dLastFusedHeading  = dFusedHeading;
-            m_bFirstHeadingLoop  = false;
+            this->RealignZEDHeading(dCurrentGPSHeading);
+            LOG_NOTICE(logging::g_qSharedLogger, "REALIGN!");
         }
     }
 
