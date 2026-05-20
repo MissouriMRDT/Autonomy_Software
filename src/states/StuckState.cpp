@@ -426,6 +426,17 @@ namespace statemachine
         std::vector<geoops::Waypoint> vRefPath          = globals::g_pWaypointHandler->RetrievePath("stuckPath");
         std::vector<geoops::Waypoint> vRevSearchRefPath = (m_eTriggeringState == States::eSearchPattern) ? vRefPath : std::vector<geoops::Waypoint>();
 
+        if (vRefPath.empty())
+        {
+            LOG_WARNING(logging::g_qSharedLogger, "Stuck state received empty path to modify!");
+            globals::g_pWaypointHandler->StorePath("unstuckPath", vRefPath);
+            if (m_eTriggeringState == States::eSearchPattern)
+            {
+                globals::g_pWaypointHandler->StorePath("RevSpiralPath", vRevSearchRefPath);
+            }
+            return;
+        }
+
         // Get the point on the obstacle's border which the rover came from.
         double dHeadingRad = (90.0 - m_dOriginalHeading) * M_PI / 180.0;
         if (dHeadingRad < 0)
@@ -479,7 +490,7 @@ namespace statemachine
         // If rover is in the obstacle, then path it out first and connect it to previous path
         double dx = stCurrentRoverPose.GetUTMCoordinate().dEasting - stObstaclePosition.dEasting;
         double dy = stCurrentRoverPose.GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
-        if (sqrt(dx * dx + dy * dy) <= constants::STUCK_OBSTACLE_RADIUS)
+        if (dx * dx + dy * dy <= constants::STUCK_OBSTACLE_RADIUS * constants::STUCK_OBSTACLE_RADIUS)
         {
             geoops::UTMCoordinate stFirstNodeOfOriginalPath = vRefPath.front().GetUTMCoordinate();
 
@@ -538,6 +549,11 @@ namespace statemachine
      ******************************************************************************/
     void StuckState::SplicePath(std::vector<geoops::Waypoint>& vPath, geoops::UTMCoordinate stObstaclePosition)
     {
+        if (vPath.size() < 2)
+        {
+            return;
+        }
+
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
         geoops::UTMCoordinate stStartCoordinate;
         geoops::UTMCoordinate stGoalCoordinate;
@@ -554,7 +570,7 @@ namespace statemachine
             double dDifferenceY = it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
 
             // If path coord is inside stuck zone, then remove it.
-            if (sqrt(dDifferenceX * dDifferenceX + dDifferenceY * dDifferenceY) <= constants::STUCK_OBSTACLE_RADIUS)
+            if (dDifferenceX * dDifferenceX + dDifferenceY * dDifferenceY <= constants::STUCK_OBSTACLE_RADIUS * constants::STUCK_OBSTACLE_RADIUS)
             {
                 bLastDeleted = true;
                 it           = vPath.erase(it);
