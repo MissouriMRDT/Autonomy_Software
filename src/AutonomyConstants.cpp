@@ -380,11 +380,11 @@ namespace constants
     const double STUCK_ALIGN_DEGREES         = 65.0;    // The amount to rotate/realign for rover after a failed attempt.
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
     const double STUCK_OBSTACLE_DISTANCE     = 1.0;     // Distance in meters between rover GPS and origin of obstacle.
-    const double STUCK_OBSTACLE_RADIUS       = 2.5;     // Radius in meters of declared obstacle.
+    const double STUCK_OBSTACLE_RADIUS       = 5.0;     // Radius in meters of declared obstacle.
 
     // Reverse State.
     const double REVERSE_MOTOR_POWER       = DRIVE_MAX_SAFE_POWER * 1.0;    // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;                           // The distance to reverse in meters.
+    const double REVERSE_DISTANCE          = 5.5;                           // The distance to reverse in meters.
     const double REVERSE_TIMEOUT_PER_METER = 5.0;                           // Reverse state timeout in seconds for each meter reversed.
     const bool REVERSE_MAINTAIN_HEADING    = true;                          // Whether or not the rover should maintain heading while reversing.
 
