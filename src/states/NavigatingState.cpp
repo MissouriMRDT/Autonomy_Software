@@ -217,8 +217,11 @@ namespace statemachine
         // Check if we are at the goal waypoint.
         if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
         {
+            // Default to normal navigating speed.
+            double dNavigatingSpeed = constants::NAVIGATING_MOTOR_POWER;
+
             // Check if we are at least withing the radius of the goal waypoint. If we are, slow down to search pattern speeds.
-            if (stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
+            if (constants::NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
             {
                 // Check if this is the first time entering the radius
                 if (!m_bWithinWaypointRadius)
@@ -229,30 +232,19 @@ namespace statemachine
                     m_bWithinWaypointRadius = true;
                 }
 
-                // Use stanley to calculate drive move/powers.
-                // FIXME: Debug why Stanley may be performing poorly at low speeds. We would like to slow down within the search radius.
-                controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose, constants::NAVIGATING_MOTOR_POWER);
-                // Calculate move from goal heading and desired speed.
-                diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-                                                                                             stDriveVector.dThetaHeading,
-                                                                                             stCurrentRoverPose.GetCompassHeading(),
-                                                                                             diffdrive::DifferentialControlMethod::eArcadeDrive);
-                // Send drive powers over RoveComm.
-                globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
+                // Update navigating power to match the search pattern power.
+                dNavigatingSpeed = constants::SEARCH_MOTOR_POWER;
             }
-            else
-            {
-                // Use stanley to calculate drive move/powers.
-                controllers::PredictiveStanleyController::DriveVector stDriveVector =
-                    m_pStanleyController->Calculate(stCurrentRoverPose, constants::NAVIGATING_MOTOR_POWER);
-                // Calculate move from goal heading and desired speed.
-                diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
-                                                                                             stDriveVector.dThetaHeading,
-                                                                                             stCurrentRoverPose.GetCompassHeading(),
-                                                                                             diffdrive::DifferentialControlMethod::eArcadeDrive);
-                // Send drive powers over RoveComm.
-                globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
-            }
+
+            // Use stanley to calculate drive move/powers.
+            controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose, dNavigatingSpeed);
+            // Calculate move from goal heading and desired speed.
+            diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
+                                                                                         stDriveVector.dThetaHeading,
+                                                                                         stCurrentRoverPose.GetCompassHeading(),
+                                                                                         diffdrive::DifferentialControlMethod::eArcadeDrive);
+            // Send drive powers over RoveComm.
+            globals::g_pDriveBoard->SendDrive(stDriveSpeeds);
         }
         else
         {

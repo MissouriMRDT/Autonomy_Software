@@ -342,10 +342,10 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Handler.
-    const int STATEMACHINE_MAX_IPS                  = 60;      // The maximum number of iteration per second of the state machines main thread.
-    const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;     // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
+    const int STATEMACHINE_MAX_IPS                  = 60;     // The maximum number of iteration per second of the state machines main thread.
+    const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
     const double ZED_REALIGN_ROT_THRESH             = 5.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double ZED_REALIGN_VEL_THRESH             = 1.0;     // Minimum velocity required to consider the rover as actively moving.
+    const double ZED_REALIGN_VEL_THRESH             = 1.0;    // Minimum velocity required to consider the rover as actively moving.
 
     // Approaching Marker State
     const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the marker.
@@ -399,18 +399,19 @@ namespace constants
     const double SEARCH_STUCK_CHECK_INTERVAL       = 2.0;                           // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS = 3;                             // Max number of failed checks of the rover's rotation before next attempt.
     const double SEARCH_STUCK_CHECK_ROT_THRESH     = 10.0;                          // Minimum angular velocity required to consider the rover as actively rotating.
-    const double SEARCH_STUCK_CHECK_VEL_THRESH     = 0.15;                           // Minimum velocity required to consider the rover as actively moving.
+    const double SEARCH_STUCK_CHECK_VEL_THRESH     = 0.15;                          // Minimum velocity required to consider the rover as actively moving.
 
     // Navigating State.
-    const double NAVIGATING_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
-    const double NAVIGATING_REACHED_GOAL_RADIUS        = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
-    const bool NAVIGATING_VERIFY_POSITION              = true;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
-    const double NAVIGATING_VERIFY_SAMPLE_TIME         = 30.0;    // The time in seconds to collect GPS points before verifying the rover's GPS position.
-    const bool NAVIGATING_ENABLE_STUCK_DETECT          = true;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
-    const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
-    const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;       // Max number of failed checks of the rover's rotation before next attempt.
-    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 10.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.15;     // Minimum velocity required to consider the rover as actively moving.
+    const double NAVIGATING_MOTOR_POWER                   = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
+    const double NAVIGATING_REACHED_GOAL_RADIUS           = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
+    const bool NAVIGATING_VERIFY_POSITION                 = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
+    const double NAVIGATING_VERIFY_SAMPLE_TIME            = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const bool NAVIGATING_ENABLE_STUCK_DETECT             = true;     // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
+    const bool NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS = false;    // Whether or not to slow down to search pattern speeds when within the waypoint radius.
+    const double NAVIGATING_STUCK_CHECK_INTERVAL          = 2.0;      // Period in seconds between consecutive checks of if the rover's rotating.
+    const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS    = 3;        // Max number of failed checks of the rover's rotation before next attempt.
+    const double NAVIGATING_STUCK_CHECK_ROT_THRESH        = 10.0;     // Minimum angular velocity required to consider the rover as actively rotating.
+    const double NAVIGATING_STUCK_CHECK_VEL_THRESH        = 0.15;     // Minimum velocity required to consider the rover as actively moving.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -422,6 +423,7 @@ namespace constants
     const double STANLEY_ANGULAR_VELOCITY_LIMIT  = 90.0;    // The maximum angular velocity in degrees per second.
     const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
     const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller unicycle model.
+    const double STANLEY_MIN_STABLE_SPEED        = 0.3;     // The minimum speed that stanley is stable. If too small, rover will be erratic at low speeds.
 
     // Pure Pursuit Controller config.
     const double CLOSE_RANGE_PENALTY = 2.2;    // Additive to insure the index is updated.
