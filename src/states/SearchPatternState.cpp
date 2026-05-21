@@ -38,6 +38,7 @@ namespace statemachine
         LOG_INFO(logging::g_qSharedLogger, "SearchPatternState: Scheduling next run of state logic.");
 
         // Initialize member variables.
+        m_bWasStuck                 = false;
         m_eCurrentSearchPatternType = SearchPatternType::eSpiral;
         m_nSearchPathIdx            = 0;
         m_stSearchPatternCenter     = globals::g_pWaypointHandler->PeekNextWaypoint();
@@ -177,6 +178,22 @@ namespace statemachine
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
 
+        // If search was previously stuck, then re-path plan stuck area
+        if (m_bWasStuck)
+        {
+            // Retrieve modified path from stuck. If in the first spiral, grab the reverse spiral so that the path isn't incomplete
+            m_vSearchPath =
+                (m_nSearchPathIdx == 0) ? globals::g_pWaypointHandler->RetrievePath("RevSpiralPath") : globals::g_pWaypointHandler->RetrievePath("unstuckPath");
+            // Culled Spiral path
+            std::vector<geoops::Waypoint> vRemainderOfSpiralPath = globals::g_pWaypointHandler->RetrievePath("unstuckPath");
+
+            // Update visualizer and pure pursuit
+            globals::g_pWaypointHandler->StorePath("GeoPlannerPath", vRemainderOfSpiralPath);
+            m_pPursuitController->SetReferencePath(vRemainderOfSpiralPath);
+
+            m_bWasStuck = false;
+        }
+
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
@@ -258,13 +275,9 @@ namespace statemachine
         {
             // Submit logger message.
             LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
-            // Increment search path index so we skip the waypoint where we got stuck when reentering searchpattern.
-            m_nSearchPathIdx += 1;
-            // Check path index is within bounds.
-            if (m_nSearchPathIdx >= int(m_vSearchPath.size()))
-            {
-                m_nSearchPathIdx = m_vSearchPath.size() - 1;
-            }
+            // Save rover path for modification in stuck state
+            globals::g_pWaypointHandler->StorePath("stuckPath", m_vSearchPath);
+            m_bWasStuck = true;
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
             // Don't execute the rest of the state.

@@ -75,7 +75,7 @@ namespace constants
     // NOTE: NEVER CHANGE THESE VALUES UNLESS DRIVE BOARD HARDWARE IS CHANGED.
     const float DRIVE_MAX_POWER = 1.0;     // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board max range.
     const float DRIVE_MIN_POWER = -1.0;    // Internally autonomy uses -1.0 to 1.0 for drive powers. But this range should be mapped to the actual drive board min range.
-    const float DRIVE_MAX_SAFE_POWER = 0.7;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
+    const float DRIVE_MAX_SAFE_POWER = 1.0;    // The maximum absolute effort (0.0 to 1.0) that the drive system is allowed to use for any movement. Safety feature.
 
     // Control constants.
     const double DRIVE_PID_PROPORTIONAL      = 0.01;      // The proportional gain for the controller used to point the rover at a goal heading during navigation.
@@ -300,7 +300,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SIM_Flat.db";    // The path to the LiDAR database file.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SDELC.db";    // The path to the LiDAR database file.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -344,11 +344,11 @@ namespace constants
     // Handler.
     const int STATEMACHINE_MAX_IPS                  = 60;      // The maximum number of iteration per second of the state machines main thread.
     const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;     // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
-    const double ZED_REALIGN_ROT_THRESH             = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double ZED_REALIGN_VEL_THRESH             = 0.3;     // Minimum velocity required to consider the rover as actively moving.
+    const double ZED_REALIGN_ROT_THRESH             = 5.0;    // Minimum angular velocity required to consider the rover as actively rotating.
+    const double ZED_REALIGN_VEL_THRESH             = 1.0;     // Minimum velocity required to consider the rover as actively moving.
 
     // Approaching Marker State
-    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.15;    // The amount of power the motors use when approaching the marker.
+    const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the marker.
     const double APPROACH_MARKER_PROXIMITY_THRESHOLD  = 2.0;      // How close in meters the rover must be to the target marker before completing its approach.
     const double APPROACH_MARKER_LOST_GIVE_UP_TIME    = 15.0;     // The time in seconds to wait before giving up on the approach AFTER the tag is lost.
     const bool APPROACH_MARKER_VERIFY_POSITION        = true;     // Whether or not the rover should sit and watch the tag for a while before moving on.
@@ -361,7 +361,7 @@ namespace constants
     const double APPROACH_MARKER_STUCK_CHECK_VEL_THRESH     = 0.3;     // Minimum velocity required to consider the rover as actively moving.
 
     // Approaching Object State
-    const double APPROACH_OBJECT_MOTOR_POWER            = DRIVE_MAX_SAFE_POWER * 0.15;    // The amount of power the motors use when approaching the object.
+    const double APPROACH_OBJECT_MOTOR_POWER            = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the object.
     const double APPROACH_OBJECT_PROXIMITY_THRESHOLD    = 2.0;     // How close in meters the rover must be to the target object before completing its approach.
     const double APPROACH_OBJECT_LOST_GIVE_UP_TIME      = 15.0;    // The time in seconds to wait before giving up on the approach AFTER the object is lost.
     const bool APPROACH_OBJECT_VERIFY_POSITION          = true;    // Whether or not the rover should sit and watch the object for a while before moving on.
@@ -383,13 +383,13 @@ namespace constants
     const double STUCK_OBSTACLE_RADIUS       = 2.5;     // Radius in meters of declared obstacle.
 
     // Reverse State.
-    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_SAFE_POWER * 0.6;    // The speed to drive backwards at.
+    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_SAFE_POWER * 1.0;    // The speed to drive backwards at.
     const double REVERSE_DISTANCE          = 3.0;                           // The distance to reverse in meters.
     const double REVERSE_TIMEOUT_PER_METER = 5.0;                           // Reverse state timeout in seconds for each meter reversed.
     const bool REVERSE_MAINTAIN_HEADING    = true;                          // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.3;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.5;    // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES       = 57.0;                          // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING             = 1.0;                           // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING             = 4.0;                           // The spacing between successive points in the zigzag (meters).
@@ -398,8 +398,8 @@ namespace constants
     const bool SEARCH_ENABLE_STUCK_DETECT          = true;                          // Whether or not to enable the stuck detection algorithm when searching for a marker.
     const double SEARCH_STUCK_CHECK_INTERVAL       = 2.0;                           // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS = 3;                             // Max number of failed checks of the rover's rotation before next attempt.
-    const double SEARCH_STUCK_CHECK_ROT_THRESH     = 20.0;                          // Minimum angular velocity required to consider the rover as actively rotating.
-    const double SEARCH_STUCK_CHECK_VEL_THRESH     = 0.3;                           // Minimum velocity required to consider the rover as actively moving.
+    const double SEARCH_STUCK_CHECK_ROT_THRESH     = 10.0;                          // Minimum angular velocity required to consider the rover as actively rotating.
+    const double SEARCH_STUCK_CHECK_VEL_THRESH     = 0.15;                           // Minimum velocity required to consider the rover as actively moving.
 
     // Navigating State.
     const double NAVIGATING_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
@@ -409,8 +409,8 @@ namespace constants
     const bool NAVIGATING_ENABLE_STUCK_DETECT          = true;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
     const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;       // Max number of failed checks of the rover's rotation before next attempt.
-    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.3;     // Minimum velocity required to consider the rover as actively moving.
+    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 10.0;    // Minimum angular velocity required to consider the rover as actively rotating.
+    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.15;     // Minimum velocity required to consider the rover as actively moving.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
