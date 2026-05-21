@@ -51,6 +51,6 @@ namespace statemachine
             void Run() override;
             States TriggerEvent(Event eEvent) override;
     };
-}   // namespace statemachine
+}    // namespace statemachine
 
 #endif    // VERIFYINGMARKERSTATE_H
