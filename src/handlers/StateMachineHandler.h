@@ -221,7 +221,7 @@ class StateMachineHandler : private AutonomyThread<void>
         geoops::RoverPose SmartRetrieveRoverPose(bool bIMUHeading = true);
         double SmartRetrieveVelocity();
         double SmartRetrieveAngularVelocity();
-        void RealignZEDHeading(const double dNewActualHeading);
+        void RealignZEDHeading(const double dNewActualHeading, const double dCurrentZEDHeading);
 
         using AutonomyThread::GetIPS;
 };
