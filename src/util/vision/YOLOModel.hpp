@@ -262,10 +262,6 @@ namespace yolomodel
                                 return;
                             }
                         }
-                        else
-                        {
-                            LOG_WARNING(logging::g_qSharedLogger, "Model has no buffers to check the device.");
-                        }
 
                         // Model is ready for inference.
                         LOG_INFO(logging::g_qSharedLogger,
