@@ -387,11 +387,24 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
         double dVelocity   = this->SmartRetrieveVelocity();
         double dAngularVel = this->SmartRetrieveAngularVelocity();
 
-        // If driving forward fast enough (> Xm/s) and NOT turning. (angular vel near 0)
-        if ((m_pCurrentState != nullptr && m_pCurrentState->GetState() == statemachine::States::eIdle) ||
-            (std::abs(dVelocity) > constants::ZED_REALIGN_VEL_THRESH && std::abs(dAngularVel) < constants::ZED_REALIGN_ROT_THRESH))
+        // Request the current heading from the ZED camera.
+        sl::SensorsData slCurrentCameraSensorData;
+        std::future<bool> fuResultStatus = m_pMainCam->RequestSensorsCopy(slCurrentCameraSensorData);
+        // Wait for future to be fulfilled.
+        if (fuResultStatus.get())
         {
-            this->RealignZEDHeading(dCurrentGPSHeading);
+            // Get Degrees heading from ZED IMU data.
+            double dCurrentZEDHeading = slCurrentCameraSensorData.imu.pose.getEulerAngles(false).y;
+            // Realign offset.
+            // If driving forward fast enough (> Xm/s) and NOT turning. (angular vel near 0)
+            if ((m_pCurrentState != nullptr && m_pCurrentState->GetState() == statemachine::States::eIdle) ||
+                (std::abs(dVelocity) > constants::ZED_REALIGN_VEL_THRESH && std::abs(dAngularVel) < constants::ZED_REALIGN_ROT_THRESH))
+            {
+                this->RealignZEDHeading(dCurrentGPSHeading, dCurrentZEDHeading);
+            }
+
+            // Update fused heading.
+            dFusedHeading = numops::InputAngleModulus(dCurrentZEDHeading + m_dZEDHeadingOffset, 0.0, 360.0);
         }
     }
 
@@ -446,44 +459,41 @@ double StateMachineHandler::SmartRetrieveAngularVelocity()
  * and applies that difference as an offset to the ZED's heading.
  *
  * @param dNewActualHeading - The new actual heading of the rover that the ZED's heading should be aligned to.
+ * @param dCurrentZEDHeading - The current heading of the zed.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-04-17
  ******************************************************************************/
-void StateMachineHandler::RealignZEDHeading(const double dNewActualHeading)
+void StateMachineHandler::RealignZEDHeading(const double dNewActualHeading, const double dCurrentZEDHeading)
 {
-    // Request the current heading from the ZED camera.
-    sl::SensorsData slCurrentCameraSensorData;
-    std::future<bool> fuResultStatus = m_pMainCam->RequestSensorsCopy(slCurrentCameraSensorData);
-    // Wait for future to be fulfilled.
-    if (fuResultStatus.get())
+    // Convert -180/180 to 0/360 Standard. (Keep 0 as 0)
+    // If ZED is -90 (West), this makes it 270.
+    double dCurrentHeading = dCurrentZEDHeading;
+    if (dCurrentHeading < 0)
     {
-        // Get Degrees heading from ZED IMU data.
-        double dCurrentZEDHeading = slCurrentCameraSensorData.imu.pose.getEulerAngles(false).y;
-
-        // Convert -180/180 to 0/360 Standard. (Keep 0 as 0)
-        // If ZED is -90 (West), this makes it 270.
-        if (dCurrentZEDHeading < 0)
-            dCurrentZEDHeading += 360.0;
-
-        // Calculate the difference required to turn Raw ZED into Actual Heading.
-        // Logic: Actual = Raw + Offset  =>  Offset = Actual - Raw
-        double dOffset = dNewActualHeading - dCurrentZEDHeading;
-
-        // Wrap the offset to 0-360 positive range
-        m_dZEDHeadingOffset = numops::InputAngleModulus(dOffset, 0.0, 360.0);
-
-        // Normalize the signed offset to the range [-180, 180] so we report the smallest correction.
-        double dSignedOffset = numops::InputAngleModulus(dOffset + 180.0, 0.0, 360.0) - 180.0;
-        // Only print a notice when the correction exceeds the configured significant threshold.
-        if (std::abs(dSignedOffset) >= constants::ZED_REALIGN_ROT_THRESH)
-        {
-            LOG_NOTICE(logging::g_qSharedLogger,
-                       "Significant ZED heading correction detected. Raw ZED: {} deg, Target GPS: {} deg, Signed Offset: {} deg, New Offset: {} deg",
-                       dCurrentZEDHeading,
-                       dNewActualHeading,
-                       dSignedOffset,
-                       m_dZEDHeadingOffset);
-        }
+        dCurrentHeading += 360.0;
     }
+
+    // Calculate the difference required to turn Raw ZED into Actual Heading.
+    // Logic: Actual = Raw + Offset  =>  Offset = Actual - Raw
+    double dOffset = dNewActualHeading - dCurrentHeading;
+
+    // Wrap the offset to 0-360 positive range
+    dOffset = numops::InputAngleModulus(dOffset, 0.0, 360.0);
+
+    // Normalize the signed offset to the range [-180, 180] so we report the smallest correction.
+    double dSignedOffset = numops::AngularDifference(m_dZEDHeadingOffset, dOffset);
+    // Only print a notice when the correction exceeds the configured significant threshold.
+    if (std::abs(dSignedOffset) >= constants::ZED_REALIGN_ROT_THRESH)
+    {
+        LOG_NOTICE(logging::g_qSharedLogger,
+                   "Significant ZED heading correction detected. Raw ZED: {} deg, Target GPS: {} deg, Signed Offset: {} deg, New Offset: {} deg",
+                   dCurrentHeading,
+                   dNewActualHeading,
+                   dSignedOffset,
+                   m_dZEDHeadingOffset);
+    }
+
+    // Update zed offset.
+    m_dZEDHeadingOffset = dOffset;
 }
