@@ -54,8 +54,9 @@ Welcome to the Autonomy Binder! This is the centralized reference for all things
 - [Autonomy Constants](05_Configuration_and_Tuning/Autonomy_Constants.md)
 - [CMake Options](05_Configuration_and_Tuning/CMake_Options.md)
 
-### Troubleshooting
+### Troubleshooting & Checklists
 - [Troubleshooting Guide](06_Troubleshooting_Guide.md)
+- [Pre-Flight Checklist](15_Checklists/Autonomy_Checklist.md)
 
 ## Cheat Sheet
 
