@@ -243,6 +243,9 @@ namespace constants
     // Models to use for detection.
     const std::string TAGDETECT_TORCH_MODEL = "../data/models/yolo_models/tag/v8s_x640_150epochs_augment/best.torchscript";    // The model path to use for tag detection.
 
+    // Ignore Aruco Tag IDs
+    extern const bool TAGDETECT_IGNORE_TAG_ID = true;
+
     // Main ZED Camera.
     const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS  = 2;     // The number of threads allocated to the threadpool for performing data copies to other threads.
     const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER  = 30;    // The maximum number of iterations to run corner refinement on the image.
@@ -300,7 +303,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SDELC.db";    // The path to the LiDAR database file.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SIM_Flat.db";    // The path to the LiDAR database file.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -404,13 +407,13 @@ namespace constants
     // Navigating State.
     const double NAVIGATING_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.9;    // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS        = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
-    const bool NAVIGATING_VERIFY_POSITION              = true;    // Whether or not the rover should sit and verify the rover's GPS position before moving on.
-    const double NAVIGATING_VERIFY_SAMPLE_TIME         = 30.0;    // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const bool NAVIGATING_VERIFY_POSITION              = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
+    const double NAVIGATING_VERIFY_SAMPLE_TIME         = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
     const bool NAVIGATING_ENABLE_STUCK_DETECT          = false;    // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
-    const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;     // Period in seconds between consecutive checks of if the rover's rotating.
-    const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;       // Max number of failed checks of the rover's rotation before next attempt.
-    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.3;     // Minimum velocity required to consider the rover as actively moving.
+    const double NAVIGATING_STUCK_CHECK_INTERVAL       = 2.0;      // Period in seconds between consecutive checks of if the rover's rotating.
+    const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;        // Max number of failed checks of the rover's rotation before next attempt.
+    const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;     // Minimum angular velocity required to consider the rover as actively rotating.
+    const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.3;      // Minimum velocity required to consider the rover as actively moving.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

@@ -160,6 +160,10 @@ TagDetector::~TagDetector()
     this->RequestStop();
     this->Join();
 
+    // Delete torch detector and remove dangling entries.
+    m_pTorchDetector.reset();
+    CleanupClosedDetectors();
+
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "TagDetector for camera {} has been successfully destroyed.", this->GetCameraName());
 }
@@ -368,6 +372,23 @@ void TagDetector::ThreadedContinuousCode()
         // Merge the newly detected tags with the pre-existing detected tags.
         this->UpdateDetectedTags(m_vNewlyDetectedTags);
 
+        // Draw tag overlays on each tag's cached frame
+        for (tagdetectutils::ArucoTag& stArucoTag : m_vDetectedArucoTags)
+        {
+            if (stArucoTag.pDrawnDetectionFrame == nullptr)
+            {
+                stArucoTag.pDrawnDetectionFrame = std::make_shared<cv::Mat>(m_cvFrame.clone());
+            }
+            else
+            {
+                *stArucoTag.pDrawnDetectionFrame = m_cvFrame.clone();
+            }
+            std::vector<tagdetectutils::ArucoTag> vArucoTag;
+            vArucoTag.push_back(stArucoTag);
+            arucotag::DrawDetections(*stArucoTag.pDrawnDetectionFrame, vArucoTag);
+            torchtag::DrawDetections(*stArucoTag.pDrawnDetectionFrame, vArucoTag);
+        }
+
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
@@ -502,6 +523,27 @@ std::future<bool> TagDetector::RequestDetectedArucoTags(std::vector<tagdetectuti
 
     // Return the future from the promise stored in the container.
     return stContainer.pCopiedDataStatus->get_future();
+}
+
+std::map<TagDetector::TorchDetectorDesc, TagDetector::TorchDetectorPtr> TagDetector::s_mOpenTorchDetectors;
+
+TagDetector::TorchDetectorPtr TagDetector::OpenTorchDetector(const std::string& szModelPath, HardwareDevices eDevice)
+{
+    // Check if torch model already is loaded.
+    auto itExistingDetector = s_mOpenTorchDetectors.find({szModelPath, eDevice});
+    if (itExistingDetector != s_mOpenTorchDetectors.end())
+    {
+        // Return existing torch model.
+        return itExistingDetector->second;
+    }
+
+    // Load new torch model.
+    return (s_mOpenTorchDetectors[{szModelPath, eDevice}] = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice));
+}
+
+void TagDetector::CleanupClosedDetectors()
+{
+    std::erase_if(s_mOpenTorchDetectors, [](const auto& it) { return it.second.use_count() <= 1; });
 }
 
 /******************************************************************************

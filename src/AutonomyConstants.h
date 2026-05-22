@@ -253,6 +253,9 @@ namespace constants
     // Models to use for detection.
     extern const std::string TAGDETECT_TORCH_MODEL;
 
+    // Ignore Aruco Tag IDs
+    extern const bool TAGDETECT_IGNORE_TAG_ID;
+
     // Main ZED Camera.
     extern const int TAGDETECT_MAINCAM_DATA_RETRIEVAL_THREADS;
     extern const int TAGDETECT_MAINCAM_CORNER_REFINE_MAX_ITER;

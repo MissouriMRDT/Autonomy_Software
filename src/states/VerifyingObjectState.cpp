@@ -184,24 +184,8 @@ namespace statemachine
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
-                // Loop through the detectors vector and find which ones UUID matches the winning tag's UUID.
-                // If a match is found, request the snapshot from that detector and save it to disk with a unique filename.
-                cv::Mat cvSnapshot;
-                for (const std::shared_ptr<ObjectDetector>& pObjectDetector : m_vObjectDetectors)
-                {
-                    if (pObjectDetector->GetThreadUUID() == m_stBestObject.szDetectorUUID)
-                    {
-                        std::future<bool> fuFrame = pObjectDetector->RequestDetectionOverlayFrame(cvSnapshot);
-                        if (!fuFrame.get())
-                        {
-                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Failed to request detection overlay frame.");
-                        }
-                        break;
-                    }
-                }
-
                 // Check if the snapshot is empty.
-                if (!cvSnapshot.empty())
+                if (m_stBestObject.pDrawnDetectionFrame != nullptr)
                 {
                     std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
                     if (!std::filesystem::exists(szLogDir))
@@ -214,7 +198,7 @@ namespace statemachine
                     std::string szFilename  = szLogDir + "object_" + szTimestamp + ".png";
 
                     // Save the image to the disk
-                    bool bSuccess = cv::imwrite(szFilename, cvSnapshot);
+                    bool bSuccess = cv::imwrite(szFilename, *m_stBestObject.pDrawnDetectionFrame);
 
                     if (bSuccess)
                     {

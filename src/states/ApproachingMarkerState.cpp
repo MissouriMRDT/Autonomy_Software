@@ -128,7 +128,7 @@ namespace statemachine
 
         // 1. Boundary Check: Verify rover radius from marker waypoint.
         geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
-        if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius)
+        if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius + 6.7)
         {
             LOG_WARNING(logging::g_qSharedLogger,
                         "ApproachingMarkerState: Rover broke geofence! Radius threshold is {} m, current distance is {:.2f} m. Triggering MarkerUnseen.",
@@ -141,7 +141,7 @@ namespace statemachine
         // 2. Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag;
         tagdetectutils::ArucoTag stBestTorchTag;    // Used as placeholder for ML torch tag structure
-        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
+        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, constants::TAGDETECT_IGNORE_TAG_ID ? -1 : m_stGoalWaypoint.nID);
 
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dSecondsSinceLastSeen                        = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmLastSeenTime).count() / 1000.0;

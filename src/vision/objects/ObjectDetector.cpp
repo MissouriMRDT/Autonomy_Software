@@ -124,6 +124,10 @@ ObjectDetector::~ObjectDetector()
     this->RequestStop();
     this->Join();
 
+    // Delete torch detector and remove dangling entries.
+    m_pTorchDetector.reset();
+    CleanupClosedDetectors();
+
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "ObjectDetector for camera {} has been destroyed.", this->GetCameraName());
 }
@@ -328,8 +332,25 @@ void ObjectDetector::ThreadedContinuousCode()
         // Merge the newly detected objects with the pre-existing detected objects.
         this->UpdateDetectedObjects(m_vNewlyDetectedObjects);
 
-        // Draw object overlays onto normal image.
+        // Draw object overlays on each object's cached frame
+        for (objectdetectutils::Object& stObject : m_vDetectedObjects)
+        {
+            if (stObject.pDrawnDetectionFrame == nullptr)
+            {
+                stObject.pDrawnDetectionFrame = std::make_shared<cv::Mat>(m_cvFrame.clone());
+            }
+            else
+            {
+                *stObject.pDrawnDetectionFrame = m_cvFrame.clone();
+            }
+            std::vector<objectdetectutils::Object> vObject;
+            vObject.push_back(stObject);
+            torchobject::DrawDetections(*stObject.pDrawnDetectionFrame, vObject);
+        }
+
+        // Draw object overlays onto normal image for the video.
         torchobject::DrawDetections(m_cvTorchOverlayFrame, m_vDetectedObjects);
+
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
@@ -460,6 +481,27 @@ std::future<bool> ObjectDetector::RequestDetectedObjects(std::vector<objectdetec
     return stContainer.pCopiedDataStatus->get_future();
 }
 
+std::map<ObjectDetector::TorchDetectorDesc, ObjectDetector::TorchDetectorPtr> ObjectDetector::s_mOpenTorchDetectors;
+
+ObjectDetector::TorchDetectorPtr ObjectDetector::OpenTorchDetector(const std::string& szModelPath, HardwareDevices eDevice)
+{
+    // Check if torch model already is loaded.
+    auto itExistingDetector = s_mOpenTorchDetectors.find({szModelPath, eDevice});
+    if (itExistingDetector != s_mOpenTorchDetectors.end())
+    {
+        // Return existing torch model.
+        return itExistingDetector->second;
+    }
+
+    // Load new torch model.
+    return (s_mOpenTorchDetectors[{szModelPath, eDevice}] = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice));
+}
+
+void ObjectDetector::CleanupClosedDetectors()
+{
+    std::erase_if(s_mOpenTorchDetectors, [](const auto& it) { return it.second.use_count() <= 1; });
+}
+
 /******************************************************************************
  * @brief Initialize the PyTorch interpreter for object detection.
  *
@@ -474,7 +516,7 @@ std::future<bool> ObjectDetector::RequestDetectedObjects(std::vector<objectdetec
 bool ObjectDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice)
 {
     // Initialize a new YOLOModel object.
-    m_pTorchDetector = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice);
+    m_pTorchDetector = OpenTorchDetector(szModelPath, eDevice);
 
     // Check if device/model was opened without issue.
     if (m_pTorchDetector->IsReadyForInference())

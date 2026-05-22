@@ -57,7 +57,8 @@ namespace tagdetectutils
     {
         public:
             // Declare public struct member attributes.
-            std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();      // The bounding box of the detected tag.
+            std::shared_ptr<cv::Rect2d> pBoundingBox = std::make_shared<cv::Rect2d>();              // The bounding box of the detected tag.
+            std::shared_ptr<cv::Mat> pDrawnDetectionFrame;                                          // The frame in which the tag was detected with a bounding box drawn
             double dConfidence                               = 0.0;                                 // The detection confidence of the tag (from Torch models).
             double dStraightLineDistance                     = 0.0;                                 // Distance between the tag and the camera.
             double dYawAngle                                 = 0.0;                                 // This is the yaw angle so roll and pitch are ignored.
@@ -115,7 +116,8 @@ namespace tagdetectutils
                 if (this != &stOther)
                 {
                     // Shallow copy the bounding box.
-                    pBoundingBox = stOther.pBoundingBox;
+                    pBoundingBox         = stOther.pBoundingBox;
+                    pDrawnDetectionFrame = stOther.pDrawnDetectionFrame;
 
                     // Copy other member variables.
                     dConfidence           = stOther.dConfidence;

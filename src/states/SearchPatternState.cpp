@@ -200,7 +200,7 @@ namespace statemachine
             // Create instance variables.
             tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
             // Identify target marker.
-            statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stSearchPatternCenter.nID);
+            statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, constants::TAGDETECT_IGNORE_TAG_ID ? -1 : m_stSearchPatternCenter.nID);
             // Check if either tag type is seen.
             if (stBestArucoTag.nID != -1 || stBestTorchTag.dConfidence != 0.0)
             {

@@ -94,7 +94,7 @@ namespace statemachine
 
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
-        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, m_stGoalWaypoint.nID);
+        statemachine::IdentifyTargetMarker(m_vTagDetectors, stBestArucoTag, stBestTorchTag, constants::TAGDETECT_IGNORE_TAG_ID ? -1 : m_stGoalWaypoint.nID);
 
         // Calculate how long we've been in this state.
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
@@ -187,24 +187,19 @@ namespace statemachine
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
-                // Loop through the detectors vector and find which ones UUID matches the winning tag's UUID.
-                // If a match is found, request the snapshot from that detector and save it to disk with a unique filename.
-                cv::Mat cvSnapshot;
-                for (const std::shared_ptr<TagDetector>& pTagDetector : m_vTagDetectors)
+                // Get bounding box snapshot, preferring Aruco library detection over Torch.
+                std::shared_ptr<cv::Mat> pSnapshot;
+                if (m_stBestArucoTag.nID != -1)
                 {
-                    if (pTagDetector->GetThreadUUID() == m_stBestArucoTag.szDetectorUUID || pTagDetector->GetThreadUUID() == m_stBestTorchTag.szDetectorUUID)
-                    {
-                        std::future<bool> fuFrame = pTagDetector->RequestDetectionOverlayFrame(cvSnapshot);
-                        if (!fuFrame.get())
-                        {
-                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: Failed to request detection overlay frame.");
-                        }
-                        break;
-                    }
+                    pSnapshot = m_stBestArucoTag.pDrawnDetectionFrame;
+                }
+                else if (m_stBestTorchTag.dConfidence > 0.0)
+                {
+                    pSnapshot = m_stBestTorchTag.pDrawnDetectionFrame;
                 }
 
                 // Make sure the snapshot is not empty before trying to save it.
-                if (!cvSnapshot.empty())
+                if (pSnapshot != nullptr)
                 {
                     // Ensure the directory exists
                     std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
@@ -218,7 +213,7 @@ namespace statemachine
                     std::string szFilename  = szLogDir + "marker_" + szTimestamp + ".png";
 
                     // Save the image to the disk
-                    bool bSuccess = cv::imwrite(szFilename, cvSnapshot);
+                    bool bSuccess = cv::imwrite(szFilename, *pSnapshot);
 
                     if (bSuccess)
                     {

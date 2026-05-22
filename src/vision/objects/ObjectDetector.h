@@ -85,6 +85,13 @@ class ObjectDetector : public AutonomyThread<void>
         void PooledLinearCode() override;
         void UpdateDetectedObjects(std::vector<objectdetectutils::Object>& vNewlyDetectedObjects);
 
+        using TorchDetectorPtr  = std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter>;
+        using HardwareDevices   = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices;
+        using TorchDetectorDesc = std::pair<std::string, HardwareDevices>;
+        TorchDetectorPtr OpenTorchDetector(const std::string& szModelPath, HardwareDevices eDevice);
+        void CleanupClosedDetectors();
+        static std::map<TorchDetectorDesc, TorchDetectorPtr> s_mOpenTorchDetectors;
+
         /////////////////////////////////////////
         // Declare private member variables.
         /////////////////////////////////////////
