@@ -547,7 +547,7 @@ namespace statemachine
      * @author Sam Nolte (samnolte0302@gmail.com)
      * @date 2026-05-19
      ******************************************************************************/
-    void StuckState::SplicePath(std::vector<geoops::Waypoint>& vPath, geoops::UTMCoordinate stObstaclePosition)
+    void StuckState::SplicePath(std::vector<geoops::Waypoint>& vPath, const geoops::UTMCoordinate& stObstaclePosition)
     {
         if (vPath.size() < 2)
         {
