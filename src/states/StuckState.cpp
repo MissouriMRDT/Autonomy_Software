@@ -585,11 +585,11 @@ namespace statemachine
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
                 if (vSplicePathCoordinates.size() >= 3)
                 {
-                    bLastDeleted = false;
-                    it           = vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
+                    it = vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
                     it += vSplicePathCoordinates.size() - 1;
                     nPointsAdded += vSplicePathCoordinates.size() - 2;
                 }
+                bLastDeleted = false;
             }
             else
             {
@@ -603,8 +603,12 @@ namespace statemachine
             stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
             stGoalCoordinate       = it->GetUTMCoordinate();
             vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-            vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-            nPointsAdded += vSplicePathCoordinates.size() - 2;
+            if (vSplicePathCoordinates.size() >= 3)
+            {
+                it = vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
+                it += vSplicePathCoordinates.size() - 1;
+                nPointsAdded += vSplicePathCoordinates.size() - 2;
+            }
         }
 
         LOG_INFO(logging::g_qSharedLogger, "Stuck State Splice modified path: {} nodes added, {} nodes removed", nPointsAdded, nPointsRemoved);
