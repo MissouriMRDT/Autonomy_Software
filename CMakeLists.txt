@@ -188,17 +188,19 @@ find_package(OpenMP REQUIRED)
 ## Find OpenMS
 find_package(OpenMS REQUIRED)
 
-## Find SQLite3 (system)
-find_package(SQLite3 REQUIRED)
-
 ## Find Quill
 find_package(quill REQUIRED)
 
 ## Find LibDataChannel
 find_package(LibDataChannel REQUIRED)
 
-## Fine nlohmann JSON.
+## Find nlohmann JSON.
 find_package(nlohmann_json 3.2.0 REQUIRED)
+
+## Find DuckDB.
+find_library(DUCKDB_LIBRARY NAMES duckdb REQUIRED)
+find_path(DUCKDB_INCLUDE_DIR NAMES duckdb.hpp REQUIRED)
+include_directories(SYSTEM ${DUCKDB_INCLUDE_DIR})
 
 ## Find OpenSSL
 find_package(OpenSSL REQUIRED)
@@ -207,9 +209,6 @@ find_package(OpenSSL REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavcodec libavformat libavutil libswscale libswresample libavdevice libavfilter libpostproc SvtAv1Enc)
 include_directories(${FFMPEG_INCLUDE_DIRS})
-
-## Find MatPlotPlusPlus
-find_package(Matplot++ REQUIRED)
 
 ## Find Google Test
 find_package(GTest CONFIG REQUIRED)
@@ -239,34 +238,6 @@ set(CAFFE2_USE_CUDNN "1")
 set(TORCH_CUDA_ARCH_LIST "8.0 8.6 8.9 9.0")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
-
-## Find flatbuffers. This is a dependency of tensorflow.
-find_package(Flatbuffers REQUIRED)
-
-## Find Abseil. This is a dependency of tensorflow.
-find_package(absl REQUIRED)
-set(ABSL_LIBRARY_DIRS absl::algorithm 
-                    absl::base 
-                    absl::debugging 
-                    absl::flat_hash_map 
-                    absl::flags 
-                    absl::memory 
-                    absl::meta 
-                    absl::numeric 
-                    absl::random_random 
-                    absl::strings 
-                    absl::synchronization 
-                    absl::time 
-                    absl::utility
-)
-
-## Find TensorflowLite.
-find_package(TENSORFLOWLITE REQUIRED PATHS "external/tensorflow/")
-include_directories(SYSTEM ${TENSORFLOWLITE_INCLUDE_DIRS})
-
-## Find Libedgetpu. This is used for interfacing with all Coral devices.
-find_package(LIBEDGETPU REQUIRED PATHS "external/tensorflow/")
-include_directories(SYSTEM ${LIBEDGETPU_INCLUDE_DIRS})
 
 ## Find OpenMPI. This is needed by PCL.
 find_package(MPI REQUIRED)
@@ -324,8 +295,8 @@ endif()
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads
                         OpenMP::OpenMP_CXX
-                        SQLite::SQLite3
                         OpenMS
+                        ${DUCKDB_LIBRARY}
                         Eigen3::Eigen
                         RoveComm_CPP
                         Python3::Python
@@ -334,15 +305,10 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         PkgConfig::FFMPEG
                         LibDataChannel::LibDataChannel
                         nlohmann_json::nlohmann_json
-                        Matplot++::matplot
                         ${OpenCV_LIBS}
                         ${GeographicLib_LIBRARIES}
                         ${ZED_LIBS}
                         ${TORCH_LIBRARIES}
-                        flatbuffers::flatbuffers
-                        ${ABSL_LIBRARY_DIRS}
-                        ${TENSORFLOWLITE_LIBS}
-                        ${LIBEDGETPU_LIBS}
                         ${MPI_LIBRARIES}
                         ${PCL_LIBRARIES}
                         gcov

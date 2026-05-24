@@ -11,6 +11,7 @@
 #ifndef VERIFYING_MARKER_STATE_H
 #define VERIFYING_MARKER_STATE_H
 
+#include "../handlers/TagDetectionHandler.h"
 #include "../interfaces/State.hpp"
 #include "../util/GeospatialOperations.hpp"
 #include "../vision/aruco/TagDetector.h"
@@ -35,6 +36,8 @@ namespace statemachine
         private:
             bool m_bInitialized;
             geoops::Waypoint m_stGoalWaypoint;
+            tagdetectutils::ArucoTag m_stBestArucoTag;
+            tagdetectutils::ArucoTag m_stBestTorchTag;
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
             std::chrono::system_clock::time_point m_tmTagVerificationStartTime;
             std::chrono::system_clock::time_point m_tmTagLastSeenTime;

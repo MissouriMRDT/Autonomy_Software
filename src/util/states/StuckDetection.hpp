@@ -48,8 +48,6 @@ namespace statemachine
 
             double m_dMaximumStuckCount;
             double m_dStuckCheckIntervalSeconds;
-            double m_dVelocityThreshold;
-            double m_dAngularVelocityThreshold;
             unsigned int m_unStuckChecksSoFar;
             std::chrono::system_clock::time_point m_tmTimeSinceLastStuckCheck;
 
@@ -63,22 +61,15 @@ namespace statemachine
              *
              * @param dMaximumStuckCount - The maximum number of times the rover can be not moving upon check interval before it is considered stuck.
              * @param dStuckCheckIntervalSeconds - The interval in seconds that the function should check the current rover velocity and angular movement.
-             * @param dVelocityThreshold - The minimum linear velocity that is considered still moving. (m/s)
-             * @param dAngularVelocityThreshold - The minimum angular velocity that is considered still rotating. (deg/s)
              *
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2024-04-23
              ******************************************************************************/
-            TimeIntervalBasedStuckDetector(double dMaximumStuckCount         = 3,
-                                           double dStuckCheckIntervalSeconds = 3,
-                                           double dVelocityThreshold         = 0.3,
-                                           double dAngularVelocityThreshold  = 5.0)
+            TimeIntervalBasedStuckDetector(double dMaximumStuckCount = 3, double dStuckCheckIntervalSeconds = 3)
             {
                 // Initialize member variables.
                 m_dMaximumStuckCount         = dMaximumStuckCount;
                 m_dStuckCheckIntervalSeconds = dStuckCheckIntervalSeconds;
-                m_dVelocityThreshold         = dVelocityThreshold;
-                m_dAngularVelocityThreshold  = dAngularVelocityThreshold;
                 m_unStuckChecksSoFar         = 0;
                 m_tmTimeSinceLastStuckCheck  = std::chrono::system_clock::now();
             }
@@ -102,7 +93,7 @@ namespace statemachine
              * @author clayjay3 (claytonraycowen@gmail.com), Jason Pittman (jspencerpittman@gmail.com)
              * @date 2024-04-23
              ******************************************************************************/
-            bool CheckIfStuck(double dCurrentVelocity, double dCurrentAngularVelocity)
+            bool CheckIfStuck(double dCurrentVelocity, double dCurrentAngularVelocity, double dVelocityThreshold = 0.1, double dAngularVelocityThreshold = 0.1)
             {
                 // Create instance variables.
                 bool bStuck = false;
@@ -116,7 +107,7 @@ namespace statemachine
                     m_tmTimeSinceLastStuckCheck = tmCurrentTime;
 
                     // Check if the rover is rotating or moving linearly.
-                    if (std::abs(dCurrentVelocity) < m_dVelocityThreshold && std::abs(dCurrentAngularVelocity) < m_dAngularVelocityThreshold)
+                    if (std::abs(dCurrentVelocity) < dVelocityThreshold && std::abs(dCurrentAngularVelocity) < dAngularVelocityThreshold)
                     {
                         ++m_unStuckChecksSoFar;
                     }
@@ -138,6 +129,15 @@ namespace statemachine
                 // Return if stuck or not.
                 return bStuck;
             }
+
+            /******************************************************************************
+             * @brief Reset stuck variables so rover does not go into stuck-state next check of CheckIfStuck
+             *
+             *
+             * @author Sam Nolte (samnolte0302@gmail.com)
+             * @date 2026-04-17
+             ******************************************************************************/
+            void ResetStuckChecks() { m_unStuckChecksSoFar = 0; }
     };
 }    // namespace statemachine
 

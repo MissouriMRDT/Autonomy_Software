@@ -16,8 +16,6 @@
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 
-// #include "../util/states/ObjectDetectionChecker.hpp"
-
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -28,10 +26,9 @@ namespace statemachine
 {
     /******************************************************************************
      * @brief This method is called when the state is first started. It is used to
-     *        initialize the state.
+     * initialize the state.
      *
-     *
-     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
+     * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
      ******************************************************************************/
     void VerifyingObjectState::Start()
@@ -44,6 +41,10 @@ namespace statemachine
         m_tmObjectVerificationStartTime = std::chrono::system_clock::now();
         m_tmObjectLastSeenTime          = std::chrono::system_clock::now();
 
+        // Initialize time-based hit tracking
+        m_tmLastRunTime   = std::chrono::system_clock::now();
+        m_dTotalValidTime = 0.0;
+
         // Get object detectors.
         m_vObjectDetectors = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
                               globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
@@ -51,8 +52,7 @@ namespace statemachine
 
     /******************************************************************************
      * @brief This method is called when the state is exited. It is used to clean up
-     *        the state.
-     *
+     * the state.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2024-01-17
@@ -94,53 +94,60 @@ namespace statemachine
     {
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
 
-        // Identify target object.
+        // IMPORTANT: Ensure the rover is completely stopped to avoid motion blur during verification.
+        globals::g_pDriveBoard->SendStop();
+
+        // 1. Calculate delta time since the last execution of Run()
+        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+        double dDeltaTime                                   = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmLastRunTime).count() / 1000.0;
+        m_tmLastRunTime                                     = tmCurrentTime;    // Reset for the next loop
+
+        // 2. Identify target object.
         objectdetectutils::Object stBestObject;
         statemachine::IdentifyTargetObject(m_vObjectDetectors, stBestObject, m_stGoalWaypoint.eType);
-        // Calculate how long we've been in this state.
-        std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-        double dElapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectVerificationStartTime).count() / 1000.0;
-        // Calculate the time since the last time we saw an object.
+
+        // 3. Update Time-Based Hit Rate
+        if (stBestObject.dConfidence > 0.0)
+        {
+            // Add the time that elapsed during this valid frame to our total valid time
+            m_dTotalValidTime += dDeltaTime;
+
+            m_stBestObject         = stBestObject;    // Save the best object for the snapshot later
+            m_tmObjectLastSeenTime = tmCurrentTime;
+        }
+
+        double dElapsedTime       = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectVerificationStartTime).count() / 1000.0;
         double dTimeSinceLastSeen = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmObjectLastSeenTime).count() / 1000.0;
 
-        /*
-            If we consistently detect an object for a certain amount of time, we can assume that we are in fact in front of the object.
-            At this point, we can also assume we are close enough for the pointcloud to be usable and pick up the object.
-        */
-        // Check if object is detected.
-        if (stBestObject.dConfidence == 0.0)
+        // 4. Fast-Fail if object is completely lost
+        if (dTimeSinceLastSeen > constants::APPROACH_OBJECT_LOST_BUFFER_TIME)
         {
-            // Check if the time last seen is greater than the time to give up.
-            if (dTimeSinceLastSeen > constants::APPROACH_OBJECT_LOST_BUFFER_TIME)
-            {
-                // No objects are detected, trigger verify failed event.
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: No objects detected. Triggering verify failed event.");
-                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
-                return;
-            }
+            LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Lost visual entirely. Fast failing verification.");
+            globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+            return;
         }
-        else
+
+        // 5. Final Evaluation based on elapsed verification time
+        if (dElapsedTime >= constants::APPROACH_OBJECT_VERIFY_TIME)
         {
-            // Check the object distance.
-            if (stBestObject.dConfidence > 0.0 && stBestObject.dStraightLineDistance > constants::APPROACH_OBJECT_PROXIMITY_THRESHOLD)
-            {
-                // Object is too far away, trigger verify failed event.
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Object detected but too far away. Triggering verify failed event.");
-                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
-                return;
-            }
+            // Calculate the percentage of time the object was validly tracked
+            double dTimeHitRate = m_dTotalValidTime / constants::APPROACH_OBJECT_VERIFY_TIME;
 
-            // Update time last seen.
-            m_tmObjectLastSeenTime = std::chrono::system_clock::now();
-
-            // Check if we have been in this state long enough to verify the object.
-            if (dElapsedTime >= constants::APPROACH_OBJECT_VERIFY_TIME)
+            if (dTimeHitRate >= constants::APPROACH_OBJECT_REQUIRED_TIME_HIT_RATE)
             {
-                // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Object verified. Triggering verify complete event.");
-                // Trigger verify complete event.
+                LOG_NOTICE(logging::g_qSharedLogger,
+                           "VerifyingObjectState: SUCCESS! Confirmed visually for {:.2f}s ({:.2f}% of the required window).",
+                           m_dTotalValidTime,
+                           dTimeHitRate * 100.0);
                 globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingComplete);
-                return;
+            }
+            else
+            {
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "VerifyingObjectState: FALSE POSITIVE. Confirmed visually for only {:.2f}s ({:.2f}% of window).",
+                            m_dTotalValidTime,
+                            dTimeHitRate * 100.0);
+                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
             }
         }
     }
@@ -177,9 +184,23 @@ namespace statemachine
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eReachedGoal);
 
-                // Request the snapshot from the object detection handler
-                cv::Mat cvSnapshot = globals::g_pObjectDetectionHandler->RequestDetectionOverlayFrame();
+                // Loop through the detectors vector and find which ones UUID matches the winning tag's UUID.
+                // If a match is found, request the snapshot from that detector and save it to disk with a unique filename.
+                cv::Mat cvSnapshot;
+                for (const std::shared_ptr<ObjectDetector>& pObjectDetector : m_vObjectDetectors)
+                {
+                    if (pObjectDetector->GetThreadUUID() == m_stBestObject.szDetectorUUID)
+                    {
+                        std::future<bool> fuFrame = pObjectDetector->RequestLastGoodDetectionOverlayFrame(cvSnapshot);
+                        if (!fuFrame.get())
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: Failed to request detection overlay frame.");
+                        }
+                        break;
+                    }
+                }
 
+                // Check if the snapshot is empty.
                 if (!cvSnapshot.empty())
                 {
                     std::string szLogDir = logging::g_szLoggingOutputPath + "/detections/";
@@ -222,11 +243,17 @@ namespace statemachine
             case Event::eVerifyingFailed:
             {
                 // Submit logger message.
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Failed event.");
+                LOG_INFO(logging::g_qSharedLogger, "VerifyingObjectState: Handling Verifying Failed/Object Unseen event.");
                 // Send multimedia command to update state display.
                 globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eAutonomy);
                 // Recall the previous state.
                 eNextState = globals::g_pStateMachineHandler->GetPreviousState();
+                break;
+            }
+            case Event::eStuck:
+            {
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling Stuck event.");
+                eNextState = States::eStuck;
                 break;
             }
             case Event::eAbort:

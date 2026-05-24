@@ -116,9 +116,10 @@ TEST_F(GeolocateTests, GeolocateBoxValidInput)
 
     // Expected UTM calculation based on actual implementation:
     // X = 1.0, Y = 0.0, Z = 3.0
-    // dHeadingRad = 0 * PI/180 = 0
-    // dEasting = 500000 + (3.0 * cos(0) + 1.0 * sin(0)) = 500000 + 3 = 500003
-    // dNorthing = 4000000 + (3.0 * sin(0) - 1.0 * cos(0)) = 4000000 - 1 = 3999999
+    // dAdjustedHeading = (0 * -1.0) + 90.0 = 90.0
+    // dHeadingRad = 90 * PI/180 = PI/2
+    // dEasting = 500000 + (3.0 * cos(PI/2) + 1.0 * sin(PI/2)) = 500000 + 1.0 = 500001
+    // dNorthing = 4000000 + (3.0 * sin(PI/2) - 1.0 * cos(PI/2)) = 4000000 + 3.0 = 4000003
 
     EXPECT_NEAR(stResultUTM.dEasting, 500001.0, EPSILON);
     EXPECT_NEAR(stResultUTM.dNorthing, 4000003.0, EPSILON);
@@ -150,9 +151,10 @@ TEST_F(GeolocateTests, GeolocateBoxWithHeadingAdjustment)
 
     // Expected UTM calculation based on actual implementation:
     // X = 1.0, Y = 0.0, Z = 3.0
-    // dHeadingRad = 90 * PI/180 = PI/2
-    // dEasting = 500000 + (3.0 * cos(PI/2) + 1.0 * sin(PI/2)) = 500000 + 0 + 1 = 500001
-    // dNorthing = 4000000 + (3.0 * sin(PI/2) - 1.0 * cos(PI/2)) = 4000000 + 3 - 0 = 4000003
+    // dAdjustedHeading = (-90 * 1.0) + 90 = 0.0
+    // dHeadingRad = 0 * PI/180 = 0.0
+    // dEasting = 500000 + (3.0 * cos(0) + 1.0 * sin(0)) = 500000 + 3 + 0 = 500003
+    // dNorthing = 4000000 + (3.0 * sin(0) - 1.0 * cos(0)) = 4000000 + 0 - 1 = 3999999
 
     EXPECT_NEAR(stResultUTM.dEasting, 500003.0, EPSILON);
     EXPECT_NEAR(stResultUTM.dNorthing, 3999999.0, EPSILON);
@@ -223,12 +225,23 @@ TEST_F(GeolocateTests, GeolocateBoxOutOfBoundsPixel)
     // Call the function with out of bounds pixel.
     geoops::Waypoint stWaypoint = geoloc::GeolocateBox(m_cvTestPointcloud, m_stRoverPose, cvPixel);
 
-    // The test error shows that a default Waypoint doesn't necessarily have zero coordinates.
+    // Out-of-bounds pixel results in no valid 3D points in neighborhood,
+    // triggering the Monocular Ground Plane Fallback logic.
     const geoops::UTMCoordinate& stResultUTM = stWaypoint.GetUTMCoordinate();
 
-    // Based on the test failure, the default Waypoint has these coordinates.
-    EXPECT_NEAR(stResultUTM.dEasting, 166021.44308, 0.1);
-    EXPECT_NEAR(stResultUTM.dNorthing, 0.0, EPSILON);
+    // Expected calculations for Monocular Fallback:
+    // nBottomY = std::min(9, 15 + 2) = 9
+    // fRayAngleY = atan2(9 - 5.0, 5.0) = 0.6747 rad
+    // fAvgZ = 100.0 / tan(0.6747) = 125.0
+    // fAvgX = ((15 - 5.0) / 5.0) * 125.0 = 250.0
+    // fAvgY = -100.0
+    // dHeadingRad = PI/2 (based on 0 deg compass heading)
+    // dEasting = 500000 + (125.0 * cos(PI/2) + 250.0 * sin(PI/2)) = 500250.0
+    // dNorthing = 4000000 + (125.0 * sin(PI/2) - 250.0 * cos(PI/2)) = 4000125.0
+    // dAltitude = 100.0 + (-100.0) = 0.0
+    EXPECT_NEAR(stResultUTM.dEasting, 500250.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000125.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dAltitude, 0.0, EPSILON);
 }
 
 /******************************************************************************
@@ -246,12 +259,15 @@ TEST_F(GeolocateTests, GeolocateBoxInvalidPoint)
     // Call the function with NaN values.
     geoops::Waypoint stWaypoint = geoloc::GeolocateBox(m_cvTestPointcloud, m_stRoverPose, cvPixel);
 
-    // The test error shows that a default Waypoint doesn't necessarily have zero coordinates.
+    // The target pixel is NaN, but valid points exist in the 5x5 neighborhood!
+    // Specifically, Setup() placed point (5,5) at Z=3.0 and (2,2) at Z=5.0.
+    // Under 20th percentile target depth logic, point (5,5) (Z=3.0) is selected.
     const geoops::UTMCoordinate& stResultUTM = stWaypoint.GetUTMCoordinate();
 
-    // Based on the test failure, the default Waypoint appears to have these values.
-    EXPECT_NEAR(stResultUTM.dEasting, 499999.5, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 4000004, EPSILON);
+    // Valid point (5,5) gives: fAvgX = 1.0, fAvgZ = 3.0, fAvgY = 0.0
+    EXPECT_NEAR(stResultUTM.dEasting, 500001.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000003.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dAltitude, 100.0, EPSILON);
 }
 
 /******************************************************************************
@@ -262,6 +278,9 @@ TEST_F(GeolocateTests, GeolocateBoxInvalidPoint)
  ******************************************************************************/
 TEST_F(GeolocateTests, GeolocateBoxMultipleValidPoints)
 {
+    // Clear pointcloud to avoid Setup() points skewing the target Z percentile.
+    m_cvTestPointcloud = cv::Mat(10, 10, CV_32FC4, cv::Scalar(0, 0, 0, 0));
+
     // Add multiple valid points around position. (4,4)
     m_cvTestPointcloud.at<cv::Vec4f>(4, 4) = cv::Vec4f(1.5f, 0.5f, 4.0f, 1.0f);
     m_cvTestPointcloud.at<cv::Vec4f>(4, 5) = cv::Vec4f(1.3f, 0.6f, 3.8f, 1.0f);
@@ -277,18 +296,20 @@ TEST_F(GeolocateTests, GeolocateBoxMultipleValidPoints)
     const geoops::UTMCoordinate& stResultUTM = stWaypoint.GetUTMCoordinate();
 
     // Updating expected values based on the actual implementation:
+    // 20th percentile of {3.8, 4.0, 4.2} is 3.8. Tolerance is 0.5, so all are included.
     // X avg = (1.5 + 1.3 + 1.7)/3 = 1.5
     // Y avg = (0.5 + 0.6 + 0.4)/3 = 0.5
     // Z avg = (4.0 + 3.8 + 4.2)/3 = 4.0
 
-    // dEasting = 500000 + (4.0 * cos(0) + 1.5 * sin(0)) = 500000 + 4.0 = 500004
-    // dNorthing = 4000000 + (4.0 * sin(0) - 1.5 * cos(0)) = 4000000 - 1.5 = 3999998.5
+    // dAdjustedHeading = 90
+    // dHeadingRad = PI/2
+    // dEasting = 500000 + (4.0 * cos(PI/2) + 1.5 * sin(PI/2)) = 500000 + 1.5 = 500001.5
+    // dNorthing = 4000000 + (4.0 * sin(PI/2) - 1.5 * cos(PI/2)) = 4000000 + 4.0 = 4000004.0
     // dAltitude = 100 + 0.5 = 100.5
 
-    // Based on the test failure, these are the actual values calculated.
-    EXPECT_NEAR(stResultUTM.dEasting, 500001.375, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 4000003.75, EPSILON);
-    EXPECT_NEAR(stResultUTM.dAltitude, 100.375, EPSILON);
+    EXPECT_NEAR(stResultUTM.dEasting, 500001.5, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000004.0, EPSILON);
+    EXPECT_NEAR(stResultUTM.dAltitude, 100.5, EPSILON);
 
     // Check that the result has a non-zero radius.
     EXPECT_GT(stWaypoint.dRadius, 0.0);
@@ -325,12 +346,13 @@ TEST_F(GeolocateTests, GeolocateBoxRadiusCalculation)
     const geoops::UTMCoordinate& stResultUTM = stWaypoint.GetUTMCoordinate();
 
     // Calculate the expected averages
-    float fAvgX = (1.0f + 1.1f + 1.2f + 0.9f + 0.8f) / 5.0f;    // = 1.0
-    float fAvgY = (0.0f + 0.1f - 0.1f + 0.0f + 0.1f) / 5.0f;    // = 0.02
-    float fAvgZ = (3.0f + 3.1f + 3.2f + 2.9f + 2.8f) / 5.0f;    // = 3.0
+    // Z Percentile (0.2 * 5 = 1) -> 2.9.
+    // Tolerance is 0.5, so all are valid for inclusion!
+    // fAvgX = (1.0f + 1.1f + 1.2f + 0.9f + 0.8f) / 5.0f = 1.0
+    // fAvgY = (0.0f + 0.1f - 0.1f + 0.0f + 0.1f) / 5.0f = 0.02
+    // fAvgZ = (3.0f + 3.1f + 3.2f + 2.9f + 2.8f) / 5.0f = 3.0
 
-    // Based on the test failure, these are the actual values calculated.
     EXPECT_NEAR(stResultUTM.dEasting, 500001.0, EPSILON);
-    EXPECT_NEAR(stResultUTM.dNorthing, 4000002.999999, EPSILON);
+    EXPECT_NEAR(stResultUTM.dNorthing, 4000003.0, EPSILON);
     EXPECT_NEAR(stResultUTM.dAltitude, 100.02, EPSILON);
 }

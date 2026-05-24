@@ -75,11 +75,9 @@ namespace logging
     extern quill::Logger* g_qFileLogger;
     extern quill::Logger* g_qConsoleLogger;
     extern quill::Logger* g_qSharedLogger;
-    extern quill::Logger* g_qRoveCommLogger;
 
     extern quill::LogLevel g_eConsoleLogLevel;
     extern quill::LogLevel g_eFileLogLevel;
-    extern quill::LogLevel g_eRoveCommLogLevel;
 
     extern std::string g_szProgramStartTimeString;
     extern std::string g_szLoggingOutputPath;
@@ -101,27 +99,23 @@ namespace logging
         (void) stdAddr;
 
         // Convert Minimum Permitted Console Level to Integer Value
-        const int nMinConsoleLevel  = static_cast<int>(constants::CONSOLE_MIN_LEVEL);
-        const int nMinFileLevel     = static_cast<int>(constants::FILE_MIN_LEVEL);
-        const int nMinRoveCommLevel = static_cast<int>(constants::ROVECOMM_MIN_LEVEL);
+        const int nMinConsoleLevel = static_cast<int>(constants::CONSOLE_MIN_LEVEL);
+        const int nMinFileLevel    = static_cast<int>(constants::FILE_MIN_LEVEL);
 
         // Convert Requested Console Level to Integer Value
-        const int nRequestedConsoleLevel  = stPacket.vData[0];
-        const int nRequestedFileLevel     = stPacket.vData[1];
-        const int nRequestedRoveCommLevel = stPacket.vData[2];
+        const int nRequestedConsoleLevel = stPacket.vData[0];
+        const int nRequestedFileLevel    = stPacket.vData[1];
 
         // Determine if change is allowed
-        bool bConsoleLevelChangePermitted  = nRequestedConsoleLevel >= nMinConsoleLevel;
-        bool bFileLevelChangePermitted     = nRequestedFileLevel >= nMinFileLevel;
-        bool bRoveCommLevelChangePermitted = nRequestedRoveCommLevel >= nMinRoveCommLevel;
+        bool bConsoleLevelChangePermitted = nRequestedConsoleLevel >= nMinConsoleLevel;
+        bool bFileLevelChangePermitted    = nRequestedFileLevel >= nMinFileLevel;
 
         // Convert RoveComm Enumeration to Quill Enumeration and store to logging globals if permitted
-        logging::g_eConsoleLogLevel  = bConsoleLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[0]) : logging::g_eConsoleLogLevel;
-        logging::g_eFileLogLevel     = bFileLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[1]) : logging::g_eFileLogLevel;
-        logging::g_eRoveCommLogLevel = bRoveCommLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[2]) : logging::g_eRoveCommLogLevel;
+        logging::g_eConsoleLogLevel = bConsoleLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[0]) : logging::g_eConsoleLogLevel;
+        logging::g_eFileLogLevel    = bFileLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[1]) : logging::g_eFileLogLevel;
 
         // Submit logger message.
-        LOG_INFO(logging::g_qSharedLogger, "Incoming SETLOGGINGLEVELS: [Console: {}, File: {}, RoveComm: {}]", stPacket.vData[0], stPacket.vData[1], stPacket.vData[2]);
+        LOG_INFO(logging::g_qSharedLogger, "Incoming SETLOGGINGLEVELS: [Console: {}, File: {}]", stPacket.vData[0], stPacket.vData[1]);
     };
 
     /////////////////////////////////////////
@@ -383,121 +377,5 @@ namespace logging
         private:
             quill::PatternFormatter qFormatter;
     };
-
-    /******************************************************************************
-     * @brief A custom logger sink designed to send formatted log messages over the
-     *        RoveComm protocol. This class extends `quill::Sink` and is tailored for
-     *        use in the Autonomy system, where log messages need to be transmitted
-     *        as packets over a network to a BaseStation via UDP.
-     *
-     * The `MRDTRoveCommSink` class formats log messages using a specified pattern and
-     * time format, and then transmits the formatted messages as `RoveCommPacket`
-     * objects. It integrates with the Quill logging framework and is designed to
-     * handle both real-time and networked logging scenarios.
-     *
-     * ### Key Features:
-     * - Customizable log message formats using a pattern.
-     * - Integration with the RoveComm protocol for network transmission of log messages.
-     * - Handles the conversion of log messages to a format suitable for network transmission.
-     * - Inherits from `quill::Sink` for seamless integration with Quill's logging framework.
-     *
-     * @note This class is intended for use in networked logging scenarios where logs
-     *       are transmitted to a BaseStation using the RoveComm protocol. It should
-     *       not be called directly but instead used as part of the Quill logging framework.
-     *
-     * @see quill::Sink
-     * @see rovecomm::RoveCommPacket
-     *
-     * @author Eli Byrd (edbgkk@mst.edu)
-     * @date 2024-03-17
-     ******************************************************************************/
-    class MRDTRoveCommSink : public quill::Sink
-    {
-        private:
-            quill::PatternFormatter qFormatter;
-
-            /******************************************************************************
-             * @brief A utility function to convert a string to a vector that is no longer
-             *        than 255 characters long.
-             *
-             * @param szString - The string to convert
-             * @return std::vector<char> - The string shown as a vector of characters.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-03-17
-             ******************************************************************************/
-            std::vector<char> StringToVector(const std::string& szString)
-            {
-                std::vector<char> result;
-                int length = std::min(static_cast<int>(szString.length()), 255);
-                result.reserve(length);
-
-                for (int i = 0; i < length; ++i)
-                {
-                    result.push_back(szString[i]);
-                }
-
-                return result;
-            }
-
-        public:
-            /******************************************************************************
-             * @brief Constructs a new MRDTRoveCommSink object with the specified format pattern,
-             *        time format, and optional timezone. This constructor initializes the
-             *        sink with the necessary format settings for logging messages and prepares
-             *        them to be transmitted over the RoveComm protocol.
-             *
-             * @param szFormatPattern - The pattern used to format the log message.
-             * @param szTimeFormat - The format of the timestamp in the log message.
-             * @param qTimestampTimezone - The timezone used for the timestamp (default: LocalTime).
-             *
-             * @note Ensure that the format pattern and time format are correctly set to match
-             *       the expected format for the log messages. This is crucial for ensuring the
-             *       proper transmission and interpretation of log data over the RoveComm protocol.
-             *
-             * @warning Misconfiguration of the format pattern or time format may lead to
-             *          incorrect log formatting and potential issues with packet transmission.
-             *
-             * @see quill::Sink
-             * @see rovecomm::RoveCommPacket
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-03-17
-             ******************************************************************************/
-            MRDTRoveCommSink(std::string const& szFormatPattern, std::string const& szTimeFormat, quill::Timezone qTimestampTimezone) :
-                qFormatter(quill::PatternFormatterOptions(szFormatPattern, szTimeFormat, qTimestampTimezone))
-            {}
-
-            /******************************************************************************
-             * @brief Destroy the MRDTRoveCommSink object.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-03-17
-             ******************************************************************************/
-            ~MRDTRoveCommSink() override = default;
-
-            void write_log(const quill::MacroMetadata* qLogMetadata,
-                           uint64_t unLogTimestamp,
-                           std::string_view szThreadID,
-                           std::string_view szThreadName,
-                           const std::string& szProcessID,
-                           std::string_view szLoggerName,
-                           quill::LogLevel qLogLevel,
-                           std::string_view szLogLevelDescription,
-                           std::string_view szLogLevelShortCode,
-                           const std::vector<std::pair<std::string, std::string>>* vNamedArgs,
-                           std::string_view szLogMessage,
-                           std::string_view) override;
-
-            /******************************************************************************
-             * @brief This method should never be called by this codebase, it is called
-             *        internally by the quill library.
-             *
-             * @author Eli Byrd (edbgkk@mst.edu)
-             * @date 2024-03-17
-             ******************************************************************************/
-            void flush_sink() noexcept override {}
-    };
-
 }    // namespace logging
 #endif    // AUTONOMY_LOGGING_H

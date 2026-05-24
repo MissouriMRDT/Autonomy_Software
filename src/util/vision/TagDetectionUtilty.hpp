@@ -1,7 +1,7 @@
 /******************************************************************************
  * @brief Implements functions related to tag detection. Tag detection runs on multiple cameras,
- *      under two modes of operations: Tensorflow or standard OpenCV. These functions make it more
- *      convenient to aggregate detected tags from all cameras for both OpenCV and Tensorflow.
+ *      under two modes of operations: Torch or standard OpenCV. These functions make it more
+ *      convenient to aggregate detected tags from all cameras for both OpenCV and Torch.
  *
  * @file TagDetectionUtility.hpp
  * @author Jason Pittman (jspencerpittman@gmail.com)
@@ -42,15 +42,13 @@ namespace tagdetectutils
      ******************************************************************************/
     enum class TagDetectionMethod
     {
-        eUnknown,      // Unknown detection method.
-        eOpenCV,       // Standard OpenCV detection using the ArUco library.
-        eTorch,        // Torch detection using a YOLO model.
-        eTensorflow    // Tensorflow detection using a YOLO model.
+        eUnknown,    // Unknown detection method.
+        eOpenCV,     // Standard OpenCV detection using the ArUco library.
+        eTorch       // Torch detection using a YOLO model.
     };
 
     /******************************************************************************
-     * @brief Represents a single ArUco tag. Combines attributes from TorchTag,
-     *        TensorflowTag, and the original ArucoTag structs.
+     * @brief Represents a single ArUco tag.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-04-03
@@ -60,16 +58,17 @@ namespace tagdetectutils
         public:
             // Declare public struct member attributes.
             std::shared_ptr<cv::Rect2d> pBoundingBox         = std::make_shared<cv::Rect2d>();      // The bounding box of the detected tag.
-            double dConfidence                               = 0.0;                                 // The detection confidence of the tag (from Torch/Tensorflow models).
+            double dConfidence                               = 0.0;                                 // The detection confidence of the tag (from Torch models).
             double dStraightLineDistance                     = 0.0;                                 // Distance between the tag and the camera.
             double dYawAngle                                 = 0.0;                                 // This is the yaw angle so roll and pitch are ignored.
             int nID                                          = -1;                                  // The ID of the tag. This is set to -1 if the tag is not detected.
-            std::string szClassName                          = "";                                  // The class name of the tag (used in Torch/Tensorflow models).
+            std::string szClassName                          = "";                                  // The class name of the tag (used in Torch models).
             std::chrono::system_clock::time_point tmCreation = std::chrono::system_clock::now();    // Set the time detected to the minimum time point.
             TagDetectionMethod eDetectionMethod              = TagDetectionMethod::eUnknown;        // The detection method used to detect the tag.
             cv::Size cvImageResolution                       = cv::Size(0, 0);                      // The resolution of the image used to detect the tag.
             double dHorizontalFOV                            = 0.0;                                 // The horizontal field of view of the camera used to detect the tag.
             geoops::Waypoint stGeolocatedPosition            = geoops::Waypoint();                  // The geolocated position of the tag.
+            std::string szDetectorUUID = "";    // The UUID of the detector that detected the tag. This is used to associate tags with their detectors.
 
             /******************************************************************************
              * @brief Overload the equality operator for the ArucoTag struct.
@@ -86,7 +85,7 @@ namespace tagdetectutils
                 return *pBoundingBox == *stOther.pBoundingBox && dConfidence == stOther.dConfidence && dStraightLineDistance == stOther.dStraightLineDistance &&
                        dYawAngle == stOther.dYawAngle && nID == stOther.nID && szClassName == stOther.szClassName && tmCreation == stOther.tmCreation &&
                        eDetectionMethod == stOther.eDetectionMethod && cvImageResolution == stOther.cvImageResolution && dHorizontalFOV == stOther.dHorizontalFOV &&
-                       stGeolocatedPosition == stOther.stGeolocatedPosition;
+                       stGeolocatedPosition == stOther.stGeolocatedPosition && szDetectorUUID == stOther.szDetectorUUID;
             }
 
             /******************************************************************************
@@ -129,6 +128,7 @@ namespace tagdetectutils
                     cvImageResolution     = stOther.cvImageResolution;
                     dHorizontalFOV        = stOther.dHorizontalFOV;
                     stGeolocatedPosition  = stOther.stGeolocatedPosition;
+                    szDetectorUUID        = stOther.szDetectorUUID;
                 }
                 return *this;
             }

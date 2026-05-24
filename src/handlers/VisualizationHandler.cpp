@@ -588,7 +588,7 @@ std::vector<char> VisualizationHandler::OnRequestTelemetry(const std::string& sz
     // Push Path History size.
     PushUint(static_cast<uint32_t>(m_vPathHistory.size()));
     // Push each point in the path history.
-    for (const auto& pt : m_vPathHistory)
+    for (const DisplayPoint& pt : m_vPathHistory)
     {
         PushFloat(pt.fX);
         PushFloat(pt.fY);
@@ -786,8 +786,9 @@ std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string
     // Ensure the directory exists
     if (std::filesystem::exists(szDir) && std::filesystem::is_directory(szDir))
     {
-        bool bFirst = true;
-        // Iterate over files in the directory
+        std::vector<std::filesystem::directory_entry> vEntries;
+
+        // Iterate over files in the directory and collect them
         for (const std::filesystem::directory_entry& stEntry : std::filesystem::directory_iterator(szDir))
         {
             if (stEntry.is_regular_file())
@@ -798,13 +799,28 @@ std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string
                 // Simple filter for image extensions
                 if (szFilename.ends_with(".png") || szFilename.ends_with(".jpg"))
                 {
-                    if (!bFirst)
-                        szJson += ",";
-                    // Append escaped filename to JSON array
-                    szJson += "\"" + fnEscapeJson(szFilename) + "\"";
-                    bFirst = false;
+                    vEntries.push_back(stEntry);
                 }
             }
+        }
+
+        // Sort entries chronologically by last write time (oldest first, newest last)
+        std::sort(vEntries.begin(),
+                  vEntries.end(),
+                  [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b)
+                  { return std::filesystem::last_write_time(a) < std::filesystem::last_write_time(b); });
+
+        bool bFirst = true;
+        // Build JSON array using the sorted entries
+        for (const std::filesystem::directory_entry& stEntry : vEntries)
+        {
+            std::string szFilename = stEntry.path().filename().string();
+
+            if (!bFirst)
+                szJson += ",";
+            // Append escaped filename to JSON array
+            szJson += "\"" + fnEscapeJson(szFilename) + "\"";
+            bFirst = false;
         }
     }
 
@@ -1081,7 +1097,8 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         #eta-box {
             position: absolute;
             top: 10px;
-            right: 10px;
+            left: 50%;
+            transform: translateX(-50%);
             color: #0f0;
             background: rgba(0,0,0,0.5);
             padding: 10px;
@@ -1141,18 +1158,26 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         .hud-btn.active { background: #00aa00; border-color: #00ff00; }
         .key { color: #fff; font-weight: bold; border: 1px solid #666; padding: 2px 5px; border-radius: 3px; background: #333; }
         h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 5px; }
-        #detection-panel { position: absolute; top: 10px; right: 280px; width: 250px; max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 10; }
+        
+        #detection-panel { position: absolute; top: 10px; right: 10px; width: auto; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 10; transition: width 0.2s; }
         #detection-panel h3 { color: #0f0; margin-top: 0; }
-        .gallery-item { margin-bottom: 8px; cursor: pointer; }
+        .gallery-item { cursor: pointer; }
         .gallery-item img { width: 100%; border: 2px solid #666; border-radius: 4px; transition: border-color 0.2s; }
         .gallery-item img:hover { border-color: #0f0; }
+        
         #detection-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); align-items: center; justify-content: center; }
         #detection-modal img { max-width: 90%; max-height: 90%; border: 3px solid #0f0; }
         #modal-caption { position: absolute; bottom: 80px; color: #0f0; font-size: 18px; text-align: center; width: 100%; }
         #modal-open-btn { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 10px 30px; background: #444; color: white; border: 2px solid #0f0; cursor: pointer; font-size: 16px; border-radius: 5px; }
         #modal-open-btn:hover { background: #00aa00; }
+        
         .modal-close { position: absolute; top: 20px; right: 40px; color: #fff; font-size: 40px; font-weight: bold; cursor: pointer; }
         .modal-close:hover { color: #0f0; }
+        
+        .modal-nav { position: absolute; top: 50%; transform: translateY(-50%); color: #fff; font-size: 60px; font-weight: bold; cursor: pointer; padding: 20px; user-select: none; z-index: 1001; transition: color 0.2s; }
+        .modal-nav:hover { color: #0f0; }
+        .modal-nav.left { left: 20px; }
+        .modal-nav.right { right: 20px; }
     </style>
     <script type="importmap">
     { 
@@ -1165,21 +1190,28 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 </head>
 <body>
     <div id="ui-layer">
-        <h3>Settings</h3>
-        <div class="control-group">
-            <label>Load Radius (m) <span id="val-rad" class="val-disp">50</span></label>
-            <input type="range" id="sl-rad" min="10" max="200" value="50" step="10">
+        <h3 id="settings-toggle" style="cursor: pointer; pointer-events: auto; margin: 0; border: none; padding: 0; user-select: none;">Settings &#9654;</h3>
+        <div id="settings-content" style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+            <div class="control-group">
+                <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="cb-ground" checked> Lock Rover to Terrain Height
+                </label>
+            </div>
+            <div class="control-group">
+                <label>Load Radius (m) <span id="val-rad" class="val-disp">50</span></label>
+                <input type="range" id="sl-rad" min="10" max="200" value="50" step="10">
+            </div>
+            <div class="control-group">
+                <label>Border Tol. (m) <span id="val-tol" class="val-disp">10</span></label>
+                <input type="range" id="sl-tol" min="5" max="50" value="10" step="1">
+            </div>
+            <div class="control-group">
+                <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
+                <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
+            </div>
+            <div id="status" style="margin-top:10px; color: #fff;">Status: Free Cam</div>
+            <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
         </div>
-        <div class="control-group">
-            <label>Border Tol. (m) <span id="val-tol" class="val-disp">10</span></label>
-            <input type="range" id="sl-tol" min="5" max="50" value="10" step="1">
-        </div>
-        <div class="control-group">
-            <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
-            <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
-        </div>
-        <div id="status" style="margin-top:10px; color: #fff;">Status: Free Cam</div>
-        <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
     </div>
 
     <div id="eta-box">ETA: Calculating...</div>
@@ -1194,13 +1226,15 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     </div>
     
     <div id="detection-panel">
-        <h3>Detection Images</h3>
+        <h3>Latest Detection</h3>
         <div id="detection-gallery-items"></div>
     </div>
     
     <div id="detection-modal" onclick="closeDetectionModal()">
         <span class="modal-close" onclick="closeDetectionModal()">&times;</span>
+        <div class="modal-nav left" onclick="prevDetection(event)">&#10094;</div>
         <img id="modal-image" src="" alt="Detection" onclick="event.stopPropagation()">
+        <div class="modal-nav right" onclick="nextDetection(event)">&#10095;</div>
         <div id="modal-caption"></div>
         <button id="modal-open-btn" onclick="event.stopPropagation()">Open in New Tab</button>
     </div>
@@ -1221,11 +1255,13 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     let markerLayer; 
     let activeWaypoints = []; 
     let leftArrow, rightArrow;
+    let beaconGeo, detectionTex;
 
     let mapCenter = { x: 0, y: 0 }; 
     let cfgRadius = 50;
     let cfgTolerance = 10;
     let cfgMinScore = 0.0;
+    let cfgLockGround = true;
     let isFetchingMap = false;
     let isFollowing = false;
     let targetPos = new THREE.Vector3();
@@ -1241,6 +1277,10 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     let pathDistance = 0.0;
     const speedHistory = [];
     let lastPathPoint = null;
+    
+    // Detection Gallery Tracking
+    let detectionFilenames = [];
+    let currentModalIndex = 0;
     
     const typeColors = {};
     const typeNames = {};
@@ -1267,6 +1307,73 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         13: { name: "Pick", color: "#ffee00" }         // Yellow
     };
 
+    // Terrain Height Sampler
+    function getTerrainHeight(rx, rz, defaultY) {
+        if (!currentPoints || !currentPoints.geometry || !currentPoints.geometry.attributes.position) return defaultY;
+        const positions = currentPoints.geometry.attributes.position.array;
+        let sumY = 0;
+        let count = 0;
+        const radiusSq = 2.25; // 1.5m radius for averaging terrain
+        
+        for (let i = 0; i < positions.length; i += 3) {
+            const dx = positions[i] - rx;
+            const dz = positions[i+2] - rz;
+            if (dx*dx + dz*dz < radiusSq) {
+                sumY += positions[i+1];
+                count++;
+            }
+        }
+        return count > 0 ? (sumY / count) : defaultY;
+    }
+
+    // Thick Line / InstancedMesh Renderer (Replaces Firefox-broken LineBasicMaterial)
+    function createThickPath(vertices, colors, radius, defaultColorHex) {
+        if (vertices.length < 6) return null;
+        
+        const numSegments = (vertices.length / 3) - 1;
+        const cylinderGeo = new THREE.CylinderGeometry(radius, radius, 1, 8, 1, false);
+        cylinderGeo.translate(0, 0.5, 0); 
+        cylinderGeo.rotateX(Math.PI / 2); 
+        
+        const mat = new THREE.MeshBasicMaterial();
+        if (!colors) mat.color.setHex(defaultColorHex);
+        
+        const mesh = new THREE.InstancedMesh(cylinderGeo, mat, numSegments);
+        const p1 = new THREE.Vector3();
+        const p2 = new THREE.Vector3();
+        const dummy = new THREE.Object3D();
+        const col = new THREE.Color();
+        
+        for (let i = 0; i < numSegments; i++) {
+            const idx = i * 3;
+            p1.set(vertices[idx], vertices[idx+1], vertices[idx+2]);
+            p2.set(vertices[idx+3], vertices[idx+4], vertices[idx+5]);
+            
+            const dist = p1.distanceTo(p2);
+            if (dist < 0.001) {
+                dummy.scale.set(0, 0, 0);
+                dummy.updateMatrix();
+                mesh.setMatrixAt(i, dummy.matrix);
+                continue;
+            }
+            
+            dummy.position.copy(p1);
+            dummy.lookAt(p2);
+            dummy.scale.set(1, 1, dist);
+            dummy.updateMatrix();
+            mesh.setMatrixAt(i, dummy.matrix);
+            
+            if (colors) {
+                col.setRGB(colors[idx], colors[idx+1], colors[idx+2]);
+                mesh.setColorAt(i, col);
+            }
+        }
+        
+        mesh.instanceMatrix.needsUpdate = true;
+        if (colors) mesh.instanceColor.needsUpdate = true;
+        return mesh;
+    }
+
     init();
     animate();
 
@@ -1286,8 +1393,10 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.maxDistance = 5000;
 
         const geometry = new THREE.BoxGeometry(1, 0.5, 1.5);
+        geometry.translate(0, 0.25, 0);
         const material = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true });
         roverMesh = new THREE.Mesh(geometry, material);
         scene.add(roverMesh);
@@ -1304,10 +1413,20 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         leftArrow.position.set(-0.6, 0, 0); 
         rightArrow.position.set(0.6, 0, 0);
 
+        beaconGeo = new THREE.BoxGeometry(0.5, 10000, 0.5);
+        const canvas = document.createElement('canvas');
+        canvas.width = 32; canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.arc(16,16,14,0,2*Math.PI);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        detectionTex = new THREE.CanvasTexture(canvas);
+
         waypointGroup = new THREE.Group();
         scene.add(waypointGroup);
         
-        detectionGroup = new THREE.Group(); // New Group for detections
+        detectionGroup = new THREE.Group();
         scene.add(detectionGroup);
 
         const config = [
@@ -1345,6 +1464,16 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             stateLegendDiv.appendChild(item);
         }
 
+        // Toggles & Inputs
+        const cbGround = document.getElementById('cb-ground');
+        if (cbGround) {
+            cbGround.addEventListener('change', (e) => {
+                cfgLockGround = e.target.checked;
+                if (cfgLockGround) {
+                    targetPos.y = getTerrainHeight(targetPos.x, targetPos.z, targetPos.y);
+                }
+            });
+        }
         document.getElementById('sl-rad').oninput = (e) => { 
             cfgRadius = parseInt(e.target.value); 
             document.getElementById('val-rad').innerText = cfgRadius;
@@ -1359,6 +1488,19 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             document.getElementById('val-score').innerText = cfgMinScore.toFixed(2);
             checkBoundary(true); 
         };
+
+        // UI Layer Collapsible Toggle
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingsContent = document.getElementById('settings-content');
+        settingsToggle.addEventListener('click', () => {
+            if (settingsContent.style.display === 'none') {
+                settingsContent.style.display = 'block';
+                settingsToggle.innerHTML = 'Settings &#9660;';
+            } else {
+                settingsContent.style.display = 'none';
+                settingsToggle.innerHTML = 'Settings &#9654;';
+            }
+        });
 
         window.addEventListener('keydown', (e) => onKey(e, true));
         window.addEventListener('keyup', (e) => onKey(e, false));
@@ -1378,7 +1520,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         requestTelemetryLoop();
         setInterval(fetchPlannedPath, 2000); 
         setInterval(fetchWaypoints, 2000); 
-        setInterval(fetchDetections, 1000); // Poll detections every second
+        setInterval(fetchDetections, 1000); 
         setInterval(fetchDetectionsList, 5000);
         fetchMapSquare(0, 0);
     }
@@ -1433,33 +1575,62 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     }
     
     function updateDetectionGallery(filenames) {
+        detectionFilenames = filenames;
+        const panel = document.getElementById('detection-panel');
         const gallery = document.getElementById('detection-gallery-items');
+        const header = panel ? panel.querySelector('h3') : null;
         if (!gallery) return;
         
         gallery.innerHTML = '';
-        filenames.forEach(filename => {
-            const item = document.createElement('div');
-            item.className = 'gallery-item';
-            
-            const img = document.createElement('img');
-            img.src = `/detections/${filename}`;
-            img.alt = filename;
-            img.addEventListener('click', () => showDetectionModal(img.src, filename));
-            
-            item.appendChild(img);
-            gallery.appendChild(item);
-        });
+        
+        if (filenames.length === 0) {
+            if (panel) panel.style.width = 'auto';
+            if (header) header.style.display = 'none';
+            gallery.innerHTML = '<div style="color:#aaa; font-size:12px; text-align:center;">No detections</div>';
+            return;
+        }
+
+        if (panel) panel.style.width = '250px';
+        if (header) header.style.display = 'block';
+
+        const latestIndex = filenames.length - 1;
+        const filename = filenames[latestIndex];
+
+        const item = document.createElement('div');
+        item.className = 'gallery-item';
+        
+        const img = document.createElement('img');
+        img.src = `/detections/${filename}`;
+        img.alt = filename;
+        img.title = "Click to view full gallery";
+        img.addEventListener('click', () => showDetectionModal(latestIndex));
+        
+        const info = document.createElement('div');
+        info.style.color = '#fff';
+        info.style.fontSize = '14px';
+        info.style.textAlign = 'center';
+        info.style.marginTop = '8px';
+        info.innerText = `View all ${filenames.length} images`;
+        
+        item.appendChild(img);
+        item.appendChild(info);
+        gallery.appendChild(item);
     }
     
-    window.showDetectionModal = function(src, filename) {
+    window.showDetectionModal = function(index) {
         const modal = document.getElementById('detection-modal');
         const img = document.getElementById('modal-image');
         const caption = document.getElementById('modal-caption');
         const openBtn = document.getElementById('modal-open-btn');
         
-        if (modal && img && caption) {
+        if (modal && img && caption && detectionFilenames.length > 0) {
+            currentModalIndex = index;
+            const filename = detectionFilenames[currentModalIndex];
+            const src = `/detections/${filename}`;
+
             img.src = src;
-            caption.innerText = filename;
+            caption.innerText = `${filename} (${currentModalIndex + 1} of ${detectionFilenames.length})`;
+            
             if (openBtn) {
                 openBtn.onclick = () => window.open(src, '_blank');
             }
@@ -1470,6 +1641,22 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     window.closeDetectionModal = function() {
         const modal = document.getElementById('detection-modal');
         if (modal) modal.style.display = 'none';
+    }
+
+    window.nextDetection = function(e) {
+        e.stopPropagation();
+        if (detectionFilenames.length === 0) return;
+        let newIdx = currentModalIndex + 1;
+        if (newIdx >= detectionFilenames.length) newIdx = 0;
+        showDetectionModal(newIdx);
+    }
+
+    window.prevDetection = function(e) {
+        e.stopPropagation();
+        if (detectionFilenames.length === 0) return;
+        let newIdx = currentModalIndex - 1;
+        if (newIdx < 0) newIdx = detectionFilenames.length - 1;
+        showDetectionModal(newIdx);
     }
     
     function updateArrow(arrow, power) {
@@ -1488,7 +1675,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         const rz = view.getFloat32(8, true);
         const rh = view.getFloat32(12, true);
 
-        // Calculate Speed
+        // Calculate Speed using actual un-flattened 3D position
         const now = performance.now();
         const newPos = new THREE.Vector3(rx, ry, -rz);
         if (lastTelemetryTime > 0) {
@@ -1510,14 +1697,22 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         updateArrow(leftArrow, leftPwr);
         updateArrow(rightArrow, rightPwr);
         
-        targetPos.set(rx, ry, -rz); 
+        let targetY = ry;
+        if (cfgLockGround) {
+            targetY = getTerrainHeight(rx, -rz, ry);
+        }
+        targetPos.set(rx, targetY, -rz); 
         targetHeading = -rh * (Math.PI / 180.0);
 
         checkBoundary(false);
 
         const pathCount = view.getUint32(24, true); // Offset 24
         if (pathCount > 0) {
-            if (pathLine) scene.remove(pathLine);
+            if (pathLine) {
+                scene.remove(pathLine);
+                if (pathLine.geometry) pathLine.geometry.dispose();
+                if (pathLine.material) pathLine.material.dispose();
+            }
             const floats = new Float32Array(buffer, 28, pathCount * 4); // Offset 28
             const vertices = [];
             const colors = [];
@@ -1531,12 +1726,8 @@ std::string VisualizationHandler::GetEmbeddedHtml()
                 colors.push(c.r, c.g, c.b);
             }
             
-            const pathGeo = new THREE.BufferGeometry();
-            pathGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            pathGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 5 });
-            pathLine = new THREE.Line(pathGeo, mat); 
-            scene.add(pathLine);
+            pathLine = createThickPath(vertices, colors, 0.1, 0xffffff);
+            if (pathLine) scene.add(pathLine);
         }
     }
 
@@ -1545,7 +1736,8 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         const count = view.getUint32(0, true);
         if (plannedPathLine) {
             scene.remove(plannedPathLine);
-            plannedPathLine.geometry.dispose();
+            if (plannedPathLine.geometry) plannedPathLine.geometry.dispose();
+            if (plannedPathLine.material) plannedPathLine.material.dispose();
             plannedPathLine = null;
         }
 
@@ -1575,16 +1767,16 @@ std::string VisualizationHandler::GetEmbeddedHtml()
                 pathDistance += p1.distanceTo(p2);
             }
 
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 6 }));
-            scene.add(plannedPathLine);
+            plannedPathLine = createThickPath(vertices, null, 0.1, 0xeeff00);
+            if (plannedPathLine) scene.add(plannedPathLine);
         }
     }
 
     function updateWaypoints(buffer) {
         while(waypointGroup.children.length > 0){ 
-            waypointGroup.remove(waypointGroup.children[0]); 
+            const child = waypointGroup.children[0];
+            waypointGroup.remove(child); 
+            if (child.material) child.material.dispose();
         }
         markerLayer.innerHTML = '';
         activeWaypoints = [];
@@ -1594,7 +1786,6 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         if(count === 0) return;
 
         let offset = 4;
-        const beaconGeo = new THREE.BoxGeometry(0.5, 10000, 0.5); 
 
         for(let i=0; i<count; i++) {
             const x = view.getFloat32(offset, true);
@@ -1629,7 +1820,10 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
     function updateDetections(buffer) {
         while(detectionGroup.children.length > 0){ 
-            detectionGroup.remove(detectionGroup.children[0]); 
+            const child = detectionGroup.children[0];
+            detectionGroup.remove(child); 
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
         }
 
         const view = new DataView(buffer);
@@ -1637,15 +1831,6 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         if(count === 0) return;
 
         let offset = 4;
-        // Use a simple circle texture
-        const canvas = document.createElement('canvas');
-        canvas.width = 32; canvas.height = 32;
-        const ctx = canvas.getContext('2d');
-        ctx.beginPath();
-        ctx.arc(16,16,14,0,2*Math.PI);
-        ctx.fillStyle = 'white';
-        ctx.fill();
-        const tex = new THREE.CanvasTexture(canvas);
 
         for(let i=0; i<count; i++) {
             const x = view.getFloat32(offset, true);
@@ -1659,7 +1844,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
 
             const mat = new THREE.PointsMaterial({
                 color: col,
-                map: tex,
+                map: detectionTex,
                 size: 2.0, // Large persistent dot
                 sizeAttenuation: true,
                 alphaTest: 0.5,
@@ -1827,7 +2012,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     function animate() {
         requestAnimationFrame(animate);
         const now = performance.now();
-        const dt = (now - lastTime)/1000;
+        const dt = Math.min((now - lastTime) / 1000.0, 0.1);
         lastTime = now;
 
         prevRoverPos.copy(roverMesh.position);
@@ -1934,12 +2119,19 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
 </head>
 <body>
     <div id="ui-layer">
-        <h3>Static Export</h3>
-        <div class="control-group">
-            <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
-            <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
+        <h3 id="settings-toggle" style="cursor: pointer; pointer-events: auto; margin: 0; border: none; padding: 0; user-select: none;">Static Export &#9654;</h3>
+        <div id="settings-content" style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+            <div class="control-group">
+                <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="cb-ground" checked> Lock Rover to Terrain Height
+                </label>
+            </div>
+            <div class="control-group">
+                <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
+                <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
+            </div>
+            <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
         </div>
-        <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
     </div>
     <div id="legend-layer">
         <div class="legend-section" id="det-legend"><strong>Detections</strong></div>
@@ -2059,6 +2251,8 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     let activeWaypoints = []; 
     
     let cfgMinScore = 0.0;
+    let cfgLockGround = true;
+    let lastTime = performance.now();
     
     // Define keys object for static view
     const keys = { w:false, a:false, s:false, d:false, q:false, e:false, shift:false };
@@ -2086,6 +2280,73 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         13: { name: "Pick", color: "#ffee00" }
     };
 
+    // Terrain Height Sampler
+    function getTerrainHeight(rx, rz, defaultY) {
+        if (!currentPoints || !currentPoints.geometry || !currentPoints.geometry.attributes.position) return defaultY;
+        const positions = currentPoints.geometry.attributes.position.array;
+        let sumY = 0;
+        let count = 0;
+        const radiusSq = 2.25; // 1.5m radius for averaging terrain
+        
+        for (let i = 0; i < positions.length; i += 3) {
+            const dx = positions[i] - rx;
+            const dz = positions[i+2] - rz;
+            if (dx*dx + dz*dz < radiusSq) {
+                sumY += positions[i+1];
+                count++;
+            }
+        }
+        return count > 0 ? (sumY / count) : defaultY;
+    }
+
+    // Thick Line / InstancedMesh Renderer (Replaces Firefox-broken LineBasicMaterial)
+    function createThickPath(vertices, colors, radius, defaultColorHex) {
+        if (vertices.length < 6) return null;
+        
+        const numSegments = (vertices.length / 3) - 1;
+        const cylinderGeo = new THREE.CylinderGeometry(radius, radius, 1, 8, 1, false);
+        cylinderGeo.translate(0, 0.5, 0); 
+        cylinderGeo.rotateX(Math.PI / 2); 
+        
+        const mat = new THREE.MeshBasicMaterial();
+        if (!colors) mat.color.setHex(defaultColorHex);
+        
+        const mesh = new THREE.InstancedMesh(cylinderGeo, mat, numSegments);
+        const p1 = new THREE.Vector3();
+        const p2 = new THREE.Vector3();
+        const dummy = new THREE.Object3D();
+        const col = new THREE.Color();
+        
+        for (let i = 0; i < numSegments; i++) {
+            const idx = i * 3;
+            p1.set(vertices[idx], vertices[idx+1], vertices[idx+2]);
+            p2.set(vertices[idx+3], vertices[idx+4], vertices[idx+5]);
+            
+            const dist = p1.distanceTo(p2);
+            if (dist < 0.001) {
+                dummy.scale.set(0, 0, 0);
+                dummy.updateMatrix();
+                mesh.setMatrixAt(i, dummy.matrix);
+                continue;
+            }
+            
+            dummy.position.copy(p1);
+            dummy.lookAt(p2);
+            dummy.scale.set(1, 1, dist);
+            dummy.updateMatrix();
+            mesh.setMatrixAt(i, dummy.matrix);
+            
+            if (colors) {
+                col.setRGB(colors[idx], colors[idx+1], colors[idx+2]);
+                mesh.setColorAt(i, col);
+            }
+        }
+        
+        mesh.instanceMatrix.needsUpdate = true;
+        if (colors) mesh.instanceColor.needsUpdate = true;
+        return mesh;
+    }
+
     init();
     animate();
 
@@ -2106,8 +2367,10 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(INIT_X, INIT_Y, -INIT_Z);
+        controls.maxDistance = 5000;
 
         const geometry = new THREE.BoxGeometry(1, 0.5, 1.5);
+        geometry.translate(0, 0.25, 0);
         const material = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true });
         roverMesh = new THREE.Mesh(geometry, material);
         roverMesh.position.set(INIT_X, INIT_Y, -INIT_Z);
@@ -2155,12 +2418,38 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         loadStaticPlanned();
         loadStaticWaypoints();
         loadStaticDetections();
+        
+        // Setup initial locked height if checked
+        if (cfgLockGround) {
+            roverMesh.position.y = getTerrainHeight(INIT_X, -INIT_Z, INIT_Y);
+        }
 
+        // Toggles & Inputs
+        const cbGround = document.getElementById('cb-ground');
+        if (cbGround) {
+            cbGround.addEventListener('change', (e) => {
+                cfgLockGround = e.target.checked;
+                roverMesh.position.y = cfgLockGround ? getTerrainHeight(INIT_X, -INIT_Z, INIT_Y) : INIT_Y;
+            });
+        }
         document.getElementById('sl-score').oninput = (e) => { 
             cfgMinScore = parseFloat(e.target.value); 
             document.getElementById('val-score').innerText = cfgMinScore.toFixed(2);
             loadStaticLidar(cfgMinScore);
         };
+
+        // UI Layer Collapsible Toggle
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingsContent = document.getElementById('settings-content');
+        settingsToggle.addEventListener('click', () => {
+            if (settingsContent.style.display === 'none') {
+                settingsContent.style.display = 'block';
+                settingsToggle.innerHTML = 'Static Export &#9660;';
+            } else {
+                settingsContent.style.display = 'none';
+                settingsToggle.innerHTML = 'Static Export &#9654;';
+            }
+        });
 
         window.addEventListener('keydown', (e) => onKey(e, true));
         window.addEventListener('keyup', (e) => onKey(e, false));
@@ -2211,12 +2500,8 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
             colors.push(c.r, c.g, c.b);
         }
         if(vertices.length > 0) {
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 5 });
-            pathLine = new THREE.Line(geo, mat); 
-            scene.add(pathLine);
+            pathLine = createThickPath(vertices, colors, 0.1, 0xffffff);
+            if (pathLine) scene.add(pathLine);
         }
     }
 
@@ -2226,10 +2511,8 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
             vertices.push(RAW_PLANNED[i], RAW_PLANNED[i+1], -RAW_PLANNED[i+2]);
         }
         if(vertices.length > 0) {
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 5 }));
-            scene.add(plannedPathLine);
+            plannedPathLine = createThickPath(vertices, null, 0.1, 0xeeff00);
+            if (plannedPathLine) scene.add(plannedPathLine);
         }
     }
 
@@ -2318,7 +2601,11 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
 
     function animate() {
         requestAnimationFrame(animate);
-        const spd = (keys.shift?15:5)*0.016; 
+        const now = performance.now();
+        const dt = Math.min((now - lastTime) / 1000.0, 0.1);
+        lastTime = now;
+
+        const spd = (keys.shift?15:5)*dt; 
         const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y=0; fwd.normalize();
         const rgt = new THREE.Vector3().crossVectors(fwd, camera.up).normalize();
         if(keys.w) camera.position.addScaledVector(fwd, spd);

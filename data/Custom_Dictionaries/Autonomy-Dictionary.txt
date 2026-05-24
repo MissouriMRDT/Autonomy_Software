@@ -96,6 +96,8 @@ Colour
 COMPASSDATA
 CONTINUOUSNAVIGATE
 Contoller
+costmap
+Costmap
 cowfile
 cowsay
 Cowsay
@@ -166,6 +168,7 @@ dpkg
 driveboard
 DRIVEINDIVIDUAL
 DRIVELEFTRIGHT
+duckdb
 dumpversion
 DVTK
 DWITH
@@ -279,6 +282,8 @@ futex
 gcov
 gcovr
 geekyeggo
+geofence
+Geofence
 geographiclib
 geolib
 geoloc
@@ -316,6 +321,7 @@ HPOL
 httpx
 HWDEVICE
 hyperthreaded
+icrawl
 IDLESTATE
 idxs
 IJEE
@@ -609,6 +615,7 @@ QPID
 qtbase
 qtdeclarative
 qtshadertools
+qwtel
 Raman
 RAMANREADING
 rcond
@@ -720,10 +727,6 @@ Targed
 tegra
 Tele
 TELEOP
-TENSORFLOWLITE
-tensorflowobject
-tensorflowtag
-tensorflowyolo
 tflite
 Tgsnwcv
 THREADFPS
@@ -766,6 +769,7 @@ Utilty
 UTMERKNS
 UTMMDRS
 UTMUPS
+UUIDV
 uvicorn
 UVLED
 vaapi
