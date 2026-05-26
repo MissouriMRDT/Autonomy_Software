@@ -47,17 +47,20 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Calculate the search path.
-        m_vSearchPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
+        std::vector<geoops::Waypoint> vSpiralPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
                                                                        constants::SEARCH_ANGULAR_STEP_DEGREES,
                                                                        m_stSearchPatternCenter.dRadius,
-                                                                       // m_stSearchPatternCenter.dRadius,
                                                                        stCurrentRoverPose.GetCompassHeading(),
                                                                        constants::SEARCH_SPIRAL_SPACING);
-        RemoveRedZonePoints(m_vSearchPath);
-        m_vSearchPath = GeoPlanSearchPattern(m_vSearchPath);
+        RemoveRedZonePoints(vSpiralPath);
+        std::vector<geoops::Waypoint> vGeoPlannedPath = GeoPlanSearchPattern(vSpiralPath);
+        std::vector<geoops::Waypoint> vFirstHalf(vGeoPlannedPath.begin(), vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2);
+        std::vector<geoops::Waypoint> vSecondHalf(vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2, vGeoPlannedPath.end());
 
         // Plot the search path in the visualizer.
+        m_vSearchPath = vFirstHalf;
         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
+        globals::g_pWaypointHandler->StorePath("GeoPlannerPathReverse", vSecondHalf);
 
         // Set the path of the pure pursuit controller.
         m_pPursuitController->SetReferencePath(m_vSearchPath);
@@ -181,15 +184,11 @@ namespace statemachine
         // If search was previously stuck, then re-path plan stuck area
         if (m_bWasStuck)
         {
-            // Retrieve modified path from stuck. If in the first spiral, grab the reverse spiral so that the path isn't incomplete
-            m_vSearchPath =
-                (m_nSearchPathIdx == 0) ? globals::g_pWaypointHandler->RetrievePath("RevSpiralPath") : globals::g_pWaypointHandler->RetrievePath("unstuckPath");
-            // Culled Spiral path
-            std::vector<geoops::Waypoint> vRemainderOfSpiralPath = globals::g_pWaypointHandler->RetrievePath("unstuckPath");
+            // Retrieve modified path from stuck.
+            m_vSearchPath = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPath");
 
             // Update visualizer and pure pursuit
-            globals::g_pWaypointHandler->StorePath("GeoPlannerPath", vRemainderOfSpiralPath);
-            m_pPursuitController->SetReferencePath(vRemainderOfSpiralPath);
+            m_pPursuitController->SetReferencePath(m_vSearchPath);
 
             m_bWasStuck = false;
         }
@@ -275,8 +274,6 @@ namespace statemachine
         {
             // Submit logger message.
             LOG_WARNING(logging::g_qSharedLogger, "SearchPattern: Rover has become stuck!");
-            // Save rover path for modification in stuck state
-            globals::g_pWaypointHandler->StorePath("stuckPath", m_vSearchPath);
             m_bWasStuck = true;
             // Handle state transition and save the current search pattern state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
@@ -387,8 +384,9 @@ namespace statemachine
                         // Update current search pattern
                         m_eCurrentSearchPatternType = SearchPatternType::END;
 
-                        // Reverse the previous path.
-                        std::reverse(m_vSearchPath.begin(), m_vSearchPath.end());
+                        // Get the second half of the spiral.
+                        m_vSearchPath = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPathReverse");
+                        globals::g_pWaypointHandler->DeletePath("GeoPlannerPathReverse");
 
                         // Plot the search path in the visualizer.
                         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
