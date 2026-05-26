@@ -222,6 +222,7 @@ class StateMachineHandler : private AutonomyThread<void>
         double SmartRetrieveVelocity();
         double SmartRetrieveAngularVelocity();
         void RealignZEDHeading(const double dNewActualHeading, const double dCurrentZEDHeading);
+        void RecalibrateZEDHeadingToGPS();
 
         using AutonomyThread::GetIPS;
 };
