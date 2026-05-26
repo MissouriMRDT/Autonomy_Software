@@ -302,7 +302,7 @@ namespace statemachine
         bool bReachedFinalTarget                  = stRelToFinalTarget.dDistanceMeters <= dCompletionRadius;
 
         // If the entire search pattern has been completed without seeing tags or objects, try different search pattern.
-        if (bReachedFinalTarget)
+        if (bReachedFinalTarget && m_pPursuitController->GetReferencePathTargetIndex() > static_cast<int>(m_vSearchPath.size()) - 4)
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
             return;
