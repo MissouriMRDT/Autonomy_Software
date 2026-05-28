@@ -55,7 +55,7 @@ namespace searchpattern
         // Define variables.
         std::vector<geoops::Waypoint> vWaypoints;
         double dAngularStepRadians   = dAngularStepDegrees * M_PI / 180;
-        double dAngleRadians         = (-dStartingHeadingDegrees) * M_PI / 180.0;
+        double dAngleRadians         = (dStartingHeadingDegrees + 90) * M_PI / 180;
         double dCurrentSpacingWindUp = 0.0;
         double dStartingX            = stStartingPoint.GetUTMCoordinate().dEasting;
         double dStartingY            = stStartingPoint.GetUTMCoordinate().dNorthing;
@@ -80,31 +80,12 @@ namespace searchpattern
             geoops::UTMCoordinate stCurrentCoordinate = stStartingPoint.GetUTMCoordinate();
             stCurrentCoordinate.dEasting              = dCurrentX;
             stCurrentCoordinate.dNorthing             = dCurrentY;
-            vWaypoints.emplace_back(stCurrentCoordinate, geoops::WaypointType::eNavigationWaypoint);
+            geoops::Waypoint stCurrentWaypoint(stCurrentCoordinate, geoops::WaypointType::eNavigationWaypoint);
+            vWaypoints.push_back(stCurrentWaypoint);
 
             // Increment angle and radius for the next waypoint.
             dAngleRadians += dAngularStepRadians;
             dCurrentSpacingWindUp += dStartSpacing;
-
-            // Calculate the current distance from the starting point. This is our radius.
-            dCurrentRadius = geoops::CalculateGeoMeasurement(stStartingPoint.GetUTMCoordinate(), stCurrentCoordinate).dDistanceMeters;
-        }
-        // Same but going back in.
-        while (dCurrentRadius >= 0.5)
-        {
-            // Get X and Y positions for the current point.
-            double dCurrentX = dStartingX + dCurrentSpacingWindUp * cos(dAngleRadians);
-            double dCurrentY = dStartingY + dCurrentSpacingWindUp * sin(dAngleRadians);
-
-            // Add the current waypoint to the final vector.
-            geoops::UTMCoordinate stCurrentCoordinate = stStartingPoint.GetUTMCoordinate();
-            stCurrentCoordinate.dEasting              = dCurrentX;
-            stCurrentCoordinate.dNorthing             = dCurrentY;
-            vWaypoints.emplace_back(stCurrentCoordinate, geoops::WaypointType::eNavigationWaypoint);
-
-            // Increment angle and radius for the next waypoint.
-            dAngleRadians += dAngularStepRadians;
-            dCurrentSpacingWindUp -= dStartSpacing;
 
             // Calculate the current distance from the starting point. This is our radius.
             dCurrentRadius = geoops::CalculateGeoMeasurement(stStartingPoint.GetUTMCoordinate(), stCurrentCoordinate).dDistanceMeters;

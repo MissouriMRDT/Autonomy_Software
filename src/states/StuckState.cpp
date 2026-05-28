@@ -419,16 +419,21 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Get the obstacle's origin
-        int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount() - 1;
-        geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex).GetUTMCoordinate();
+        int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount();
+        geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex - 1).GetUTMCoordinate();
 
         // Get saved rover path
-        std::vector<geoops::Waypoint> vRefPath             = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPath");
-        std::vector<geoops::Waypoint> vSearchRevSpiralPath = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPathReverse");
+        std::vector<geoops::Waypoint> vRefPath          = globals::g_pWaypointHandler->RetrievePath("stuckPath");
+        std::vector<geoops::Waypoint> vRevSearchRefPath = (m_eTriggeringState == States::eSearchPattern) ? vRefPath : std::vector<geoops::Waypoint>();
 
         if (vRefPath.empty())
         {
             LOG_WARNING(logging::g_qSharedLogger, "Stuck state received empty path to modify!");
+            globals::g_pWaypointHandler->StorePath("unstuckPath", vRefPath);
+            if (m_eTriggeringState == States::eSearchPattern)
+            {
+                globals::g_pWaypointHandler->StorePath("RevSpiralPath", vRevSearchRefPath);
+            }
             return;
         }
 
@@ -522,16 +527,16 @@ namespace statemachine
 
         // Remove all points that are in stuck zone and re path-plan deleted path segments.
         SplicePath(vRefPath, stObstaclePosition);
-        // Save path for use in returning state
-        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", vRefPath);
-
-        // Second half of the SearchPatternState spiral is named differently. Don't forget to reroute it too.
-        if (m_eTriggeringState == States::eSearchPattern && !vSearchRevSpiralPath.empty())
+        if (m_eTriggeringState == States::eSearchPattern)
         {
-            // Remove all points that are in stuck zone and re path-plan deleted path segments.
-            SplicePath(vSearchRevSpiralPath, stObstaclePosition);
-            // Save path for use in returning state
-            globals::g_pWaypointHandler->StorePath("GeoPlannerPathReverse", vSearchRevSpiralPath);
+            SplicePath(vRevSearchRefPath, stObstaclePosition);
+        }
+
+        // Save path for use in returning state
+        globals::g_pWaypointHandler->StorePath("unstuckPath", vRefPath);
+        if (m_eTriggeringState == States::eSearchPattern)
+        {
+            globals::g_pWaypointHandler->StorePath("RevSpiralPath", vRevSearchRefPath);
         }
     }
 
