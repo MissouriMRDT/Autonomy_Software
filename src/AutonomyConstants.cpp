@@ -400,12 +400,6 @@ namespace constants
     const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS = 3;                             // Max number of failed checks of the rover's rotation before next attempt.
     const double SEARCH_STUCK_CHECK_ROT_THRESH     = 10.0;                          // Minimum angular velocity required to consider the rover as actively rotating.
     const double SEARCH_STUCK_CHECK_VEL_THRESH     = 0.15;                          // Minimum velocity required to consider the rover as actively moving.
-    const bool SEARCH_ANG_VEL_CHECK_ENABLE         = true;     // Whether or not to monitor the angular velocity and intervene at prolonged high speeds
-    const double SEARCH_ANGULAR_VELOCITY_ABOVE_WHICH_WILL_TRIGGER_REALIGNMENT_IF_HELD_FOR_TOO_LONG =
-        20.0;                                                  // angular velocity above which will trigger realignment if held for too long
-    const double SEARCH_TIME_SPENT_SPINNING_TOO_FAST_AFTER_WHICH_A_REALIGNMENT_IS_TRIGGERED =
-        4.0;                                                   // the time spent spinning too fast after which a realignment is triggered
-    const double SEARCH_WAIT_BEFORE_REALIGNMENT_TIME = 3.0;    // time to wait before realignment
 
     // Navigating State.
     const double NAVIGATING_MOTOR_POWER                   = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
@@ -418,12 +412,6 @@ namespace constants
     const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS    = 3;        // Max number of failed checks of the rover's rotation before next attempt.
     const double NAVIGATING_STUCK_CHECK_ROT_THRESH        = 10.0;     // Minimum angular velocity required to consider the rover as actively rotating.
     const double NAVIGATING_STUCK_CHECK_VEL_THRESH        = 0.15;     // Minimum velocity required to consider the rover as actively moving.
-    const bool NAVIGATING_ANG_VEL_CHECK_ENABLE            = true;     // Whether or not to monitor the angular velocity and intervene at prolonged high speeds
-    const double NAVIGATING_ANGULAR_VELOCITY_ABOVE_WHICH_WILL_TRIGGER_REALIGNMENT_IF_HELD_FOR_TOO_LONG =
-        20.0;                                                         // angular velocity above which will trigger realignment if held for too long
-    const double NAVIGATING_TIME_SPENT_SPINNING_TOO_FAST_AFTER_WHICH_A_REALIGNMENT_IS_TRIGGERED =
-        4.0;                                                          // the time spent spinning too fast after which a realignment is triggered
-    const double NAVIGATING_WAIT_BEFORE_REALIGNMENT_TIME = 3.0;       // time to wait before realignment
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

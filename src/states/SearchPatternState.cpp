@@ -42,17 +42,16 @@ namespace statemachine
         m_eCurrentSearchPatternType = SearchPatternType::eSpiral;
         m_nSearchPathIdx            = 0;
         m_stSearchPatternCenter     = globals::g_pWaypointHandler->PeekNextWaypoint();
-        m_tmLastLowTurningSpeed     = std::chrono::system_clock::now();
 
         // Get the current rover pose.
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Calculate the search path.
         std::vector<geoops::Waypoint> vSpiralPath = searchpattern::CalculateSpiralPatternWaypoints(m_stSearchPatternCenter.GetGPSCoordinate(),
-                                                                                                   constants::SEARCH_ANGULAR_STEP_DEGREES,
-                                                                                                   m_stSearchPatternCenter.dRadius,
-                                                                                                   stCurrentRoverPose.GetCompassHeading(),
-                                                                                                   constants::SEARCH_SPIRAL_SPACING);
+                                                                       constants::SEARCH_ANGULAR_STEP_DEGREES,
+                                                                       m_stSearchPatternCenter.dRadius,
+                                                                       stCurrentRoverPose.GetCompassHeading(),
+                                                                       constants::SEARCH_SPIRAL_SPACING);
         RemoveRedZonePoints(vSpiralPath);
         std::vector<geoops::Waypoint> vGeoPlannedPath = GeoPlanSearchPattern(vSpiralPath);
         std::vector<geoops::Waypoint> vFirstHalf(vGeoPlannedPath.begin(), vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2);
@@ -307,26 +306,6 @@ namespace statemachine
         {
             globals::g_pStateMachineHandler->HandleEvent(Event::eSearchFailed);
             return;
-        }
-
-        // Update timestamp of last low angular velocity to prevent a realignment.
-        if (std::abs(globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()) <
-            constants::SEARCH_ANGULAR_VELOCITY_ABOVE_WHICH_WILL_TRIGGER_REALIGNMENT_IF_HELD_FOR_TOO_LONG)
-        {
-            m_tmLastLowTurningSpeed = std::chrono::system_clock::now();
-        }
-
-        // We have been spinning for a suspiciously long amount of time. Stop and recalibrate heading.
-        if (constants::SEARCH_ANG_VEL_CHECK_ENABLE &&
-            std::chrono::system_clock::now() - m_tmLastLowTurningSpeed >
-                std::chrono::milliseconds(static_cast<int>(constants::SEARCH_TIME_SPENT_SPINNING_TOO_FAST_AFTER_WHICH_A_REALIGNMENT_IS_TRIGGERED * 1000)))
-        {
-            LOG_WARNING(logging::g_qSharedLogger, "Rover angular velocity is out of control! Stopping rover and realigning ZED.");
-            globals::g_pDriveBoard->SendStop();
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(constants::SEARCH_WAIT_BEFORE_REALIGNMENT_TIME * 1000)));
-            globals::g_pStateMachineHandler->RecalibrateZEDHeadingToGPS();
-            // Prevent immediately stopping again.
-            m_tmLastLowTurningSpeed = std::chrono::system_clock::now();
         }
 
         // NOTE: Optional - Uncomment the above code and comment out the below code to use pure pursuit control to navigate to the goal waypoint.
