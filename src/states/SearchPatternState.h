@@ -67,6 +67,7 @@ namespace statemachine
             SearchPatternType m_eCurrentSearchPatternType;
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             std::unique_ptr<controllers::PurePursuitController> m_pPursuitController;
+            std::chrono::system_clock::time_point m_tmLastLowTurningSpeed;
 
         protected:
             /////////////////////////////////////////
