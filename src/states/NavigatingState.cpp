@@ -333,7 +333,6 @@ namespace statemachine
                         else
                         {
                             LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe detour! Rover is trapped.");
-                            m_dHeadingBeforeStuck = stCurrentRoverPose.GetCompassHeading();
                             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
                             m_bWasStuck = true;
                             return;
