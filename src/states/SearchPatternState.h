@@ -57,6 +57,7 @@ namespace statemachine
             /////////////////////////////////////////
             // Declare private member variables.
             /////////////////////////////////////////
+            bool m_bWasStuck;
             bool m_bInitialized;
             geoops::Waypoint m_stSearchPatternCenter;
             std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;

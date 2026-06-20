@@ -220,8 +220,11 @@ namespace controllers
             double dSpeed      = (dModelSpeed > 0.0) ? dModelSpeed : dMaxSpeed;
             dSpeed             = std::max(dSpeed, 1e-4);
 
-            // Stanley control law to compute the steering angle.
-            double dStanleyTermRad = std::atan2(m_dControlGain * dCrossTrackError, dSpeed);
+            // Clamp the speed so the denominator never drops below the floor.
+            // If actual speed is 0.1, the math uses 0.3. If actual is 0.8, the math uses 0.8.
+            double dEffectiveSpeed = std::max(dSpeed, constants::STANLEY_MIN_STABLE_SPEED);
+            // Calculate Stanley term using the effective speed.
+            double dStanleyTermRad = std::atan2(m_dControlGain * dCrossTrackError, dEffectiveSpeed);
             double dStanleyTermDeg = dStanleyTermRad * (180.0 / M_PI);
             // Combine the heading error and the stanley term.
             dSteeringAngle += (dStanleyTermDeg + dHeadingError) * dTimeWeight;

@@ -418,6 +418,7 @@ namespace constants
     extern const bool NAVIGATING_VERIFY_POSITION;
     extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
     extern const bool NAVIGATING_ENABLE_STUCK_DETECT;
+    extern const bool NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS;
     extern const double NAVIGATING_STUCK_CHECK_INTERVAL;
     extern const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS;
     extern const double NAVIGATING_STUCK_CHECK_ROT_THRESH;
@@ -439,6 +440,7 @@ namespace constants
     extern const double STANLEY_ANGULAR_VELOCITY_LIMIT;
     extern const int STANLEY_PREDICTION_HORIZON;
     extern const double STANLEY_PREDICTION_TIME_STEP;
+    extern const double STANLEY_MIN_STABLE_SPEED;
 
     // Pure Pursuit Controller config.
     extern const double CLOSE_RANGE_PENALTY;

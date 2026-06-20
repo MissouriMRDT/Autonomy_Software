@@ -194,7 +194,7 @@ namespace statemachine
                 {
                     if (pTagDetector->GetThreadUUID() == m_stBestArucoTag.szDetectorUUID || pTagDetector->GetThreadUUID() == m_stBestTorchTag.szDetectorUUID)
                     {
-                        std::future<bool> fuFrame = pTagDetector->RequestDetectionOverlayFrame(cvSnapshot);
+                        std::future<bool> fuFrame = pTagDetector->RequestLastGoodOverlayFrame(cvSnapshot);
                         if (!fuFrame.get())
                         {
                             LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: Failed to request detection overlay frame.");

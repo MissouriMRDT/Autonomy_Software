@@ -33,8 +33,6 @@ DriveBoard::DriveBoard()
     // Initialize member variables.
     m_stDrivePowers.dLeftDrivePower  = 0.0;
     m_stDrivePowers.dRightDrivePower = 0.0;
-    m_fMinDriveEffort                = constants::DRIVE_MIN_POWER;
-    m_fMaxDriveEffort                = constants::DRIVE_MAX_POWER;
     m_fDriveEffortMultiplier         = 1.0f;
 
     // Configure PID controller for heading hold function.
@@ -167,13 +165,6 @@ diffdrive::DrivePowers DriveBoard::CalculateMove(const double dGoalSpeed,
  ******************************************************************************/
 void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bool bEnableVariableDriveEffort)
 {
-    // Enable or disable variable drive effort.
-    if (bEnableVariableDriveEffort)
-    {
-        float fMultiplier = VariableDriveEffort();
-        SetMaxDriveEffort(fMultiplier);
-    }
-
     // Limit input values (-1.0 to 1.0).
     double dLeftInput  = std::clamp(stDrivePowers.dLeftDrivePower, -1.0, 1.0);
     double dRightInput = std::clamp(stDrivePowers.dRightDrivePower, -1.0, 1.0);
@@ -185,13 +176,24 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
     double dLinearPower  = (dLeftInput + dRightInput) / 2.0;
     double dAngularPower = (dLeftInput - dRightInput) / 2.0;
 
-    // Apply the Speed Multiplier ONLY to the Linear component.
-    // This slows down the travel speed but keeps full turning torque available.
-    // Use a shared lock to prevent data races when reading the multiplier.
+    // Fetch the base operator-set speed multiplier safely.
+    float fCombinedMultiplier = 1.0f;
     {
         std::shared_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
-        dLinearPower *= m_fDriveEffortMultiplier;
+        fCombinedMultiplier = m_fDriveEffortMultiplier;
     }
+
+    // If variable drive effort is enabled, scale the base RoveComm multiplier further based on terrain.
+    if (bEnableVariableDriveEffort)
+    {
+        float fTerrainDampening = VariableDriveEffort();
+        fCombinedMultiplier *= fTerrainDampening;
+    }
+
+    // Apply the Combined Speed Multiplier ONLY to the Linear component.
+    // This slows down the travel speed based on operator limits AND terrain safety,
+    // but keeps full turning torque available.
+    dLinearPower *= fCombinedMultiplier;
 
     // Reconstruct Left and Right powers.
     double dLeftSpeed  = dLinearPower + dAngularPower;
@@ -206,15 +208,12 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
         dLeftSpeed /= dMaxMagnitude;
         dRightSpeed /= dMaxMagnitude;
     }
-    // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
     // If the min and max drive effort have been set to 0, then just send zero powers.
-    if (m_fMinDriveEffort != 0.0 || m_fMaxDriveEffort != 0.0)
-    {
-        // Limit the power to max and min effort defined in constants (Slope Safety).
-        m_stDrivePowers.dLeftDrivePower  = std::clamp(float(dLeftSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-        m_stDrivePowers.dRightDrivePower = std::clamp(float(dRightSpeed), m_fMinDriveEffort, m_fMaxDriveEffort);
-    }
+    // Limit the power to max and min effort defined in constants (Slope Safety).
+    m_stDrivePowers.dLeftDrivePower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    m_stDrivePowers.dRightDrivePower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
 
     // Construct a RoveComm packet with the drive data.
     rovecomm::RoveCommPacket<float> stPacket;
@@ -223,6 +222,7 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
     stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
     stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
     stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
+
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
@@ -231,6 +231,7 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
         // Send packet.
         network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
+
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
 }
@@ -330,8 +331,8 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
     float fClampedMaxDriveEffortMultiplier = std::clamp(fMaxDriveEffortMultiplier, 0.0f, constants::DRIVE_MAX_POWER);
 
     // Update member variables.
-    m_fMinDriveEffort = constants::DRIVE_MIN_POWER * fClampedMaxDriveEffortMultiplier;
-    m_fMaxDriveEffort = constants::DRIVE_MAX_POWER * fClampedMaxDriveEffortMultiplier;
+    std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+    m_fDriveEffortMultiplier = fClampedMaxDriveEffortMultiplier;
 }
 
 /******************************************************************************
@@ -346,4 +347,20 @@ diffdrive::DrivePowers DriveBoard::GetDrivePowers() const
 {
     // Return the current drive powers.
     return m_stDrivePowers;
+}
+
+/******************************************************************************
+ * @brief Accessor for the current max drive effort multiplier.
+ *
+ * @return float - The current drive effort multiplier being applied to the drive powers. This is a value between 0 and 1 that is multiplied by the constants
+ * DRIVE_MIN_POWER and DRIVE_MAX_POWER to set the current power limits of the drive.
+ *
+ * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @date 2026-05-17
+ ******************************************************************************/
+float DriveBoard::GetMaxDriveEffort() const
+{
+    // Return the current max drive effort multiplier.
+    std::shared_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+    return m_fDriveEffortMultiplier;
 }

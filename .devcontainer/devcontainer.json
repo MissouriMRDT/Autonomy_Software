@@ -8,9 +8,9 @@
         "--network",
         "host",
         // Add all available GPUs
-        // "--gpus",
-        // "all",
-        "--runtime=nvidia",
+        "--gpus",
+        "all",
+        // "--runtime=nvidia",
         // Grants permission to the container to access USBs.
         "--privileged",
         "-v",
@@ -40,12 +40,12 @@
         "source=${localWorkspaceFolder}/data/calibrations/zed,target=/usr/local/zed/settings,type=bind,consistency=delegated",
         "type=bind,readonly,source=/etc/localtime,target=/etc/localtime"
     ],
-    // "image": "ghcr.io/missourimrdt/autonomy-jammy:2026-05-01-15-42-01",
-    "image": "ghcr.io/missourimrdt/autonomy-jetpack:2026-05-01-15-42-01",
-    "build": {
-        // "dockerfile": "Jammy.dockerfile"
-        // "dockerfile": "JetPack.dockerfile"
-    },
+    "image": "ghcr.io/missourimrdt/autonomy-jammy:2026-05-01-15-42-01",
+    // "image": "ghcr.io/missourimrdt/autonomy-jetpack:2026-05-01-15-42-01",
+    // "build": {
+    //     // "dockerfile": "Jammy.dockerfile"
+    //     // "dockerfile": "JetPack.dockerfile"
+    // },
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {},
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
@@ -73,7 +73,6 @@
                 "ryanluker.vscode-coverage-gutters",
                 "GitHub.vscode-pull-request-github",
                 "GitHub.copilot",
-                "qwtel.sqlite-viewer",
                 "icrawl.discord-vscode"
             ],
             "settings": {

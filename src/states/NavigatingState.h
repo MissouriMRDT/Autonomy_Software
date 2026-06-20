@@ -50,8 +50,7 @@ namespace statemachine
             // Declare private member variables.
             /////////////////////////////////////////
             bool m_bWasStuck;
-            double m_dStuckDistanceToGoal;
-            double m_dHeadingBeforeStuck;
+            bool m_bWithinWaypointRadius;
             bool m_bFetchNewWaypoint;
             geoops::Waypoint m_stGoalWaypoint;
             bool m_bInitialized;
@@ -62,11 +61,6 @@ namespace statemachine
             std::vector<geoops::Waypoint> m_vPathCoordinates;
             std::vector<VirtualObstacle> m_vActiveVirtualObstacles;
             std::chrono::system_clock::time_point m_tmLastAvoidanceUpdate;
-
-            /////////////////////////////////////////
-            // Declare private class methods.
-            /////////////////////////////////////////
-            geoops::UTMCoordinate ModifyPathAfterStuckState();
 
         protected:
             /////////////////////////////////////////

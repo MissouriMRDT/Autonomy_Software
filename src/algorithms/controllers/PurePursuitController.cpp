@@ -211,38 +211,42 @@ namespace controllers
      ******************************************************************************/
     int PurePursuitController::FindClosestWaypointIndex(const geoops::UTMCoordinate& stCurrentPosition)
     {
-        // Create instance variables.
-        double dClosestDistanceSq = std::numeric_limits<double>::max();
-        const size_t siWaypoints  = m_vReferencePath.size();
+        if (m_vReferencePath.empty())
+        {
+            return 0;
+        }
+
         int nBestSegmentIndex     = m_nCurrentReferencePathTargetIndex;
+        double dClosestDistanceSq = std::numeric_limits<double>::max();
+        int nConsecutiveIncreases = 0;
 
-        // Check bounds
-        if (siWaypoints == 0)
-        {
-            return 0;
-        }
-
-        if (siWaypoints == 1)
-        {
-            return 0;
-        }
-
-        // Limit search window using lookahead index
-        size_t nSearchLimit = std::min(siWaypoints, static_cast<size_t>(m_nCurrentReferencePathTargetIndex + m_nLookaheadIndex));
-
-        // Step through path to find next carrot on a stick point.
-        for (size_t siIter = static_cast<size_t>(m_nCurrentReferencePathTargetIndex); siIter < nSearchLimit; ++siIter)
+        // Search forward starting from the current known index
+        for (size_t siIter = static_cast<size_t>(m_nCurrentReferencePathTargetIndex); siIter < m_vReferencePath.size(); ++siIter)
         {
             const geoops::UTMCoordinate& stA = m_vReferencePath[siIter].GetUTMCoordinate();
 
-            double dx                        = stCurrentPosition.dEasting - stA.dEasting;
-            double dy                        = stCurrentPosition.dNorthing - stA.dNorthing;
-            double dDistSq                   = dx * dx + dy * dy;
+            double dDeltaX                   = stCurrentPosition.dEasting - stA.dEasting;
+            double dDeltaY                   = stCurrentPosition.dNorthing - stA.dNorthing;
+            double dDistSq                   = dDeltaX * dDeltaX + dDeltaY * dDeltaY;
 
             if (dDistSq < dClosestDistanceSq)
             {
-                dClosestDistanceSq = dDistSq;
-                nBestSegmentIndex  = static_cast<int>(siIter);
+                // We found a closer point. Update best and reset the blinder counter.
+                dClosestDistanceSq    = dDistSq;
+                nBestSegmentIndex     = static_cast<int>(siIter);
+                nConsecutiveIncreases = 0;
+            }
+            else
+            {
+                nConsecutiveIncreases++;
+
+                // TOPOLOGICAL BLINDER:
+                // If the distance increases for N consecutive points, we have found the local minimum.
+                // This stops the search so we don't accidentally jump to the adjacent ring of a spiral.
+                if (nConsecutiveIncreases >= m_nLookaheadIndex)
+                {
+                    break;
+                }
             }
         }
 
@@ -263,9 +267,24 @@ namespace controllers
     {
         const size_t siWaypoints = m_vReferencePath.size();
 
-        // Search forward from the current closest point to find the carrot.
-        // Limit the search so it tracks strictly along the path and does not jump rings.
-        for (size_t siIter = m_nCurrentReferencePathTargetIndex + 1; siIter < siWaypoints; ++siIter)
+        // Calculate the distance from the rover to the TRUE closest point on the path
+        const geoops::UTMCoordinate& stClosest = m_vReferencePath[m_nCurrentReferencePathTargetIndex].GetUTMCoordinate();
+        double dClosestDist                    = std::hypot(stClosest.dEasting - stCurrentPosition.dEasting, stClosest.dNorthing - stCurrentPosition.dNorthing);
+
+        // OFF-PATH RECOVERY:
+        // If the closest point on the path is further away than your lookahead circle,
+        // no point ahead will be strictly < L. To prevent returning a point behind the rover,
+        // we must target the closest point to pull the rover back onto the path.
+        if (dClosestDist > m_dLookaheadDistance)
+        {
+            return m_vReferencePath[m_nCurrentReferencePathTargetIndex];
+        }
+
+        // FIND INTERSECTION AHEAD:
+        // Because the closest point is guaranteed to be < L (from the check above),
+        // searching forward guarantees we start INSIDE the circle.
+        // The first point we find that is >= L represents exiting the circle AHEAD of the rover.
+        for (size_t siIter = m_nCurrentReferencePathTargetIndex; siIter < siWaypoints; ++siIter)
         {
             const geoops::UTMCoordinate& stTarget = m_vReferencePath[siIter].GetUTMCoordinate();
 
@@ -273,14 +292,14 @@ namespace controllers
             double dDeltaY                        = stTarget.dNorthing - stCurrentPosition.dNorthing;
             double dDistance                      = std::hypot(dDeltaX, dDeltaY);
 
-            // Once we find a point that sits on or outside our lookahead radius, return it.
+            // The moment we cross the lookahead radius boundary, return that point.
             if (dDistance >= m_dLookaheadDistance)
             {
                 return m_vReferencePath[siIter];
             }
         }
 
-        // If no point is far enough ahead, return the last point.
+        // If no point is far enough ahead (we are at the end of the path), return the very last point.
         return m_vReferencePath.back();
     }
 }    // namespace controllers

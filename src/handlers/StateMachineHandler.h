@@ -57,6 +57,11 @@ class StateMachineHandler : private AutonomyThread<void>
         geoops::GPSCoordinate m_stCurrentGPSLocation;
         double m_dZEDHeadingOffset;    // This is the offset that is applied to the ZED's heading to align it with the actual heading of the rover.
 
+        // Kinematic tracking variables for heading recovery.
+        double m_dLastRawZEDHeading;
+        double m_dLastFusedHeading;
+        bool m_bFirstHeadingLoop;
+
         /////////////////////////////////////////
         // Declare private class methods.
         /////////////////////////////////////////
@@ -216,7 +221,7 @@ class StateMachineHandler : private AutonomyThread<void>
         geoops::RoverPose SmartRetrieveRoverPose(bool bIMUHeading = true);
         double SmartRetrieveVelocity();
         double SmartRetrieveAngularVelocity();
-        void RealignZEDHeading(const double dNewActualHeading);
+        void RealignZEDHeading(const double dNewActualHeading, const double dCurrentZEDHeading);
 
         using AutonomyThread::GetIPS;
 };

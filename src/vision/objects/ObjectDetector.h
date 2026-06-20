@@ -53,6 +53,7 @@ class ObjectDetector : public AutonomyThread<void>
                        const bool bUsingGpuMats                      = false);
         ~ObjectDetector();
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
+        std::future<bool> RequestLastGoodDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedObjects(std::vector<objectdetectutils::Object>& vObjects);
         bool InitTorchDetection(const std::string& szModelPath,
                                 yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
@@ -117,17 +118,19 @@ class ObjectDetector : public AutonomyThread<void>
 
         cv::Mat m_cvFrame;
         cv::cuda::GpuMat m_cvGPUFrame;
-        cv::Mat m_cvTorchOverlayFrame;
+        cv::Mat m_cvLastGoodOverlayFrame;
+        cv::Mat m_cvDetectionOverlayFrame;
         cv::Mat m_cvTorchProcFrame;
         cv::Mat m_cvPointCloud;
         cv::cuda::GpuMat m_cvGPUPointCloud;
 
         // Queues and mutexes for scheduling and copying data to other threads.
-
-        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectedObjectDrawnOverlayFramesCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectionOverlayFramesCopySchedule;
+        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qLastGoodDetectionOverlayFramesCopySchedule;
         std::queue<containers::DataFetchContainer<std::vector<objectdetectutils::Object>>> m_qDetectedObjectCopySchedule;
         std::shared_mutex m_muPoolScheduleMutex;
-        std::shared_mutex m_muFrameCopyMutex;
+        std::shared_mutex m_muDetectionOverlayCopyMutex;
+        std::shared_mutex m_muLastGoodDetectionOverlayCopyMutex;
         std::shared_mutex m_muArucoDataCopyMutex;
 };
 

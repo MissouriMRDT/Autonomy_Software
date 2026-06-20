@@ -182,7 +182,7 @@ namespace constants
     const bool ZED_MAINCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
     const bool ZED_MAINCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_MAINCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 5;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_MAINCAM_FRAME_RETRIEVAL_THREADS   = 3;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_MAINCAM_SERIAL                    = 31237348;    // The serial number of the camera. Set to 0 to open the next available one. DEFAULT = 31237348
     const double ZED_MAINCAM_EASTING_OFFSET         = 0.0;    // The easting offset to apply to the GPS data that way we know where it is relative to the rover center.
     const double ZED_MAINCAM_NORTHING_OFFSET        = 0.0;    // The northing offset to apply to the GPS data that way we know where it is relative to the rover center.
@@ -203,7 +203,7 @@ namespace constants
     const bool ZED_REARCAM_EXPORT_SPATIAL_MAP   = false;                      // Whether or not to export the spatial map to a file.
     const bool ZED_REARCAM_USE_GPU_MAT          = MODE_SIM ? false : true;    // Whether or not to use CPU or GPU memory mats. GPU memory transfer/operations are faster.
     const bool ZED_REARCAM_USE_HALF_PRECISION_DEPTH = true;                   // Whether of not to use float32 or unsigned short (16) for depth measure.
-    const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS   = 5;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int ZED_REARCAM_FRAME_RETRIEVAL_THREADS   = 3;           // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int ZED_REARCAM_SERIAL                    = 39163798;    // The serial number of the camera. Set to 0 to open the next available one. DEFAULT = 31237348
     const double ZED_REARCAM_EASTING_OFFSET         = 0.0;     // The easting offset to apply to the GPS data that way we know where it is relative to the rover center.
     const double ZED_REARCAM_NORTHING_OFFSET        = -0.5;    // The northing offset to apply to the GPS data that way we know where it is relative to the rover center.
@@ -219,7 +219,7 @@ namespace constants
     const int BASICCAM_CAM_FPS                     = 30;      // The FPS to use for the basiccam.
     const int BASICCAM_CAM_HORIZONTAL_FOV          = 110;     // The horizontal FOV of the camera. Useful for future calculations.
     const int BASICCAM_CAM_VERTICAL_FOV            = 70;      // The vertical FOV of the camera. Useful for future calculations.
-    const int BASICCAM_CAM_FRAME_RETRIEVAL_THREADS = 5;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
+    const int BASICCAM_CAM_FRAME_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing frame copies to other threads.
     const int BASICCAM_CAM_INDEX                   = 0;       // The /dev/video index of the camera.
     const PIXEL_FORMATS BASICCAM_CAM_PIXELTYPE     = PIXEL_FORMATS::eBGR;    // The pixel layout of the camera.
     ///////////////////////////////////////////////////////////////////////////
@@ -342,10 +342,10 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Handler.
-    const int STATEMACHINE_MAX_IPS                  = 60;      // The maximum number of iteration per second of the state machines main thread.
-    const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;     // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
-    const double ZED_REALIGN_ROT_THRESH             = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
-    const double ZED_REALIGN_VEL_THRESH             = 0.3;     // Minimum velocity required to consider the rover as actively moving.
+    const int STATEMACHINE_MAX_IPS                  = 60;     // The maximum number of iteration per second of the state machines main thread.
+    const double STATEMACHINE_ZED_REALIGN_THRESHOLD = 0.5;    // The threshold in meters that the error between GPS and ZED must be before realigning the ZED cameras.
+    const double ZED_REALIGN_ROT_THRESH             = 5.0;    // Minimum angular velocity required to consider the rover as actively rotating.
+    const double ZED_REALIGN_VEL_THRESH             = 1.0;    // Minimum velocity required to consider the rover as actively moving.
 
     // Approaching Marker State
     const double APPROACH_MARKER_MOTOR_POWER          = DRIVE_MAX_SAFE_POWER * 0.2;    // The amount of power the motors use when approaching the marker.
@@ -380,26 +380,26 @@ namespace constants
     const double STUCK_ALIGN_DEGREES         = 65.0;    // The amount to rotate/realign for rover after a failed attempt.
     const double STUCK_ALIGN_TOLERANCE       = 5.0;     // Degree tolerance before realignment is considered complete.
     const double STUCK_OBSTACLE_DISTANCE     = 1.0;     // Distance in meters between rover GPS and origin of obstacle.
-    const double STUCK_OBSTACLE_RADIUS       = 2.5;     // Radius in meters of declared obstacle.
+    const double STUCK_OBSTACLE_RADIUS       = 5.0;     // Radius in meters of declared obstacle.
 
     // Reverse State.
-    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_SAFE_POWER * 0.6;    // The speed to drive backwards at.
-    const double REVERSE_DISTANCE          = 3.0;                           // The distance to reverse in meters.
+    const double REVERSE_MOTOR_POWER       = DRIVE_MAX_SAFE_POWER * 1.0;    // The speed to drive backwards at.
+    const double REVERSE_DISTANCE          = 5.5;                           // The distance to reverse in meters.
     const double REVERSE_TIMEOUT_PER_METER = 5.0;                           // Reverse state timeout in seconds for each meter reversed.
     const bool REVERSE_MAINTAIN_HEADING    = true;                          // Whether or not the rover should maintain heading while reversing.
 
     // Search Pattern State
-    const double SEARCH_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.4;    // The amount of power the motors use when approaching the marker.
+    const double SEARCH_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.5;    // The amount of power the motors use when approaching the marker.
     const double SEARCH_ANGULAR_STEP_DEGREES       = 57.0;                          // The amount the angle is incremented in each iteration of the loop (degrees).
     const double SEARCH_SPIRAL_SPACING             = 1.0;                           // The spacing between successive points in the spiral (meters).
     const double SEARCH_ZIGZAG_SPACING             = 4.0;                           // The spacing between successive points in the zigzag (meters).
     const double SEARCH_SNAKE_SLITHERS             = 2.0;                           // The number of slithers in the snake pattern.
     const double SEARCH_WAYPOINT_PROXIMITY         = 2.0;                           // How close a rover must be to a point to have it count as visited.
-    const bool SEARCH_ENABLE_STUCK_DETECT          = false;                         // Whether or not to enable the stuck detection algorithm when searching for a marker.
+    const bool SEARCH_ENABLE_STUCK_DETECT          = true;                          // Whether or not to enable the stuck detection algorithm when searching for a marker.
     const double SEARCH_STUCK_CHECK_INTERVAL       = 2.0;                           // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS = 3;                             // Max number of failed checks of the rover's rotation before next attempt.
-    const double SEARCH_STUCK_CHECK_ROT_THRESH     = 20.0;                          // Minimum angular velocity required to consider the rover as actively rotating.
-    const double SEARCH_STUCK_CHECK_VEL_THRESH     = 0.3;                           // Minimum velocity required to consider the rover as actively moving.
+    const double SEARCH_STUCK_CHECK_ROT_THRESH     = 10.0;                          // Minimum angular velocity required to consider the rover as actively rotating.
+    const double SEARCH_STUCK_CHECK_VEL_THRESH     = 0.15;                          // Minimum velocity required to consider the rover as actively moving.
 
     // Navigating State.
     const double NAVIGATING_MOTOR_POWER                = DRIVE_MAX_SAFE_POWER * 0.9;    // The speed to drive at when navigating.
@@ -411,10 +411,6 @@ namespace constants
     const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS = 3;       // Max number of failed checks of the rover's rotation before next attempt.
     const double NAVIGATING_STUCK_CHECK_ROT_THRESH     = 20.0;    // Minimum angular velocity required to consider the rover as actively rotating.
     const double NAVIGATING_STUCK_CHECK_VEL_THRESH     = 0.5;     // Minimum velocity required to consider the rover as actively moving.
-    const float NAVIGATING_GRID_CELL_SIZE_METERS       = 0.6;     // The size of the grid cells in meters in the ZED view.
-    const float NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD = 0.15;    // The variance in m between the ground and top of obstacle to affirm it's an obstacle.
-    const int NAVIGATING_TIME_TO_LIVE_LIMIT            = 15;      // The number of seconds an obstacle will be remembered from the ZED.
-    const double NAVIGATING_OBSTACLE_RADIUS            = 1.0;     // The radius of an obstacle to navigate around.
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////
@@ -426,6 +422,7 @@ namespace constants
     const double STANLEY_ANGULAR_VELOCITY_LIMIT  = 90.0;    // The maximum angular velocity in degrees per second.
     const int STANLEY_PREDICTION_HORIZON         = 5;       // The number of predictions to make.
     const double STANLEY_PREDICTION_TIME_STEP    = 0.01;    // The time to pass in seconds between each prediction of the Stanley controller unicycle model.
+    const double STANLEY_MIN_STABLE_SPEED        = 0.3;     // The minimum speed that stanley is stable. If too small, rover will be erratic at low speeds.
 
     // Pure Pursuit Controller config.
     const double CLOSE_RANGE_PENALTY = 2.2;    // Additive to insure the index is updated.
