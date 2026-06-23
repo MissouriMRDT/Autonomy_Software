@@ -50,6 +50,8 @@ namespace torchtag
         // Check if the input frame is in RGB format.
         if (cvFrame.channels() != 3)
         {
+            static int nFrameId = 0;
+            cv::imwrite("../logs/frames/torch_detect_invalid_frame.png" + std::to_string(nFrameId++), cvFrame);
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger, "Detect() requires a RGB image.");
             return {};

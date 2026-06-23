@@ -128,7 +128,7 @@ namespace statemachine
 
         // 1. Boundary Check: Verify rover radius from marker waypoint.
         geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
-        if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius)
+        if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius + 5)
         {
             LOG_WARNING(logging::g_qSharedLogger,
                         "ApproachingMarkerState: Rover broke geofence! Radius threshold is {} m, current distance is {:.2f} m. Triggering MarkerUnseen.",

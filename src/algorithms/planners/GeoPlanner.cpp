@@ -80,8 +80,31 @@ namespace pathplanners
         // Bind RoveComm UDP Node network callbacks if available.
         if (network::g_pRoveCommUDPNode != nullptr)
         {
-            network::g_pRoveCommUDPNode->AddUDPCallback<float>(fnMinTravScoreCallback, manifest::Autonomy::COMMANDS.find("SETMINTRAVSCORE")->second.DATA_ID);
-            network::g_pRoveCommUDPNode->AddUDPCallback<float>(fnBetaBiasCallback, manifest::Autonomy::COMMANDS.find("SETBETABIAS")->second.DATA_ID);
+            network::g_pRoveCommUDPNode->On<manifest::Autonomy::Commands::SETMINTRAVSCORE>(
+                [this](const auto& stPacket)
+                {
+                    // Extract minimum travel score from incoming packet.
+                    if (stPacket.vData.size() > 0)
+                    {
+                        m_dMinTravScore = static_cast<double>(stPacket.vData[0]);
+                        this->ClearGeoCache();
+
+                        LOG_NOTICE(logging::g_qSharedLogger,
+                                   "Incoming Packet: Setting GeoPlanner minimum travel score to {}. The tile cache has also been cleared.",
+                                   this->m_dMinTravScore);
+                    }
+                });
+            network::g_pRoveCommUDPNode->On<manifest::Autonomy::Commands::SETBETABIAS>(
+                [this](const auto& stPacket)
+                {
+                    // Extract beta bias from incoming packet.
+                    if (stPacket.vData.size() > 0)
+                    {
+                        m_dBeta = static_cast<double>(stPacket.vData[0]);
+
+                        LOG_NOTICE(logging::g_qSharedLogger, "Incoming Packet: Setting GeoPlanner beta bias to {}", this->m_dBeta);
+                    }
+                });
         }
 
         LOG_INFO(logging::g_qSharedLogger, "GeoPlanner initialized successfully with a defined tile fetch size of {} meters.", std::to_string(m_dTileSize));

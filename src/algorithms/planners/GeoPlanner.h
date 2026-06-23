@@ -247,49 +247,6 @@ namespace pathplanners
                 nX = nIndex % m_nGridWidth;
             }
 
-            /******************************************************************************
-             * @brief Callback function used to set the minimum travel score for path planning.
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2024-04-04
-             ******************************************************************************/
-            const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> fnMinTravScoreCallback =
-                [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
-            {
-                (void) stdAddr;
-
-                // Extract minimum travel score from incoming packet.
-                if (stPacket.vData.size() > 0)
-                {
-                    m_dMinTravScore = static_cast<double>(stPacket.vData[0]);
-                    this->ClearGeoCache();
-
-                    LOG_NOTICE(logging::g_qSharedLogger,
-                               "Incoming Packet: Setting GeoPlanner minimum travel score to {}. The tile cache has also been cleared.",
-                               this->m_dMinTravScore);
-                }
-            };
-
-            /******************************************************************************
-             * @brief Callback function used to set the beta bias for travel scores in path planning.
-             *
-             * @author clayjay3 (claytonraycowen@gmail.com)
-             * @date 2024-04-04
-             ******************************************************************************/
-            const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> fnBetaBiasCallback =
-                [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
-            {
-                (void) stdAddr;
-
-                // Extract beta bias from incoming packet.
-                if (stPacket.vData.size() > 0)
-                {
-                    m_dBeta = static_cast<double>(stPacket.vData[0]);
-
-                    LOG_NOTICE(logging::g_qSharedLogger, "Incoming Packet: Setting GeoPlanner beta bias to {}", this->m_dBeta);
-                }
-            };
-
             ////////////////////////////////////
             // Private member variables.
             ////////////////////////////////////

@@ -89,30 +89,5 @@ class DriveBoard
         /////////////////////////////////////////
         // Declare private methods.
         /////////////////////////////////////////
-
-        /******************************************************************************
-         * @brief Callback function that is called whenever RoveComm receives a new SETMAXSPEED packet.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-03-03
-         ******************************************************************************/
-        const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> SetMaxSpeedCallback =
-            [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
-        {
-            // Not using this.
-            (void) stdAddr;
-
-            // Clamp the incoming multiplier to [0.0, 1.0].
-            float fClampedMultiplier = std::clamp(std::fabs(stPacket.vData[0]), 0.0f, 1.0f);
-            // Update member variable.
-            {
-                std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
-                m_fDriveEffortMultiplier = fClampedMultiplier;
-            }
-
-            // Submit logger message.
-            LOG_NOTICE(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", fClampedMultiplier);
-        };
 };
 #endif
