@@ -63,6 +63,9 @@ option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
 ## Enable or Disable Tests Mode
 option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
 
+## Enable or Disable Tracy
+option(BUILD_TRACY_MODE "Enable Tracy Profiler" ON)
+
 ## Allow LiDAR/GeoPlanner unit tests (can require special data/env)
 option(ENABLE_LIDAR_GEO_UTESTS "Enable unit tests in LidarHandler.cc and GeoPlanner.cc" OFF)
 
@@ -121,6 +124,16 @@ if (BUILD_TESTS_MODE)
     enable_testing()
 else()
     message("--   [ ]: Build Unit and Integration Tests: Disabled")
+endif()
+
+## Build Tracy Profiler
+if (BUILD_TRACY_MODE)
+    message("--   [x]: Build Tracy Profiler: Enabled")
+    option(TRACY_ENABLE "Enable Tracy Profiler" ON)
+    option(TRACY_ON_DEMAND "For Long Lived Applications" ON)
+else()
+    message("--   [ ]: Build Tracy Profiler: Disabled")
+    option(TRACY_ENABLE "Enable Tracy Profiler" OFF)
 endif()
 
 ## Build Examples
@@ -215,6 +228,9 @@ find_package(GTest CONFIG REQUIRED)
 include(GoogleTest)
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
+
+## Find Tracy
+add_subdirectory(external/tracy)
 
 ## Find Eigen3.
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
@@ -312,6 +328,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${MPI_LIBRARIES}
                         ${PCL_LIBRARIES}
                         gcov
+                        Tracy::TracyClient
 )
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 
