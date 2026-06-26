@@ -559,29 +559,34 @@ namespace statemachine
         int nPointsRemoved                         = 0;
 
         bool bLastDeleted                          = false;
-        while (it != std::prev(vPath.end()))
+        while (it != vPath.end())
         {
             double dDifferenceX = it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting;
             double dDifferenceY = it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
 
             // If path coord is inside stuck zone, then remove it.
-            if (dDifferenceX * dDifferenceX + dDifferenceY * dDifferenceY <= constants::STUCK_OBSTACLE_RADIUS * constants::STUCK_OBSTACLE_RADIUS)
+            // Make sure not to delete the last point in the path, as it is the final goal.
+            if (it != std::prev(vPath.end()) &&
+                dDifferenceX * dDifferenceX + dDifferenceY * dDifferenceY <= constants::STUCK_OBSTACLE_RADIUS * constants::STUCK_OBSTACLE_RADIUS)
             {
                 bLastDeleted = true;
                 it           = vPath.erase(it);
                 ++nPointsRemoved;
             }
-            // If the previous node was deleted, then connect the dots correctly by splicing a new path in between.
+            // If we are back outside the stuck zone, and the previous node was deleted, then connect the dots correctly by splicing a new path in between.
             else if (bLastDeleted)
             {
                 // Plan a new path to the next remaining path node.
+                // If we are at the beginning of the path, then use the rover's current position as the start coordinate.
                 stStartCoordinate      = (it != vPath.begin()) ? std::prev(it)->GetUTMCoordinate() : stCurrentRoverPose.GetUTMCoordinate();
                 stGoalCoordinate       = it->GetUTMCoordinate();
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
+                // Splice in the new path, ignoring the start and goal coordinates since they are already in the path.
                 if (vSplicePathCoordinates.size() >= 3)
                 {
                     it = vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                    it += vSplicePathCoordinates.size() - 1;
+                    // Skip over the newly inserted nodes.
+                    it += vSplicePathCoordinates.size() - 2;
                     nPointsAdded += vSplicePathCoordinates.size() - 2;
                 }
                 bLastDeleted = false;
@@ -589,20 +594,6 @@ namespace statemachine
             else
             {
                 ++it;
-            }
-        }
-        // If last node is deleted and while loop ends then still connect the path to goal
-        if (bLastDeleted)
-        {
-            // Plan a new path to the next remaining path node
-            stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
-            stGoalCoordinate       = it->GetUTMCoordinate();
-            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-            if (vSplicePathCoordinates.size() >= 3)
-            {
-                it = vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                it += vSplicePathCoordinates.size() - 1;
-                nPointsAdded += vSplicePathCoordinates.size() - 2;
             }
         }
 

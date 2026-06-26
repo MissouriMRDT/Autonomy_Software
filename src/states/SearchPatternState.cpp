@@ -55,13 +55,20 @@ namespace statemachine
                                                                                                    constants::SEARCH_SPIRAL_SPACING);
         RemoveRedZonePoints(vSpiralPath);
         std::vector<geoops::Waypoint> vGeoPlannedPath = GeoPlanSearchPattern(vSpiralPath);
-        std::vector<geoops::Waypoint> vFirstHalf(vGeoPlannedPath.begin(), vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2);
-        std::vector<geoops::Waypoint> vSecondHalf(vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2, vGeoPlannedPath.end());
+
+        // Split the path into two halves for forward and reverse navigation.
+        std::vector<geoops::Waypoint> vFirstHalf;
+        std::vector<geoops::Waypoint> vSecondHalf;
+        if (!vGeoPlannedPath.empty())
+        {
+            vFirstHalf  = std::vector<geoops::Waypoint>(vGeoPlannedPath.begin(), vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2);
+            vSecondHalf = std::vector<geoops::Waypoint>(vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2, vGeoPlannedPath.end());
+        }
 
         // Plot the search path in the visualizer.
-        m_vSearchPath = vFirstHalf;
-        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);
+        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", vFirstHalf);
         globals::g_pWaypointHandler->StorePath("GeoPlannerPathReverse", vSecondHalf);
+        m_vSearchPath = std::move(vFirstHalf);
 
         // Set the path of the pure pursuit controller.
         m_pPursuitController->SetReferencePath(m_vSearchPath);
@@ -136,6 +143,10 @@ namespace statemachine
     std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& vSkeletonPath)
     {
         std::vector<geoops::Waypoint> m_vSearchPath;
+        if (vSkeletonPath.size() < 2)
+        {
+            return m_vSearchPath;
+        }
         for (long unsigned int nI = 0; nI < vSkeletonPath.size() - 1; nI++)
         {
             std::vector<geoops::Waypoint> vNewPoints =
