@@ -16,6 +16,7 @@
 #include "./TorchObjectDetection.hpp"
 
 /// \cond
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -141,6 +142,7 @@ ObjectDetector::~ObjectDetector()
  ******************************************************************************/
 void ObjectDetector::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::LightBlue1);
     // Check if using ZEDCam or BasicCam.
     if (m_bUsingZedCamera)
     {
@@ -199,130 +201,137 @@ void ObjectDetector::ThreadedContinuousCode()
     // Check if camera is opened.
     if (m_bCameraIsOpened)
     {
-        // Create future for indicating when the frame has been copied.
-        std::future<bool> fuPointCloudCopyStatus;
-        std::future<bool> fuRegularFrameCopyStatus;
-        bool bRequestingPointCloud = false;
-
-        // Check if the camera is setup to use CPU or GPU mats.
-        if (m_bUsingZedCamera)
         {
-            bRequestingPointCloud = true;
-            // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
-            if (m_bUsingGpuMats)
+            ZoneScopedNC("Retrieve Frames", tracy::Color::LightBlue2);
+            // Create future for indicating when the frame has been copied.
+            std::future<bool> fuPointCloudCopyStatus;
+            std::future<bool> fuRegularFrameCopyStatus;
+            bool bRequestingPointCloud = false;
+
+            // Check if the camera is setup to use CPU or GPU mats.
+            if (m_bUsingZedCamera)
             {
-                // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-                fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
-                // Get the regular RGB image from the camera.
-                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
-            }
-            else
-            {
-                // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
-                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-            }
-        }
-        else
-        {
-            // Grab frames from camera.
-            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-        }
-
-        // Safe polling wrapper to prevent deadlocks.
-        bool bCloudReady = !bRequestingPointCloud;    // True by default if we don't need a point cloud
-        bool bFrameReady = false;
-
-        // Keep polling as long as the thread hasn't been asked to stop.
-        while (this->GetThreadState() == AutonomyThreadState::eRunning)
-        {
-            if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
-                bCloudReady = true;
-
-            if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
-                bFrameReady = true;
-
-            if (bCloudReady && bFrameReady)
-                break;
-        }
-
-        // If the thread is shutting down, break out of the loop gracefully
-        if (this->GetThreadState() != AutonomyThreadState::eRunning)
-        {
-            return;
-        }
-
-        // Process the retrieved frames
-        if (m_bUsingZedCamera)
-        {
-            if (m_bUsingGpuMats)
-            {
-                if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
+                bRequestingPointCloud = true;
+                // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
+                if (m_bUsingGpuMats)
                 {
-                    // Download mat from GPU memory.
-                    m_cvGPUPointCloud.download(m_cvPointCloud);
-                    m_cvGPUFrame.download(m_cvFrame);
-                    // Drop alpha channel.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+                    // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
+                    fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
+                    // Get the regular RGB image from the camera.
+                    fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
                 }
                 else
                 {
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or frame from ZEDCam!");
+                    // Grabs point cloud from ZEDCam.
+                    fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                    fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
                 }
             }
             else
             {
-                if (!fuPointCloudCopyStatus.get())
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
-                if (!fuRegularFrameCopyStatus.get())
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
+                // Grab frames from camera.
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
             }
-        }
-        else
-        {
-            if (!fuRegularFrameCopyStatus.get())
+
+            // Safe polling wrapper to prevent deadlocks.
+            bool bCloudReady = !bRequestingPointCloud;    // True by default if we don't need a point cloud
+            bool bFrameReady = false;
+
+            // Keep polling as long as the thread hasn't been asked to stop.
+            while (this->GetThreadState() == AutonomyThreadState::eRunning)
             {
-                LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
+                if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+                    bCloudReady = true;
+
+                if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+                    bFrameReady = true;
+
+                if (bCloudReady && bFrameReady)
+                    break;
+            }
+
+            // If the thread is shutting down, break out of the loop gracefully
+            if (this->GetThreadState() != AutonomyThreadState::eRunning)
+            {
+                return;
+            }
+            // Process the retrieved frames
+            if (m_bUsingZedCamera)
+            {
+                if (m_bUsingGpuMats)
+                {
+                    if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
+                    {
+                        // Download mat from GPU memory.
+                        m_cvGPUPointCloud.download(m_cvPointCloud);
+                        m_cvGPUFrame.download(m_cvFrame);
+                        // Drop alpha channel.
+                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+                    }
+                    else
+                    {
+                        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or frame from ZEDCam!");
+                    }
+                }
+                else
+                {
+                    if (!fuPointCloudCopyStatus.get())
+                        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
+                    if (!fuRegularFrameCopyStatus.get())
+                        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
+                }
+            }
+            else
+            {
+                if (!fuRegularFrameCopyStatus.get())
+                {
+                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
+                }
             }
         }
 
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
-        // Check if the frame is empty.
-        if (m_cvFrame.empty())
+
         {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
-            return;
-        }
+            ZoneScopedNC("Detect Objects", tracy::Color::LightBlue2);
 
-        // Clear the list of newly detected objects.
-        m_vNewlyDetectedObjects.clear();
-        // Clone frames.
-        m_cvDetectionOverlayFrame = m_cvFrame.clone();
-        m_cvTorchProcFrame        = m_cvFrame.clone();
-        // Copy the camera frame to the pre-processing frame and overlay frame.
-        cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
+            // Check if the frame is empty.
+            if (m_cvFrame.empty())
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+                return;
+            }
 
-        // Check if torch detection if turned on.
-        if (m_bTorchEnabled)
-        {
-            // Detect objects in the image.
-            std::vector<objectdetectutils::Object> vNewTorchObjects =
-                torchobject::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+            // Clear the list of newly detected objects.
+            m_vNewlyDetectedObjects.clear();
+            // Clone frames.
+            m_cvDetectionOverlayFrame = m_cvFrame.clone();
+            m_cvTorchProcFrame        = m_cvFrame.clone();
+            // Copy the camera frame to the pre-processing frame and overlay frame.
+            cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
 
-            // Add Torch objects to the list of newly detected objects.
-            m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
-        }
+            // Check if torch detection if turned on.
+            if (m_bTorchEnabled)
+            {
+                // Detect objects in the image.
+                std::vector<objectdetectutils::Object> vNewTorchObjects =
+                    torchobject::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
 
-        // Set the FOV of the camera in the object structs for this detector's camera.
-        for (objectdetectutils::Object& stObject : m_vNewlyDetectedObjects)
-        {
-            // Set the UUID of the detector that detected this object to this ObjectDetector's camera name so we can associate it with this detector.
-            stObject.szDetectorUUID = this->GetThreadUUID();
-            // Set object FOV parameter to this object detectors camera's FOV.
-            stObject.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+                // Add Torch objects to the list of newly detected objects.
+                m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
+            }
+
+            // Set the FOV of the camera in the object structs for this detector's camera.
+            for (objectdetectutils::Object& stObject : m_vNewlyDetectedObjects)
+            {
+                // Set the UUID of the detector that detected this object to this ObjectDetector's camera name so we can associate it with this detector.
+                stObject.szDetectorUUID = this->GetThreadUUID();
+                // Set object FOV parameter to this object detectors camera's FOV.
+                stObject.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+            }
         }
 
         // Merge the newly detected objects with the pre-existing detected objects.
@@ -366,6 +375,7 @@ void ObjectDetector::ThreadedContinuousCode()
  ******************************************************************************/
 void ObjectDetector::PooledLinearCode()
 {
+    ZoneScopedC(tracy::Color::LightBlue);
     /////////////////////////////
     //  Detection Overlay Frame queue.
     /////////////////////////////
@@ -743,6 +753,8 @@ cv::Size ObjectDetector::GetProcessFrameResolution() const
  ******************************************************************************/
 void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object>& vNewlyDetectedObjects)
 {
+    ZoneScopedC(tracy::Color::LightBlue3);
+
     // Check if tracking is enabled.
     if (m_bEnableTracking)
     {

@@ -16,6 +16,7 @@
 #include "../../vision/aruco/TagDetector.h"
 
 /// \cond
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -39,6 +40,7 @@ namespace statemachine
      ******************************************************************************/
     inline void LoadDetectedTags(std::vector<tagdetectutils::ArucoTag>& vDetectedArucoTags, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors)
     {
+        ZoneScopedC(tracy::Color::MediumPurple);
         // Number of tag detectors.
         size_t siNumTagDetectors = vTagDetectors.size();
 
@@ -102,6 +104,7 @@ namespace statemachine
                                     tagdetectutils::ArucoTag& stTorchTarget,
                                     const int nTargetTagID = static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ANY))
     {
+        ZoneScopedC(tracy::Color::MediumPurple);
         // Create instance variables.
         std::vector<tagdetectutils::ArucoTag> vDetectedArucoTags;
         tagdetectutils::ArucoTag stArucoBestTag;

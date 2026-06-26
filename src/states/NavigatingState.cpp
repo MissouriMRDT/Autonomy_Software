@@ -14,6 +14,11 @@
 #include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/states/TagDetectionChecker.hpp"
 
+/// \cond
+#include <tracy/Tracy.hpp>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -95,6 +100,7 @@ namespace statemachine
      ******************************************************************************/
     void NavigatingState::Run()
     {
+        ZoneScopedC(tracy::Color::Cyan1);
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "NavigatingState: Running state-specific behavior.");
 
@@ -161,6 +167,7 @@ namespace statemachine
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
         if (m_stGoalWaypoint.eType == geoops::WaypointType::eTagWaypoint && stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
+            ZoneScopedNC("Navigate Detect Tags", tracy::Color::Cyan2);
             // Create instance variables.
             tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
             // Identify target marker.
@@ -187,6 +194,7 @@ namespace statemachine
              m_stGoalWaypoint.eType == geoops::WaypointType::eWaterBottleWaypoint || m_stGoalWaypoint.eType == geoops::WaypointType::eRockPickWaypoint) &&
             stGoalWaypointMeasurement.dDistanceMeters <= m_stGoalWaypoint.dRadius)
         {
+            ZoneScopedNC("Navigate Detect Objects", tracy::Color::Cyan2);
             // Create instance variables.
             objectdetectutils::Object stBestTorchObject;
             // Identify target object.

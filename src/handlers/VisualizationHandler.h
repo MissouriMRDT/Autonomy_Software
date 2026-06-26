@@ -20,6 +20,7 @@
 #include <atomic>
 #include <mutex>
 #include <string>
+#include <tracy/Tracy.hpp>
 #include <vector>
 
 /// \endcond

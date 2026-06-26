@@ -14,6 +14,11 @@
 #include "../AutonomyNetworking.h"
 #include "../util/states/ObjectDetectionChecker.hpp"
 
+/// \cond
+#include <tracy/Tracy.hpp>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -105,6 +110,7 @@ namespace statemachine
      ******************************************************************************/
     void ApproachingObjectState::Run()
     {
+        ZoneScopedC(tracy::Color::Firebrick);
         /******************************************************************************
          * STATE LOGIC FLOW:
          * 1. Geofence Check: Verify the rover is within the goal waypoint's radius.

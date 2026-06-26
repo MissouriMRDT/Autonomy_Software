@@ -20,6 +20,7 @@
 #include <cmath>
 #include <mutex>
 #include <queue>
+#include <tracy/Tracy.hpp>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

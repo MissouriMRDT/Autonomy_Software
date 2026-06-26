@@ -18,6 +18,7 @@
 /// \cond
 #include <sys/ioctl.h>
 #include <termios.h>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -266,6 +267,7 @@ int main()
         */
         while (!bMainStop)
         {
+            ZoneScoped;
             // Add each threads FPS value to the vector.
             vThreadFPSValues.clear();
             vThreadFPSValues.push_back(static_cast<uint32_t>(IterPerSecond.GetExactIPS()));

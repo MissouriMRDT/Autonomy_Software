@@ -234,8 +234,9 @@ ZEDCam::~ZEDCam()
  ******************************************************************************/
 void ZEDCam::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Orange);
     // Acquire read lock for camera object.
-    std::shared_lock<std::shared_mutex> lkReadCameraLock(m_muCameraMutex);
+    std::shared_lock lkReadCameraLock(m_muCameraMutex);
     // Check if camera is opened.
     if (!m_slCamera.isOpened())
     {
@@ -262,7 +263,7 @@ void ZEDCam::ThreadedContinuousCode()
             if (nTimeSinceEpoch % 5 == 0 && !m_bCameraReopenAlreadyChecked)
             {
                 // Acquire write lock for camera object.
-                std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
+                std::unique_lock lkWriteCameraLock(m_muCameraMutex);
                 // Attempt to reopen camera.
                 sl::ERROR_CODE slReturnCode = m_slCamera.open(m_slCameraParams);
                 // Release lock.
@@ -342,7 +343,7 @@ void ZEDCam::ThreadedContinuousCode()
         // Release lock.
         lkReadCameraLock.unlock();
         // Acquire write lock for camera object.
-        std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
+        std::unique_lock lkWriteCameraLock(m_muCameraMutex);
         // Call generalized update method of zed api.
         sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
         // Release camera lock.
@@ -544,7 +545,7 @@ void ZEDCam::ThreadedContinuousCode()
     }
 
     // Acquire a shared_lock on the frame copy queue.
-    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::shared_lock lkSchedulers(m_muPoolScheduleMutex);
     // Check if any requests have been made.
     if (!m_qFrameCopySchedule.empty() || !m_qGPUFrameCopySchedule.empty() || !m_qCustomBoxIngestSchedule.empty() || !m_qPoseCopySchedule.empty() ||
         !m_qFloorCopySchedule.empty() || !m_qSensorsCopySchedule.empty() || !m_qObjectDataCopySchedule.empty() || !m_qObjectBatchedDataCopySchedule.empty())
@@ -602,6 +603,7 @@ void ZEDCam::ThreadedContinuousCode()
  ******************************************************************************/
 void ZEDCam::PooledLinearCode()
 {
+    ZoneScopedC(tracy::Color::OrangeRed);
     /////////////////////////////
     //  Frame queue.
     /////////////////////////////
@@ -609,7 +611,7 @@ void ZEDCam::PooledLinearCode()
     if (m_slMemoryType == sl::MEM::CPU)
     {
         // Acquire mutex for getting frames out of the queue.
-        std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
+        std::unique_lock lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qFrameCopySchedule.empty())
         {
@@ -648,7 +650,7 @@ void ZEDCam::PooledLinearCode()
     else
     {
         // Acquire mutex for getting frames out of the queue.
-        std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
+        std::unique_lock lkFrameQueue(m_muFrameCopyMutex);
         // Check if the queue is empty.
         if (!m_qGPUFrameCopySchedule.empty())
         {
@@ -688,7 +690,7 @@ void ZEDCam::PooledLinearCode()
     //  Pose queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::shared_mutex> lkPoseQueue(m_muPoseCopyMutex);
+    std::unique_lock lkPoseQueue(m_muPoseCopyMutex);
     // Check if the queue is empty.
     if (!m_qPoseCopySchedule.empty())
     {
@@ -744,7 +746,7 @@ void ZEDCam::PooledLinearCode()
     //  Plane queue.
     /////////////////////////////
     // Acquire mutex for getting frames out of the plane queue.
-    std::unique_lock<std::shared_mutex> lkPlaneQueue(m_muFloorCopyMutex);
+    std::unique_lock lkPlaneQueue(m_muFloorCopyMutex);
     // Check if the queue is empty.
     if (!m_qFloorCopySchedule.empty())
     {
@@ -771,7 +773,7 @@ void ZEDCam::PooledLinearCode()
     //  Sensors queue.
     /////////////////////////////
     // Acquire mutex for getting frames out of the sensors queue.
-    std::unique_lock<std::shared_mutex> lkSensorsQueue(m_muSensorsCopyMutex);
+    std::unique_lock lkSensorsQueue(m_muSensorsCopyMutex);
     // Check if the queue is empty.
     if (!m_qSensorsCopySchedule.empty())
     {
@@ -798,7 +800,7 @@ void ZEDCam::PooledLinearCode()
     //  ObjectData queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::shared_mutex> lkObjectDataQueue(m_muObjectDataCopyMutex);
+    std::unique_lock lkObjectDataQueue(m_muObjectDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectDataCopySchedule.empty())
     {
@@ -825,7 +827,7 @@ void ZEDCam::PooledLinearCode()
     //  ObjectData Batched queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::shared_mutex> lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
+    std::unique_lock lkObjectBatchedDataQueue(m_muObjectBatchedDataCopyMutex);
     // Check if the queue is empty.
     if (!m_qObjectBatchedDataCopySchedule.empty())
     {
@@ -863,11 +865,12 @@ void ZEDCam::PooledLinearCode()
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eBGRA);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -898,11 +901,12 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUFrame, PIXEL_FORMATS::eBGRA);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -936,6 +940,7 @@ std::future<bool> ZEDCam::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Create instance variables.
     PIXEL_FORMATS eFrameType;
 
@@ -945,7 +950,7 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
     containers::FrameFetchContainer<cv::Mat> stContainer(cvDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -979,6 +984,7 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetriev
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Create instance variables.
     PIXEL_FORMATS eFrameType;
 
@@ -988,7 +994,7 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
     containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -1027,11 +1033,12 @@ std::future<bool> ZEDCam::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const b
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, PIXEL_FORMATS::eXYZBGRA);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -1070,11 +1077,12 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::cuda::GpuMat> stContainer(cvGPUPointCloud, PIXEL_FORMATS::eXYZBGRA);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qGPUFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -1108,8 +1116,9 @@ std::future<bool> ZEDCam::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointClou
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestPositionalPoseCopy(Pose& stPose)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     // Check if positional tracking has been enabled.
     if (m_slCamera.isPositionalTrackingEnabled())
     {
@@ -1119,7 +1128,7 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(Pose& stPose)
         containers::DataFetchContainer<Pose> stContainer(stPose);
 
         // Acquire lock on pose copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
         // Append pose fetch container to the schedule queue.
         m_qPoseCopySchedule.push(stContainer);
         // Release lock on the pose schedule queue.
@@ -1167,8 +1176,9 @@ std::future<bool> ZEDCam::RequestPositionalPoseCopy(Pose& stPose)
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestFloorPlaneCopy(sl::Plane& slPlane)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     // Check if positional tracking has been enabled.
     if (m_slCamera.isPositionalTrackingEnabled())
     {
@@ -1178,7 +1188,7 @@ std::future<bool> ZEDCam::RequestFloorPlaneCopy(sl::Plane& slPlane)
         containers::DataFetchContainer<sl::Plane> stContainer(slPlane);
 
         // Acquire lock on pose copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
         // Append data fetch container to the schedule queue.
         m_qFloorCopySchedule.push(stContainer);
         // Release lock on the pose schedule queue.
@@ -1225,11 +1235,12 @@ std::future<bool> ZEDCam::RequestFloorPlaneCopy(sl::Plane& slPlane)
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestSensorsCopy(sl::SensorsData& slSensorsData)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Assemble the data container.
     containers::DataFetchContainer<sl::SensorsData> stContainer(slSensorsData);
 
     // Acquire lock on sensors copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append sensors fetch container to the schedule queue.
     m_qSensorsCopySchedule.push(stContainer);
     // Release lock on the sensors schedule queue.
@@ -1259,8 +1270,9 @@ std::future<bool> ZEDCam::RequestSensorsCopy(sl::SensorsData& slSensorsData)
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     // Check if object detection has been enabled.
     if (m_slCamera.isObjectDetectionEnabled())
     {
@@ -1270,7 +1282,7 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
         containers::DataFetchContainer<std::vector<sl::ObjectData>> stContainer(vObjectData);
 
         // Acquire lock on object copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
         // Append data fetch container to the schedule queue.
         m_qObjectDataCopySchedule.push(stContainer);
         // Release lock on the object schedule queue.
@@ -1321,8 +1333,9 @@ std::future<bool> ZEDCam::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjec
  ******************************************************************************/
 std::future<bool> ZEDCam::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     // Check if object detection and batching has been enabled.
     if (m_slCamera.isObjectDetectionEnabled() && m_slObjectDetectionBatchParams.enable)
     {
@@ -1332,7 +1345,7 @@ std::future<bool> ZEDCam::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch
         containers::DataFetchContainer<std::vector<sl::ObjectsBatch>> stContainer(vBatchedObjectData);
 
         // Acquire lock on batched object copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
         // Append data fetch container to the schedule queue.
         m_qObjectBatchedDataCopySchedule.push(stContainer);
         // Release lock on the data schedule queue.
@@ -1395,7 +1408,7 @@ sl::ERROR_CODE ZEDCam::ResetPositionalTracking()
     LOG_NOTICE(logging::g_qSharedLogger, "Resetting positional tracking for camera {} ({})!", sl::toString(m_slCameraModel).get(), m_unCameraSerialNumber);
 
     // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
+    std::unique_lock lkWriteCameraLock(m_muCameraMutex);
     // Reset the positional tracking location of the camera.
     return m_slCamera.resetPositionalTracking(slZeroTransform);
 }
@@ -1446,7 +1459,7 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
     }
 
     // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
+    std::unique_lock lkWriteCameraLock(m_muCameraMutex);
     // Give the custom box data to the zed api.
     sl::ERROR_CODE slReturnCode = m_slCamera.ingestCustomBoxObjects(vCustomBoxData);
     // Release lock.
@@ -1478,7 +1491,7 @@ sl::ERROR_CODE ZEDCam::TrackCustomBoxObjects(std::vector<ZedObjectData>& vCustom
 sl::ERROR_CODE ZEDCam::RebootCamera()
 {
     // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::unique_lock lkCameraLock(m_muCameraMutex);
     // Reboot this camera and return the status code.
     return sl::Camera::reboot(m_unCameraSerialNumber);
 }
@@ -1499,7 +1512,7 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking(const float fExpectedCameraHeigh
     m_fExpectedCameraHeightFromFloorTolerance = fExpectedCameraHeightFromFloorTolerance;
 
     // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::unique_lock lkCameraLock(m_muCameraMutex);
     // Enable pose tracking and store return code.
     sl::ERROR_CODE slReturnCode = m_slCamera.enablePositionalTracking(m_slPoseTrackingParams);
     // Release lock.
@@ -1533,7 +1546,7 @@ sl::ERROR_CODE ZEDCam::EnablePositionalTracking(const float fExpectedCameraHeigh
 void ZEDCam::DisablePositionalTracking()
 {
     // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::unique_lock lkCameraLock(m_muCameraMutex);
     // Disable pose tracking.
     m_slCamera.disablePositionalTracking();
     // Set flag.
@@ -1597,7 +1610,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping()
     sl::ERROR_CODE slReturnCode = sl::ERROR_CODE::SUCCESS;
 
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkReadCameraLock(m_muCameraMutex);
+    std::shared_lock lkReadCameraLock(m_muCameraMutex);
     // Check if positional tracking is enabled.
     if (!m_slCamera.isPositionalTrackingEnabled())
     {
@@ -1616,7 +1629,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping()
     if (slReturnCode == sl::ERROR_CODE::SUCCESS)
     {
         // Acquire write lock.
-        std::unique_lock<std::shared_mutex> lkWriteCameraLock(m_muCameraMutex);
+        std::unique_lock lkWriteCameraLock(m_muCameraMutex);
         // Call camera grab function once to ensure the camera is initialized with data.
         m_slCamera.grab(m_slRuntimeParams);
         // Enable spatial mapping.
@@ -1662,7 +1675,7 @@ sl::ERROR_CODE ZEDCam::EnableSpatialMapping()
 void ZEDCam::DisableSpatialMapping()
 {
     // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::unique_lock lkCameraLock(m_muCameraMutex);
     // Disable spatial mapping.
     m_slCamera.disableSpatialMapping();
     // Set flag.
@@ -1685,7 +1698,7 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
     m_slObjectDetectionParams.batch_parameters = m_slObjectDetectionBatchParams;
 
     // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::unique_lock lkCameraLock(m_muCameraMutex);
     // Enable object detection.
     sl::ERROR_CODE slReturnCode = m_slCamera.enableObjectDetection(m_slObjectDetectionParams);
     // Release lock.
@@ -1719,7 +1732,7 @@ sl::ERROR_CODE ZEDCam::EnableObjectDetection(const bool bEnableBatching)
 void ZEDCam::DisableObjectDetection()
 {
     // Acquire write lock.
-    std::unique_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::unique_lock lkCameraLock(m_muCameraMutex);
     // Disable object detection and tracking.
     m_slCamera.disableObjectDetection();
     // Set flag.
@@ -1738,7 +1751,7 @@ void ZEDCam::DisableObjectDetection()
 bool ZEDCam::GetCameraIsOpen()
 {
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     return this->GetThreadState() == AutonomyThreadState::eRunning && m_slCamera.isOpened();
 }
 
@@ -1769,7 +1782,7 @@ bool ZEDCam::GetUsingGPUMem() const
 std::string ZEDCam::GetCameraModel()
 {
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     // Check if the camera is opened.
     if (m_slCamera.isOpened())
     {
@@ -1814,7 +1827,7 @@ unsigned int ZEDCam::GetCameraSerial()
 bool ZEDCam::GetPositionalTrackingEnabled()
 {
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     return m_slCamera.isPositionalTrackingEnabled() && m_slCamera.getPositionalTrackingStatus().odometry_status == sl::ODOMETRY_STATUS::OK;
 }
 
@@ -1830,7 +1843,7 @@ bool ZEDCam::GetPositionalTrackingEnabled()
 sl::PositionalTrackingStatus ZEDCam::GetPositionalTrackingState()
 {
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     return m_slCamera.getPositionalTrackingStatus();
 }
 
@@ -1845,7 +1858,7 @@ sl::PositionalTrackingStatus ZEDCam::GetPositionalTrackingState()
 sl::SPATIAL_MAPPING_STATE ZEDCam::GetSpatialMappingState()
 {
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     // Return the current spatial mapping state of the camera.
     return m_slCamera.getSpatialMappingState();
 }
@@ -1866,7 +1879,7 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::GetSpatialMappingState()
 sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::Mesh>& fuMeshFuture)
 {
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     // Get and store current state of spatial mapping.
     sl::SPATIAL_MAPPING_STATE slReturnState = m_slCamera.getSpatialMappingState();
 
@@ -1933,6 +1946,6 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::Mesh>& 
 bool ZEDCam::GetObjectDetectionEnabled()
 {
     // Acquire read lock.
-    std::shared_lock<std::shared_mutex> lkCameraLock(m_muCameraMutex);
+    std::shared_lock lkCameraLock(m_muCameraMutex);
     return m_slCamera.isObjectDetectionEnabled();
 }

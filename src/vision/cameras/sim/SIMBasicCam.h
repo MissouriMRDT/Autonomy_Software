@@ -16,6 +16,7 @@
 
 /// \cond
 #include <opencv2/opencv.hpp>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 

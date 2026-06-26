@@ -82,6 +82,7 @@ VisualizationHandler::~VisualizationHandler()
  ******************************************************************************/
 void VisualizationHandler::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Tan);
     // Check that required global handlers are valid.
     if (globals::g_pStateMachineHandler == nullptr || globals::g_pNavigationBoard == nullptr)
     {
@@ -157,7 +158,7 @@ void VisualizationHandler::SaveVisualization(const std::string& szFilename)
 
     {
         // Acquire lock to read path history.
-        std::lock_guard<std::mutex> lkPathLock(m_muPathMutex);
+        std::lock_guard lkPathLock(m_muPathMutex);
 
         // If no path history, use current rover position.
         if (m_vPathHistory.empty())
@@ -232,8 +233,9 @@ void VisualizationHandler::SaveVisualization(const std::string& szFilename)
  ******************************************************************************/
 void VisualizationHandler::UpdatePathHistory(const geoops::UTMCoordinate& stRoverUTM)
 {
+    ZoneScopedC(tracy::Color::Tan);
     // Acquire lock to update path history.
-    std::lock_guard<std::mutex> lkPathLock(m_muPathMutex);
+    std::lock_guard lkPathLock(m_muPathMutex);
 
     // Add new point if moved more than 0.5 meters from last point.
     static geoops::UTMCoordinate stLastPos = {};
@@ -273,6 +275,7 @@ void VisualizationHandler::UpdatePathHistory(const geoops::UTMCoordinate& stRove
  ******************************************************************************/
 void VisualizationHandler::UpdatePlannedPath()
 {
+    ZoneScopedC(tracy::Color::Tan);
     // Check that global waypoint handler is valid.
     if (globals::g_pWaypointHandler == nullptr)
     {
@@ -284,7 +287,7 @@ void VisualizationHandler::UpdatePlannedPath()
     std::vector<geoops::Waypoint> vRawPath = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPath");
 
     // Acquire lock and update planned path.
-    std::lock_guard<std::mutex> lkPathLock(m_muPlannedPathMutex);
+    std::lock_guard lkPathLock(m_muPlannedPathMutex);
     // Clear the old path and reserve space for the new path.
     m_vPlannedPath.clear();
     m_vPlannedPath.reserve(vRawPath.size());
@@ -310,6 +313,7 @@ void VisualizationHandler::UpdatePlannedPath()
  ******************************************************************************/
 void VisualizationHandler::UpdateWaypoints()
 {
+    ZoneScopedC(tracy::Color::Tan);
     // Check that global waypoint handler is valid.
     if (globals::g_pWaypointHandler == nullptr)
     {
@@ -321,7 +325,7 @@ void VisualizationHandler::UpdateWaypoints()
     std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
 
     // Acquire a lock before updating waypoints list and clear existing waypoints.
-    std::lock_guard<std::mutex> lkWaypointLock(m_muWaypointMutex);
+    std::lock_guard lkWaypointLock(m_muWaypointMutex);
 
     // Clear old waypoints from list.
     m_vWaypoints.clear();
@@ -355,6 +359,7 @@ void VisualizationHandler::UpdateWaypoints()
  ******************************************************************************/
 void VisualizationHandler::UpdateDetections()
 {
+    ZoneScopedC(tracy::Color::Tan);
     // Check that required global handlers are valid.
     if (globals::g_pTagDetectionHandler == nullptr || globals::g_pObjectDetectionHandler == nullptr)
     {
@@ -365,7 +370,7 @@ void VisualizationHandler::UpdateDetections()
     std::function ProcessDetection = [&](float fX, float fY, float fZ, int nType)
     {
         // Acquire lock to update detections.
-        std::lock_guard<std::mutex> lkDetectionsLock(m_muDetectionMutex);
+        std::lock_guard lkDetectionsLock(m_muDetectionMutex);
 
         // Deduplication.
         for (DisplayDetection& stExistingDetection : m_vDetections)
@@ -475,6 +480,7 @@ void VisualizationHandler::UpdateDetections()
  ******************************************************************************/
 void VisualizationHandler::UpdateGoalBeacons(const geoops::UTMCoordinate& stRoverUTM)
 {
+    ZoneScopedC(tracy::Color::Tan);
     // Check that global multimedia board is valid.
     if (globals::g_pMultimediaBoard == nullptr)
     {
@@ -485,7 +491,7 @@ void VisualizationHandler::UpdateGoalBeacons(const geoops::UTMCoordinate& stRove
     if (globals::g_pMultimediaBoard->GetCurrentLightingState() == MultimediaBoard::MultimediaBoardLightingState::eReachedGoal)
     {
         // Acquire lock to update goal beacons.
-        std::lock_guard<std::mutex> lkBeaconLock(m_muGoalBeaconMutex);
+        std::lock_guard lkBeaconLock(m_muGoalBeaconMutex);
         // Calculate relative position.
         float fCurX = static_cast<float>(stRoverUTM.dEasting - m_stOriginUTM.dEasting);
         float fCurY = static_cast<float>(stRoverUTM.dAltitude - m_stOriginUTM.dAltitude);
@@ -536,7 +542,7 @@ std::vector<char> VisualizationHandler::OnRequestTelemetry(const std::string& sz
     (void) szQuery;
 
     // Acquire resource lock for reading the path.
-    std::lock_guard<std::mutex> lkPathLock(m_muPathMutex);
+    std::lock_guard lkPathLock(m_muPathMutex);
 
     // Calculate buffer size.
     // Header = Pose(3f) + Heading(1f) + LPower(1f) + RPower(1f) + Count(1u)
@@ -613,7 +619,7 @@ std::vector<char> VisualizationHandler::OnRequestPlannedPath(const std::string& 
     (void) szQuery;
 
     // Acquire lock to read planned path.
-    std::lock_guard<std::mutex> lk(m_muPlannedPathMutex);
+    std::lock_guard lk(m_muPlannedPathMutex);
 
     // Prepare buffer.
     std::vector<char> vBuffer;
@@ -650,8 +656,8 @@ std::vector<char> VisualizationHandler::OnRequestWaypoints(const std::string& sz
     (void) szQuery;
 
     // Acquire locks to read waypoints and goal beacons.
-    std::lock_guard<std::mutex> lkWaypointLock(m_muWaypointMutex);
-    std::lock_guard<std::mutex> lkBeaconLock(m_muGoalBeaconMutex);
+    std::lock_guard lkWaypointLock(m_muWaypointMutex);
+    std::lock_guard lkBeaconLock(m_muGoalBeaconMutex);
 
     // Get the total number of points.
     size_t siTotalPoints = m_vWaypoints.size() + m_vGoalBeacons.size();
@@ -708,7 +714,7 @@ std::vector<char> VisualizationHandler::OnRequestDetections(const std::string& s
     (void) szQuery;
 
     // Acquire lock to read detections.
-    std::lock_guard<std::mutex> lkDetectionsLock(m_muDetectionMutex);
+    std::lock_guard lkDetectionsLock(m_muDetectionMutex);
 
     // Prepare buffer.
     std::vector<char> vBuffer;
@@ -2160,7 +2166,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     // Path History Loop.
     {
         // Acquire lock for thread safety.
-        std::lock_guard<std::mutex> lkPathLock(m_muPathMutex);
+        std::lock_guard lkPathLock(m_muPathMutex);
         stdSS << "    const RAW_PATH = [";
 
         // Loop through each point in the path history.
@@ -2177,7 +2183,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     // Planned Path Loop.
     {
         // Acquire lock for thread safety.
-        std::lock_guard<std::mutex> lkPlannedPathLock(m_muPlannedPathMutex);
+        std::lock_guard lkPlannedPathLock(m_muPlannedPathMutex);
         stdSS << "    const RAW_PLANNED = [";
 
         // Loop through each point in the planned path.
@@ -2194,8 +2200,8 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     // Waypoints Loop.
     {
         // Acquire locks for thread safety.
-        std::lock_guard<std::mutex> lkWaypointLock(m_muWaypointMutex);
-        std::lock_guard<std::mutex> lkBeaconLock(m_muGoalBeaconMutex);
+        std::lock_guard lkWaypointLock(m_muWaypointMutex);
+        std::lock_guard lkBeaconLock(m_muGoalBeaconMutex);
         stdSS << "    const RAW_WAYPOINTS = [";
 
         // Loop through each waypoint.
@@ -2217,7 +2223,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     // Detections Loop.
     {
         // Acquire lock for thread safety.
-        std::lock_guard<std::mutex> lkDetectionLock(m_muDetectionMutex);
+        std::lock_guard lkDetectionLock(m_muDetectionMutex);
         stdSS << "    const RAW_DETECTIONS = [";
 
         // Loop through each detection.

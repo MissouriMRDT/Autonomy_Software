@@ -19,6 +19,7 @@
 #include <RoveComm/RoveComm.h>
 #include <RoveComm/RoveCommManifest.h>
 #include <opencv2/opencv.hpp>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -116,7 +117,7 @@ class SIMZEDCam : public ZEDCamera
         // Data from NavBoard.
 
         geoops::RoverPose m_stCurrentRoverPose;
-        std::shared_mutex m_muCurrentRoverPoseMutex;
+        TracySharedLockable(std::shared_mutex, m_muCurrentRoverPoseMutex);
 
         // Mats for storing frames.
 
@@ -131,12 +132,12 @@ class SIMZEDCam : public ZEDCamera
 
         // Mutexes for copying frames from the WebRTC connection to the OpenCV Mats.
 
-        std::shared_mutex m_muWebRTCRGBImageCopyMutex;
-        std::shared_mutex m_muWebRTCDepthImageCopyMutex;
+        TracySharedLockable(std::shared_mutex, m_muWebRTCRGBImageCopyMutex);
+        TracySharedLockable(std::shared_mutex, m_muWebRTCDepthImageCopyMutex);
 
         // Mutexes for copying frames from the ZEDSDK to the OpenCV Mats in PoolLinearCode.
-        std::shared_mutex m_muPoseCopyMutex;
-        std::shared_mutex m_muSensorsCopyMutex;
+        TracySharedLockable(std::shared_mutex, m_muPoseCopyMutex);
+        TracySharedLockable(std::shared_mutex, m_muSensorsCopyMutex);
 
         // Atomic flags for checking if data is queued.
 

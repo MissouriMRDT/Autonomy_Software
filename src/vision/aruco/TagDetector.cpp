@@ -13,6 +13,7 @@
 #include "../../util/vision/Geolocate.hpp"
 #include "./ArucoDetection.hpp"
 #include "./TorchTagDetection.hpp"
+#include <tracy/Tracy.hpp>
 
 /******************************************************************************
  * @brief Construct a new TagDetector object.
@@ -175,6 +176,7 @@ TagDetector::~TagDetector()
  ******************************************************************************/
 void TagDetector::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Magenta1);
     // Check if using ZEDCam or BasicCam.
     if (m_bUsingZedCamera)
     {
@@ -233,136 +235,143 @@ void TagDetector::ThreadedContinuousCode()
     // Check if camera is opened.
     if (m_bCameraIsOpened)
     {
-        // Create future for indicating when the frame has been copied.
-        std::future<bool> fuPointCloudCopyStatus;
-        std::future<bool> fuRegularFrameCopyStatus;
-        bool bRequestingPointCloud = false;
-
-        // Check if the camera is setup to use CPU or GPU mats.
-        if (m_bUsingZedCamera)
         {
-            bRequestingPointCloud = true;
-            // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
-            if (m_bUsingGpuMats)
+            ZoneScopedNC("Retrieve Frames", tracy::Color::Magenta2);
+            // Create future for indicating when the frame has been copied.
+            std::future<bool> fuPointCloudCopyStatus;
+            std::future<bool> fuRegularFrameCopyStatus;
+            bool bRequestingPointCloud = false;
+
+            // Check if the camera is setup to use CPU or GPU mats.
+            if (m_bUsingZedCamera)
             {
-                // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-                fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
-                // Get the regular RGB image from the camera.
-                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
-            }
-            else
-            {
-                // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
-                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-            }
-        }
-        else
-        {
-            // Grab frames from camera.
-            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-        }
-
-        // Safe polling wrapper to prevent deadlocks.
-        bool bCloudReady = !bRequestingPointCloud;    // True by default if we don't need a point cloud
-        bool bFrameReady = false;
-
-        // Keep polling as long as the thread hasn't been asked to stop
-        while (this->GetThreadState() == AutonomyThreadState::eRunning)
-        {
-            if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
-                bCloudReady = true;
-
-            if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
-                bFrameReady = true;
-
-            if (bCloudReady && bFrameReady)
-                break;
-        }
-
-        // If the thread is shutting down, break out of the loop gracefully
-        if (this->GetThreadState() != AutonomyThreadState::eRunning)
-        {
-            return;
-        }
-
-        // Process the retrieved frames
-        if (m_bUsingZedCamera)
-        {
-            if (m_bUsingGpuMats)
-            {
-                if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
+                bRequestingPointCloud = true;
+                // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
+                if (m_bUsingGpuMats)
                 {
-                    // Download mat from GPU memory.
-                    m_cvGPUPointCloud.download(m_cvPointCloud);
-                    m_cvGPUFrame.download(m_cvFrame);
-                    // Drop alpha channel.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+                    // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
+                    fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
+                    // Get the regular RGB image from the camera.
+                    fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
                 }
                 else
                 {
-                    LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud or frame from ZEDCam!");
+                    // Grabs point cloud from ZEDCam.
+                    fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
+                    fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
                 }
             }
             else
             {
-                if (!fuPointCloudCopyStatus.get())
-                    LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud from ZEDCam!");
-                if (!fuRegularFrameCopyStatus.get())
-                    LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get regular frame from ZEDCam!");
+                // Grab frames from camera.
+                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
             }
-        }
-        else
-        {
-            if (!fuRegularFrameCopyStatus.get())
+
+            // Safe polling wrapper to prevent deadlocks.
+            bool bCloudReady = !bRequestingPointCloud;    // True by default if we don't need a point cloud
+            bool bFrameReady = false;
+
+            // Keep polling as long as the thread hasn't been asked to stop
+            while (this->GetThreadState() == AutonomyThreadState::eRunning)
             {
-                LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
+                if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+                    bCloudReady = true;
+
+                if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+                    bFrameReady = true;
+
+                if (bCloudReady && bFrameReady)
+                    break;
+            }
+
+            // If the thread is shutting down, break out of the loop gracefully
+            if (this->GetThreadState() != AutonomyThreadState::eRunning)
+            {
+                return;
+            }
+
+            // Process the retrieved frames
+            if (m_bUsingZedCamera)
+            {
+                if (m_bUsingGpuMats)
+                {
+                    if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
+                    {
+                        // Download mat from GPU memory.
+                        m_cvGPUPointCloud.download(m_cvPointCloud);
+                        m_cvGPUFrame.download(m_cvFrame);
+                        // Drop alpha channel.
+                        cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+                    }
+                    else
+                    {
+                        LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud or frame from ZEDCam!");
+                    }
+                }
+                else
+                {
+                    if (!fuPointCloudCopyStatus.get())
+                        LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud from ZEDCam!");
+                    if (!fuRegularFrameCopyStatus.get())
+                        LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get regular frame from ZEDCam!");
+                }
+            }
+            else
+            {
+                if (!fuRegularFrameCopyStatus.get())
+                {
+                    LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
+                }
             }
         }
 
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
-        // Check if the frame is empty.
-        if (m_cvFrame.empty())
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
-            return;
-        }
 
-        // Clear the list of newly detected tags.
-        m_vNewlyDetectedTags.clear();
-        // Clone frames.
-        m_cvArucoProcFrame = m_cvFrame.clone();
-        // Detect tags in the image
-        std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
-        // Loop through the newly detected OpenCV tags and set their detector UUID to this TagDetector's camera name so we can associate them with this detector.
-        for (tagdetectutils::ArucoTag& stTag : vNewOpenCVTags)
         {
-            stTag.szDetectorUUID = this->GetThreadUUID();
-        }
-        // Add OpenCV tags to the list of newly detected tags.
-        m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
+            ZoneScopedNC("Detect Tags", tracy::Color::Magenta2);
+            // Check if the frame is empty.
+            if (m_cvFrame.empty())
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+                return;
+            }
 
-        // Check if torch detection if turned on.
-        if (m_bTorchEnabled)
-        {
-            // Detect tags in the image.
-            std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
-                torchtag::Detect(m_cvArucoProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+            // Clear the list of newly detected tags.
+            m_vNewlyDetectedTags.clear();
+            // Clone frames.
+            m_cvArucoProcFrame = m_cvFrame.clone();
+            // Detect tags in the image
+            std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
+            // Loop through the newly detected OpenCV tags and set their detector UUID to this TagDetector's camera name so we can associate them with this detector.
+            for (tagdetectutils::ArucoTag& stTag : vNewOpenCVTags)
+            {
+                stTag.szDetectorUUID = this->GetThreadUUID();
+            }
+            // Add OpenCV tags to the list of newly detected tags.
+            m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
 
-            // Add Torch tags to the list of newly detected tags.
-            m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
-        }
+            // Check if torch detection if turned on.
+            if (m_bTorchEnabled)
+            {
+                // Detect tags in the image.
+                std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
+                    torchtag::Detect(m_cvArucoProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
 
-        // Set the FOV of the camera in the tag structs for this detector's camera.
-        for (tagdetectutils::ArucoTag& stTag : m_vNewlyDetectedTags)
-        {
-            // Set the UUID of the detector that detected this tag to this TagDetector's camera name so we can associate it with this detector.
-            stTag.szDetectorUUID = this->GetThreadUUID();
-            // Set tag FOV parameter to this tag detectors camera's FOV.
-            stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+                // Add Torch tags to the list of newly detected tags.
+                m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
+            }
+
+            // Set the FOV of the camera in the tag structs for this detector's camera.
+            for (tagdetectutils::ArucoTag& stTag : m_vNewlyDetectedTags)
+            {
+                // Set the UUID of the detector that detected this tag to this TagDetector's camera name so we can associate it with this detector.
+                stTag.szDetectorUUID = this->GetThreadUUID();
+                // Set tag FOV parameter to this tag detectors camera's FOV.
+                stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+            }
         }
 
         // Merge the newly detected tags with the pre-existing detected tags.
@@ -407,6 +416,7 @@ void TagDetector::ThreadedContinuousCode()
  ******************************************************************************/
 void TagDetector::PooledLinearCode()
 {
+    ZoneScopedC(tracy::Color::Magenta);
     /////////////////////////////
     //  Detection Overlay Frame queue.
     /////////////////////////////
@@ -786,6 +796,8 @@ cv::Size TagDetector::GetProcessFrameResolution() const
  ******************************************************************************/
 void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags)
 {
+    ZoneScopedC(tracy::Color::Magenta3);
+
     // Check if tracking is enabled.
     if (m_bEnableTracking)
     {

@@ -11,6 +11,7 @@
 #include "BasicCam.h"
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
+#include <tracy/Tracy.hpp>
 
 /******************************************************************************
  * @brief Construct a new Basic Cam:: Basic Cam object.
@@ -182,6 +183,7 @@ BasicCam::~BasicCam()
  ******************************************************************************/
 void BasicCam::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Pink);
     // Check if camera is NOT open.
     if (!m_cvCamera.isOpened())
     {
@@ -261,7 +263,7 @@ void BasicCam::ThreadedContinuousCode()
     }
 
     // Acquire a shared_lock on the frame copy queue.
-    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::shared_lock lkSchedulers(m_muPoolScheduleMutex);
     // Check if the frame copy queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {
@@ -286,8 +288,9 @@ void BasicCam::ThreadedContinuousCode()
  ******************************************************************************/
 void BasicCam::PooledLinearCode()
 {
+    ZoneScopedC(tracy::Color::HotPink);
     // Acquire mutex for getting frames out of the queue.
-    std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock lkFrameQueue(m_muFrameCopyMutex);
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {
@@ -323,11 +326,12 @@ void BasicCam::PooledLinearCode()
  ******************************************************************************/
 std::future<bool> BasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
+    ZoneScopedC(tracy::Color::HotPink);
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    std::unique_lock lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.

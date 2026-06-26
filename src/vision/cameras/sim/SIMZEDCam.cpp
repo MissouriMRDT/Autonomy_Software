@@ -158,7 +158,7 @@ void SIMZEDCam::SetCallbacks()
             if (!cvFrame.empty())
             {
                 // Acquire a lock on the webRTC copy mutex.
-                std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
+                std::unique_lock lkWebRTC(m_muWebRTCRGBImageCopyMutex);
                 // Deep copy the frame.
                 m_cvFrame = cvFrame.clone();
             }
@@ -170,7 +170,7 @@ void SIMZEDCam::SetCallbacks()
             if (!cvFrame.empty())
             {
                 // Acquire a lock on the webRTC copy mutex.
-                std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
+                std::unique_lock lkWebRTC(m_muWebRTCDepthImageCopyMutex);
                 // Deep copy the frame to the depth image buffer.
                 m_cvDepthImageBuffer = cvFrame.clone();
                 // Convert the depth image buffer to grayscale.
@@ -190,6 +190,7 @@ void SIMZEDCam::SetCallbacks()
  ******************************************************************************/
 void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDepthMeasure)
 {
+    ZoneScopedC(tracy::Color::Orange2);
     // Declare instance variables.
     const float fMaxDepth = 2001.0f;    // Maximum depth in cm.
 
@@ -237,6 +238,7 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
  ******************************************************************************/
 void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
 {
+    ZoneScopedC(tracy::Color::Orange2);
     // Calculate focal lengths from FOV.
     const double dRadPerDeg = M_PI / 180.0;
     const double dFx        = (cvDepthMeasure.cols / 2.0) / tan(m_dPropHorizontalFOV * dRadPerDeg / 2.0);
@@ -289,8 +291,9 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
  ******************************************************************************/
 void SIMZEDCam::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Orange1);
     // Acquire a lock on the rover pose mutex.
-    std::unique_lock<std::shared_mutex> lkRoverPoseLock(m_muCurrentRoverPoseMutex);
+    std::unique_lock lkRoverPoseLock(m_muCurrentRoverPoseMutex);
     // Check if the NavBoard pointer is valid.
     if (globals::g_pNavigationBoard != nullptr)
     {
@@ -304,7 +307,7 @@ void SIMZEDCam::ThreadedContinuousCode()
     if (m_pDepthImageStream != nullptr && m_pDepthImageStream->GetIsConnected())
     {
         // Acquire a lock on the WebRTC mutex.
-        std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
+        std::shared_lock lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
         // Estimate the depth measure from the depth image.
         this->EstimateDepthMeasure(m_cvDepthImage, m_cvDepthMeasure);
         // Check if the depth image is empty.
@@ -322,16 +325,17 @@ void SIMZEDCam::ThreadedContinuousCode()
     }
 
     // Acquire a shared_lock on the frame copy queue.
-    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::shared_lock lkSchedulers(m_muPoolScheduleMutex);
     // Check if the frame copy queue is empty.
     if (!m_qFrameCopySchedule.empty() || !m_qPoseCopySchedule.empty() || !m_qSensorsCopySchedule.empty())
     {
+        ZoneScopedNC("Queue Frames", tracy::Color::OrangeRed);
         // Add the length of all queues together to determine the number of tasks to create.
         size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qPoseCopySchedule.size() + m_qSensorsCopySchedule.size();
 
         // Acquire shared lock on the WebRTC mutex, so that the WebRTC connection doesn't try to write to the Mats while they are being copied in the thread pool.
-        std::shared_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
-        std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
+        std::shared_lock lkWebRTC(m_muWebRTCRGBImageCopyMutex);
+        std::shared_lock lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
 
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(siTotalQueueLength, m_nNumFrameRetrievalThreads);
@@ -379,12 +383,13 @@ void SIMZEDCam::ThreadedContinuousCode()
  ******************************************************************************/
 void SIMZEDCam::PooledLinearCode()
 {
+    ZoneScopedC(tracy::Color::OrangeRed);
     /////////////////////////////
     //  Frame queue.
     /////////////////////////////
 
     // Acquire mutex for getting frames out of the queue.
-    std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock lkFrameQueue(m_muFrameCopyMutex);
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {
@@ -413,7 +418,7 @@ void SIMZEDCam::PooledLinearCode()
     //  Pose queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::shared_mutex> lkPoseQueue(m_muPoseCopyMutex);
+    std::unique_lock lkPoseQueue(m_muPoseCopyMutex);
     // Check if the queue is empty.
     if (!m_qPoseCopySchedule.empty())
     {
@@ -467,7 +472,7 @@ void SIMZEDCam::PooledLinearCode()
     //  Sensors queue.
     /////////////////////////////
     // Acquire mutex for getting data out of the sensors queue.
-    std::unique_lock<std::shared_mutex> lkSensorsQueue(m_muSensorsCopyMutex);
+    std::unique_lock lkSensorsQueue(m_muSensorsCopyMutex);
     // Check if the queue is empty.
     if (!m_qSensorsCopySchedule.empty())
     {
@@ -504,11 +509,12 @@ void SIMZEDCam::PooledLinearCode()
  ******************************************************************************/
 std::future<bool> SIMZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    std::unique_lock lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -535,6 +541,7 @@ std::future<bool> SIMZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
  ******************************************************************************/
 std::future<bool> SIMZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Create instance variables.
     PIXEL_FORMATS eFrameType;
 
@@ -544,7 +551,7 @@ std::future<bool> SIMZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetr
     containers::FrameFetchContainer<cv::Mat> stContainer(cvDepth, eFrameType);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -571,11 +578,12 @@ std::future<bool> SIMZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetr
  ******************************************************************************/
 std::future<bool> SIMZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, PIXEL_FORMATS::eXYZ);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
@@ -596,6 +604,7 @@ std::future<bool> SIMZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
  ******************************************************************************/
 std::future<bool> SIMZEDCam::RequestPositionalPoseCopy(ZEDCamera::Pose& stPose)
 {
+    ZoneScopedC(tracy::Color::Red);
     // Check if positional tracking is enabled.
     if (m_bCameraPositionalTrackingEnabled)
     {
@@ -603,7 +612,7 @@ std::future<bool> SIMZEDCam::RequestPositionalPoseCopy(ZEDCamera::Pose& stPose)
         containers::DataFetchContainer<Pose> stContainer(stPose);
 
         // Acquire lock on pose copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+        std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
         // Append pose fetch container to the schedule queue.
         m_qPoseCopySchedule.push(stContainer);
         // Release lock on the pose schedule queue.
@@ -646,11 +655,13 @@ std::future<bool> SIMZEDCam::RequestPositionalPoseCopy(ZEDCamera::Pose& stPose)
  ******************************************************************************/
 std::future<bool> SIMZEDCam::RequestSensorsCopy(sl::SensorsData& slSensorsData)
 {
+    ZoneScopedC(tracy::Color::Red);
+
     // Assemble the DataFetchContainer.
     containers::DataFetchContainer<sl::SensorsData> stContainer(slSensorsData);
 
     // Acquire lock on data copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::unique_lock lkSchedulers(m_muPoolScheduleMutex);
     // Append data fetch container to the schedule queue.
     m_qSensorsCopySchedule.push(stContainer);
     // Release lock on the data schedule queue.
@@ -777,7 +788,7 @@ void SIMZEDCam::DisablePositionalTracking()
 void SIMZEDCam::SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO)
 {
     // Acquire lock on the current rover pose mutex.
-    std::unique_lock<std::shared_mutex> lkPose(m_muCurrentRoverPoseMutex);
+    std::unique_lock lkPose(m_muCurrentRoverPoseMutex);
 
     // Update offset member variables.
     m_dPoseOffsetX  = dX - m_stCurrentRoverPose.GetUTMCoordinate().dEasting;
@@ -856,7 +867,7 @@ bool SIMZEDCam::GetPositionalTrackingEnabled()
 void SIMZEDCam::ProcessIMUData(const rovecomm::RoveCommPacket<double>& stPacket)
 {
     // Acquire a write lock on the sensors mutex.
-    std::unique_lock<std::shared_mutex> lkSensorsProcessLock(m_muSensorsCopyMutex);
+    std::unique_lock lkSensorsProcessLock(m_muSensorsCopyMutex);
     // Update IMU data.
     m_stIMUData.imu.linear_acceleration.x = static_cast<float>(stPacket.vData[0]);
     m_stIMUData.imu.linear_acceleration.y = static_cast<float>(stPacket.vData[1]);

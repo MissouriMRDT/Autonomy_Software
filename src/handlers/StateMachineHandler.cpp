@@ -75,6 +75,7 @@ StateMachineHandler::~StateMachineHandler()
  ******************************************************************************/
 std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachine::States eState)
 {
+    ZoneScopedC(tracy::Color::Yellow);
     switch (eState)
     {
         case statemachine::States::eIdle: return std::make_shared<statemachine::IdleState>();
@@ -110,8 +111,9 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
  ******************************************************************************/
 void StateMachineHandler::ChangeState(statemachine::States eNextState, const bool bSaveCurrentState)
 {
+    ZoneScopedC(tracy::Color::Yellow);
     // Acquire write lock for changing states.
-    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    std::unique_lock lkStateProcessLock(m_muStateMutex);
 
     // Check if we are already in this state.
     if (m_pCurrentState->GetState() != eNextState)
@@ -168,6 +170,7 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState, const boo
  ******************************************************************************/
 void StateMachineHandler::SaveCurrentState()
 {
+    ZoneScopedC(tracy::Color::Yellow);
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "Saving State: {}", m_pCurrentState->ToString());
     // Add state to map.
@@ -183,6 +186,7 @@ void StateMachineHandler::SaveCurrentState()
  ******************************************************************************/
 void StateMachineHandler::StartStateMachine()
 {
+    ZoneScopedC(tracy::Color::Yellow);
     // Initialize the state machine with the initial state
     m_pCurrentState    = CreateState(statemachine::States::eIdle);
     m_bSwitchingStates = false;
@@ -208,6 +212,7 @@ void StateMachineHandler::StartStateMachine()
  ******************************************************************************/
 void StateMachineHandler::StopStateMachine()
 {
+    ZoneScopedC(tracy::Color::Yellow);
     // No matter the current state, abort back to idle.
     this->HandleEvent(statemachine::Event::eAbort);
 
@@ -235,6 +240,7 @@ void StateMachineHandler::StopStateMachine()
  ******************************************************************************/
 void StateMachineHandler::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Yellow);
     /*
         Verify that the state machine has been initialized so that it doesn't
         try to run before a state has been initialized. Also verify that the
@@ -276,8 +282,9 @@ void StateMachineHandler::PooledLinearCode() {}
  ******************************************************************************/
 void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSaveCurrentState)
 {
+    ZoneScopedC(tracy::Color::Yellow);
     // Acquire write lock for handling events.
-    std::unique_lock<std::shared_mutex> lkEventProcessLock(m_muEventMutex);
+    std::unique_lock lkEventProcessLock(m_muEventMutex);
 
     // Stop the drive.
     globals::g_pDriveBoard->SendStop();
@@ -302,8 +309,9 @@ void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSa
  ******************************************************************************/
 void StateMachineHandler::ClearSavedStates()
 {
+    ZoneScopedC(tracy::Color::Yellow);
     // Acquire write lock for clearing saved states.
-    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    std::unique_lock lkStateProcessLock(m_muStateMutex);
     // Clear all saved states.
     m_umSavedStates.clear();
     // Reset previous state to nullptr;
@@ -320,8 +328,9 @@ void StateMachineHandler::ClearSavedStates()
  ******************************************************************************/
 void StateMachineHandler::ClearSavedState(statemachine::States eState)
 {
+    ZoneScopedC(tracy::Color::Yellow);
     // Acquire write lock for clearing saved states.
-    std::unique_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+    std::unique_lock lkStateProcessLock(m_muStateMutex);
     // Remove all states that match the given state.
     m_umSavedStates.erase(eState);
 }
@@ -366,6 +375,7 @@ statemachine::States StateMachineHandler::GetPreviousState() const
  ******************************************************************************/
 geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
 {
+    ZoneScopedC(tracy::Color::LightYellow);
     // Get and store the normal GPS position and heading from NavBoard.
     geoops::GPSCoordinate stCurrentGPSPosition = globals::g_pNavigationBoard->GetGPSData();
     double dCurrentGPSHeading                  = globals::g_pNavigationBoard->GetHeading();
@@ -425,6 +435,7 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
  ******************************************************************************/
 double StateMachineHandler::SmartRetrieveVelocity()
 {
+    ZoneScopedC(tracy::Color::LightYellow);
     // Return the GPS-based velocity from the NavBoard.
     return globals::g_pNavigationBoard->GetVelocity();
 }
@@ -441,6 +452,7 @@ double StateMachineHandler::SmartRetrieveVelocity()
  ******************************************************************************/
 double StateMachineHandler::SmartRetrieveAngularVelocity()
 {
+    ZoneScopedC(tracy::Color::LightYellow);
     // Return the GPS-based angular velocity from the NavBoard.
     return globals::g_pNavigationBoard->GetAngularVelocity();
 }
@@ -458,6 +470,7 @@ double StateMachineHandler::SmartRetrieveAngularVelocity()
  ******************************************************************************/
 void StateMachineHandler::RealignZEDHeading(const double dNewActualHeading, const double dCurrentZEDHeading)
 {
+    ZoneScopedC(tracy::Color::LightYellow);
     // Convert -180/180 to 0/360 Standard. (Keep 0 as 0)
     // If ZED is -90 (West), this makes it 270.
     double dCurrentHeading = dCurrentZEDHeading;

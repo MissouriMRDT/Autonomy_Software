@@ -18,6 +18,7 @@
 /// \cond
 #include <sl/Camera.hpp>
 #include <sl/Fusion.hpp>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -205,6 +206,7 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual std::future<bool> RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
         {
+            ZoneScopedC(tracy::Color::Red);
             // Create instance variables.
             (void) cvGPUFrame;
             std::promise<bool> pmPromise;
@@ -243,6 +245,8 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual std::future<bool> RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true)
         {
+            ZoneScopedC(tracy::Color::Red);
+
             // Initialize instance variables.
             (void) cvGPUDepth;
             (void) bRetrieveMeasure;
@@ -281,6 +285,8 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
         {
+            ZoneScopedC(tracy::Color::Red);
+
             // Initialize instance variables.
             (void) cvGPUPointCloud;
             std::promise<bool> pmPromise;
@@ -317,6 +323,7 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual std::future<bool> RequestFloorPlaneCopy(sl::Plane& slFloorPlane)
         {
+            ZoneScopedC(tracy::Color::Red);
             // Initialize instance variables.
             (void) slFloorPlane;
             std::promise<bool> pmPromise;
@@ -341,6 +348,8 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual std::future<bool> RequestSensorsCopy(sl::SensorsData& slSensorsData)
         {
+            ZoneScopedC(tracy::Color::Red);
+
             // Initialize instance variables.
             (void) slSensorsData;
             std::promise<bool> pmPromise;
@@ -365,6 +374,8 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual std::future<bool> RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData)
         {
+            ZoneScopedC(tracy::Color::Red);
+
             // Initialize instance variables.
             (void) vObjectData;
             std::promise<bool> pmPromise;
@@ -389,6 +400,7 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual std::future<bool> RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
         {
+            ZoneScopedC(tracy::Color::Red);
             // Initialize instance variables.
             (void) vBatchedObjectData;
             std::promise<bool> pmPromise;

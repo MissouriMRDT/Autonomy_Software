@@ -143,8 +143,9 @@ namespace pathplanners
                                                        double dMaxSearchTimeSeconds,
                                                        double dCorridorPadding)
     {
+        ZoneScopedC(tracy::Color::Chocolate1);
         // Acquire a thread mutex lock to prevent concurrent path planning operations from corrupting internal state.
-        std::lock_guard<std::mutex> lkPathLock(m_muPathGenMutex);
+        std::lock_guard lkPathLock(m_muPathGenMutex);
 
         // Secure external variables into local class state for this search pass.
         m_pLiDARHandler         = pLiDARHandler;
@@ -211,7 +212,7 @@ namespace pathplanners
     void GeoPlanner::ClearGeoCache()
     {
         // Acquire a thread mutex lock to guarantee safety during cache wipes.
-        std::lock_guard<std::mutex> lkResourceLock(m_muPathGenMutex);
+        std::lock_guard lkResourceLock(m_muPathGenMutex);
         m_umTileMapCache.clear();
     }
 
@@ -307,6 +308,7 @@ namespace pathplanners
      ******************************************************************************/
     bool GeoPlanner::PreloadCorridorAndBuildGrid(const geoops::UTMCoordinate& stStart, const geoops::UTMCoordinate& stEnd)
     {
+        ZoneScopedC(tracy::Color::Chocolate2);
         // Buffer the search bounds to allow the algorithm lateral space to circumvent large topographic obstructions.
         double dPaddingMeters = m_dSearchRadius + m_dCorridorPadding;
 
@@ -476,6 +478,7 @@ namespace pathplanners
      ******************************************************************************/
     void GeoPlanner::SearchAStar()
     {
+        ZoneScopedC(tracy::Color::Chocolate2);
         std::chrono::high_resolution_clock::time_point tmStartTime = std::chrono::high_resolution_clock::now();
 
         // Initialize the origin node states.
@@ -611,6 +614,7 @@ namespace pathplanners
      ******************************************************************************/
     std::vector<geoops::Waypoint> GeoPlanner::ReconstructPath() const
     {
+        ZoneScopedC(tracy::Color::Chocolate2);
         std::vector<geoops::Waypoint> vPath;
 
         // Verify that the final path integration chain was actually established to the end node.
@@ -667,6 +671,7 @@ namespace pathplanners
      ******************************************************************************/
     void GeoPlanner::CheckAndLoadTile(int nTileX, int nTileY)
     {
+        ZoneScopedC(tracy::Color::Chocolate1);
         TileKey stTileKey{nTileX, nTileY};
 
         // Check if the tile is already present in the active cache map.
@@ -701,6 +706,7 @@ namespace pathplanners
      ******************************************************************************/
     void GeoPlanner::FillGridHoles()
     {
+        ZoneScopedC(tracy::Color::Chocolate3);
         std::vector<GridCell> vNewCostmap = m_vCostmap;
         constexpr int anDx[8]             = {-1, 0, 1, -1, 1, -1, 0, 1};
         constexpr int anDy[8]             = {-1, -1, -1, 0, 0, 1, 1, 1};
@@ -764,6 +770,7 @@ namespace pathplanners
      ******************************************************************************/
     void GeoPlanner::UnloadLiDARTiles(double minX, double maxX, double minY, double maxY)
     {
+        ZoneScopedC(tracy::Color::Chocolate1);
         int nMinTileX = static_cast<int>(std::floor(minX / m_dTileSize));
         int nMinTileY = static_cast<int>(std::floor(minY / m_dTileSize));
         int nMaxTileX = static_cast<int>(std::floor(maxX / m_dTileSize));
@@ -798,6 +805,7 @@ namespace pathplanners
      ******************************************************************************/
     int GeoPlanner::FindNearestValidCell(int nStartIndex) const
     {
+        ZoneScopedC(tracy::Color::Chocolate3);
         // Define an explicit threshold to prevent snapping the origin to extremely hazardous geometry.
         double dSafeThreshold = std::max(m_dMinTravScore, m_dSafeTravScoreThreshold);
 

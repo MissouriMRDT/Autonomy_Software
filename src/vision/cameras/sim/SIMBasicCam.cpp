@@ -98,6 +98,7 @@ SIMBasicCam::~SIMBasicCam()
  ******************************************************************************/
 void SIMBasicCam::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Pink1);
     // Check if camera is NOT open.
     if (!m_cvCamera.isOpened())
     {
@@ -116,10 +117,11 @@ void SIMBasicCam::ThreadedContinuousCode()
     }
 
     // Acquire a shared_lock on the frame copy queue.
-    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+    std::shared_lock lkSchedulers(m_muPoolScheduleMutex);
     // Check if the frame copy queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {
+        ZoneScopedNC("Queue Frames", tracy::Color::Pink2);
         // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
         this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
         // Wait for thread pool to finish.
@@ -141,12 +143,13 @@ void SIMBasicCam::ThreadedContinuousCode()
  ******************************************************************************/
 void SIMBasicCam::PooledLinearCode()
 {
+    ZoneScopedC(tracy::Color::HotPink);
     /////////////////////////////
     //  Frame queue.
     /////////////////////////////
 
     // Acquire mutex for getting frames out of the queue.
-    std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock lkFrameQueue(m_muFrameCopyMutex);
     // Check if the queue is empty.
     if (!m_qFrameCopySchedule.empty())
     {
@@ -182,11 +185,12 @@ void SIMBasicCam::PooledLinearCode()
  ******************************************************************************/
 std::future<bool> SIMBasicCam::RequestFrameCopy(cv::Mat& cvFrame)
 {
+    ZoneScopedC(tracy::Color::HotPink);
     // Assemble the FrameFetchContainer.
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    std::unique_lock lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.

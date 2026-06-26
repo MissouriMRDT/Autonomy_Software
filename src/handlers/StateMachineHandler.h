@@ -28,6 +28,7 @@
 #include <RoveComm/RoveCommManifest.h>
 #include <atomic>
 #include <shared_mutex>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 

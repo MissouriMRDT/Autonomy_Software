@@ -16,6 +16,11 @@
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 
+/// \cond
+#include <tracy/Tracy.hpp>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -92,6 +97,7 @@ namespace statemachine
      ******************************************************************************/
     void VerifyingObjectState::Run()
     {
+        ZoneScopedC(tracy::Color::SpringGreen);
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
 
         // IMPORTANT: Ensure the rover is completely stopped to avoid motion blur during verification.

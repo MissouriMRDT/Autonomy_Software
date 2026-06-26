@@ -16,6 +16,11 @@
 #include <filesystem>
 #include <opencv2/opencv.hpp>
 
+/// \cond
+#include <tracy/Tracy.hpp>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -89,6 +94,7 @@ namespace statemachine
      ******************************************************************************/
     void VerifyingMarkerState::Run()
     {
+        ZoneScopedC(tracy::Color::Green);
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Running state-specific behavior.");
 

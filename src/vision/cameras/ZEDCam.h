@@ -14,6 +14,7 @@
 #include "../../interfaces/ZEDCamera.hpp"
 
 /// \cond
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -97,7 +98,7 @@ class ZEDCam : public ZEDCamera
         // ZED Camera specific.
 
         sl::Camera m_slCamera;
-        std::shared_mutex m_muCameraMutex;
+        TracySharedLockable(std::shared_mutex, m_muCameraMutex);
         sl::InitParameters m_slCameraParams;
         sl::RuntimeParameters m_slRuntimeParams;
         sl::RecordingParameters m_slRecordingParams;
@@ -154,12 +155,12 @@ class ZEDCam : public ZEDCamera
 
         // Mutexes for copying frames from the ZEDSDK to the OpenCV Mats.
 
-        std::shared_mutex m_muCustomBoxIngestMutex;
-        std::shared_mutex m_muPoseCopyMutex;
-        std::shared_mutex m_muFloorCopyMutex;
-        std::shared_mutex m_muSensorsCopyMutex;
-        std::shared_mutex m_muObjectDataCopyMutex;
-        std::shared_mutex m_muObjectBatchedDataCopyMutex;
+        TracySharedLockable(std::shared_mutex, m_muCustomBoxIngestMutex);
+        TracySharedLockable(std::shared_mutex, m_muPoseCopyMutex);
+        TracySharedLockable(std::shared_mutex, m_muFloorCopyMutex);
+        TracySharedLockable(std::shared_mutex, m_muSensorsCopyMutex);
+        TracySharedLockable(std::shared_mutex, m_muObjectDataCopyMutex);
+        TracySharedLockable(std::shared_mutex, m_muObjectBatchedDataCopyMutex);
 
         // Atomic flags for checking if data is queued.
 
