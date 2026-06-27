@@ -419,21 +419,16 @@ namespace statemachine
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
         // Get the obstacle's origin
-        int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount();
-        geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex - 1).GetUTMCoordinate();
+        int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount() - 1;
+        geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex).GetUTMCoordinate();
 
         // Get saved rover path
-        std::vector<geoops::Waypoint> vRefPath          = globals::g_pWaypointHandler->RetrievePath("stuckPath");
-        std::vector<geoops::Waypoint> vRevSearchRefPath = (m_eTriggeringState == States::eSearchPattern) ? vRefPath : std::vector<geoops::Waypoint>();
+        std::vector<geoops::Waypoint> vRefPath             = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPath");
+        std::vector<geoops::Waypoint> vSearchRevSpiralPath = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPathReverse");
 
         if (vRefPath.empty())
         {
             LOG_WARNING(logging::g_qSharedLogger, "Stuck state received empty path to modify!");
-            globals::g_pWaypointHandler->StorePath("unstuckPath", vRefPath);
-            if (m_eTriggeringState == States::eSearchPattern)
-            {
-                globals::g_pWaypointHandler->StorePath("RevSpiralPath", vRevSearchRefPath);
-            }
             return;
         }
 
@@ -527,16 +522,16 @@ namespace statemachine
 
         // Remove all points that are in stuck zone and re path-plan deleted path segments.
         SplicePath(vRefPath, stObstaclePosition);
-        if (m_eTriggeringState == States::eSearchPattern)
-        {
-            SplicePath(vRevSearchRefPath, stObstaclePosition);
-        }
-
         // Save path for use in returning state
-        globals::g_pWaypointHandler->StorePath("unstuckPath", vRefPath);
-        if (m_eTriggeringState == States::eSearchPattern)
+        globals::g_pWaypointHandler->StorePath("GeoPlannerPath", vRefPath);
+
+        // Second half of the SearchPatternState spiral is named differently. Don't forget to reroute it too.
+        if (m_eTriggeringState == States::eSearchPattern && !vSearchRevSpiralPath.empty())
         {
-            globals::g_pWaypointHandler->StorePath("RevSpiralPath", vRevSearchRefPath);
+            // Remove all points that are in stuck zone and re path-plan deleted path segments.
+            SplicePath(vSearchRevSpiralPath, stObstaclePosition);
+            // Save path for use in returning state
+            globals::g_pWaypointHandler->StorePath("GeoPlannerPathReverse", vSearchRevSpiralPath);
         }
     }
 
@@ -564,47 +559,42 @@ namespace statemachine
         int nPointsRemoved                         = 0;
 
         bool bLastDeleted                          = false;
-        while (it != std::prev(vPath.end()))
+        while (it != vPath.end())
         {
             double dDifferenceX = it->GetUTMCoordinate().dEasting - stObstaclePosition.dEasting;
             double dDifferenceY = it->GetUTMCoordinate().dNorthing - stObstaclePosition.dNorthing;
 
             // If path coord is inside stuck zone, then remove it.
-            if (dDifferenceX * dDifferenceX + dDifferenceY * dDifferenceY <= constants::STUCK_OBSTACLE_RADIUS * constants::STUCK_OBSTACLE_RADIUS)
+            // Make sure not to delete the last point in the path, as it is the final goal.
+            if (it != std::prev(vPath.end()) &&
+                dDifferenceX * dDifferenceX + dDifferenceY * dDifferenceY <= constants::STUCK_OBSTACLE_RADIUS * constants::STUCK_OBSTACLE_RADIUS)
             {
                 bLastDeleted = true;
                 it           = vPath.erase(it);
                 ++nPointsRemoved;
             }
-            // If the previous node was deleted, then connect the dots correctly by splicing a new path in between.
+            // If we are back outside the stuck zone, and the previous node was deleted, then connect the dots correctly by splicing a new path in between.
             else if (bLastDeleted)
             {
                 // Plan a new path to the next remaining path node.
+                // If we are at the beginning of the path, then use the rover's current position as the start coordinate.
                 stStartCoordinate      = (it != vPath.begin()) ? std::prev(it)->GetUTMCoordinate() : stCurrentRoverPose.GetUTMCoordinate();
                 stGoalCoordinate       = it->GetUTMCoordinate();
                 vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
+                // Splice in the new path, ignoring the start and goal coordinates since they are already in the path.
                 if (vSplicePathCoordinates.size() >= 3)
                 {
-                    bLastDeleted = false;
-                    it           = vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-                    it += vSplicePathCoordinates.size() - 1;
+                    it = vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
+                    // Skip over the newly inserted nodes.
+                    it += vSplicePathCoordinates.size() - 2;
                     nPointsAdded += vSplicePathCoordinates.size() - 2;
                 }
+                bLastDeleted = false;
             }
             else
             {
                 ++it;
             }
-        }
-        // If last node is deleted and while loop ends then still connect the path to goal
-        if (bLastDeleted)
-        {
-            // Plan a new path to the next remaining path node
-            stStartCoordinate      = std::prev(it)->GetUTMCoordinate();
-            stGoalCoordinate       = it->GetUTMCoordinate();
-            vSplicePathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stStartCoordinate, stGoalCoordinate);
-            vPath.insert(it, std::next(vSplicePathCoordinates.begin()), std::prev(vSplicePathCoordinates.end()));
-            nPointsAdded += vSplicePathCoordinates.size() - 2;
         }
 
         LOG_INFO(logging::g_qSharedLogger, "Stuck State Splice modified path: {} nodes added, {} nodes removed", nPointsAdded, nPointsRemoved);

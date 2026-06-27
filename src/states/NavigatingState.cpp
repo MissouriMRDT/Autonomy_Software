@@ -102,10 +102,9 @@ namespace statemachine
         if (m_bWasStuck)
         {
             // Retrieve modified path from stuck
-            m_vPathCoordinates = globals::g_pWaypointHandler->RetrievePath("unstuckPath");
+            m_vPathCoordinates = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPath");
 
             // Update visualizer and stanley
-            globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
             m_pStanleyController->SetReferencePath(m_vPathCoordinates);
 
             m_bWasStuck = false;
@@ -337,10 +336,8 @@ namespace statemachine
         {
             // Submit logger message.
             LOG_NOTICE(logging::g_qSharedLogger, "NavigatingState: Rover has become stuck!");
-            // Save rover path for modification in stuck state
-            globals::g_pWaypointHandler->StorePath("stuckPath", m_vPathCoordinates);
             m_bWasStuck = true;
-            // Handle state transition and save the current search pattern state.
+            // Handle state transition and save the current navigating state.
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
             // Don't execute the rest of the state.
             return;
