@@ -43,7 +43,6 @@ namespace statemachine
                                    globals::g_pTagDetectionHandler->GetTagDetector(TagDetectionHandler::TagDetectors::eRearCam)};
         m_vObjectDetectors      = {globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eHeadMainCam),
                                    globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam)};
-        m_tmLastLowTurningSpeed = std::chrono::system_clock::now();
     }
 
     /******************************************************************************
@@ -342,26 +341,6 @@ namespace statemachine
             globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
             // Don't execute the rest of the state.
             return;
-        }
-
-        // Update timestamp of last low angular velocity to prevent a realignment.
-        if (std::abs(globals::g_pStateMachineHandler->SmartRetrieveAngularVelocity()) <
-            constants::NAVIGATING_ANGULAR_VELOCITY_ABOVE_WHICH_WILL_TRIGGER_REALIGNMENT_IF_HELD_FOR_TOO_LONG)
-        {
-            m_tmLastLowTurningSpeed = std::chrono::system_clock::now();
-        }
-
-        // We have been spinning for a suspiciously long amount of time. Stop and recalibrate heading.
-        if (constants::NAVIGATING_ANG_VEL_CHECK_ENABLE &&
-            std::chrono::system_clock::now() - m_tmLastLowTurningSpeed >
-                std::chrono::milliseconds(static_cast<int>(constants::NAVIGATING_TIME_SPENT_SPINNING_TOO_FAST_AFTER_WHICH_A_REALIGNMENT_IS_TRIGGERED * 1000)))
-        {
-            LOG_WARNING(logging::g_qSharedLogger, "Rover angular velocity is out of control! Stopping rover and realigning ZED.");
-            globals::g_pDriveBoard->SendStop();
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(constants::NAVIGATING_WAIT_BEFORE_REALIGNMENT_TIME * 1000)));
-            globals::g_pStateMachineHandler->RecalibrateZEDHeadingToGPS();
-            // Prevent immediately stopping again.
-            m_tmLastLowTurningSpeed = std::chrono::system_clock::now();
         }
     }
 

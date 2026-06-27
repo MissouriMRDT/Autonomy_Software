@@ -50,7 +50,6 @@ namespace statemachine
             statemachine::TimeIntervalBasedStuckDetector m_StuckDetector;
             std::unique_ptr<controllers::PredictiveStanleyController> m_pStanleyController;
             std::vector<geoops::Waypoint> m_vPathCoordinates;
-            std::chrono::system_clock::time_point m_tmLastLowTurningSpeed;
 
         protected:
             /////////////////////////////////////////

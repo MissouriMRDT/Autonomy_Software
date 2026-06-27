@@ -411,11 +411,6 @@ namespace constants
     extern const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS;
     extern const double SEARCH_STUCK_CHECK_ROT_THRESH;
     extern const double SEARCH_STUCK_CHECK_VEL_THRESH;
-    extern const bool SEARCH_ANG_VEL_CHECK_ENABLE;
-    extern const double SEARCH_ANGULAR_VELOCITY_ABOVE_WHICH_WILL_TRIGGER_REALIGNMENT_IF_HELD_FOR_TOO_LONG;
-    extern const double SEARCH_TIME_SPENT_SPINNING_TOO_FAST_AFTER_WHICH_A_REALIGNMENT_IS_TRIGGERED;
-    extern const double SEARCH_WAIT_BEFORE_REALIGNMENT_TIME;
-
     // Navigating State.
     extern const double NAVIGATING_MOTOR_POWER;
     extern const double NAVIGATING_REACHED_GOAL_RADIUS;
@@ -427,10 +422,6 @@ namespace constants
     extern const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS;
     extern const double NAVIGATING_STUCK_CHECK_ROT_THRESH;
     extern const double NAVIGATING_STUCK_CHECK_VEL_THRESH;
-    extern const bool NAVIGATING_ANG_VEL_CHECK_ENABLE;
-    extern const double NAVIGATING_ANGULAR_VELOCITY_ABOVE_WHICH_WILL_TRIGGER_REALIGNMENT_IF_HELD_FOR_TOO_LONG;
-    extern const double NAVIGATING_TIME_SPENT_SPINNING_TOO_FAST_AFTER_WHICH_A_REALIGNMENT_IS_TRIGGERED;
-    extern const double NAVIGATING_WAIT_BEFORE_REALIGNMENT_TIME;
 
     ///////////////////////////////////////////////////////////////////////////
 
