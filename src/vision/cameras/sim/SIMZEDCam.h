@@ -122,8 +122,9 @@ class SIMZEDCam : public ZEDCamera
         // Mats for storing frames.
 
         cv::Mat m_cvFrame;
-        cv::Mat m_cvDepthImageBuffer;
+        cv::Mat m_cvFrameBuffer;
         cv::Mat m_cvDepthImage;
+        cv::Mat m_cvDepthImageBuffer;
         cv::Mat m_cvDepthMeasure;
         cv::Mat m_cvPointCloud;
 

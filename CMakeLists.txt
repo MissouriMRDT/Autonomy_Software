@@ -24,6 +24,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+    
+set(CMAKE_CUDA_ARCHITECTURES 75)
+set(CMAKE_CUDA_FLAGS "--generate-code=arch=compute_75,code=[compute_75,sm_75]")
 
 ## Project Name and Version
 project(Autonomy_Software VERSION 24.05.00 LANGUAGES C CXX CUDA)
@@ -291,7 +294,7 @@ endif()
 ####################################################################################################################
 
 ## Search Project Directories for CPP Files
-file(GLOB_RECURSE SRC           CONFIGURE_DEPENDS  "src/*.cpp")
+file(GLOB_RECURSE SRC           CONFIGURE_DEPENDS  "src/*.cpp" "src/*.cu")
 file(GLOB_RECURSE Examples_SRC  CONFIGURE_DEPENDS  "examples/*/*.cpp")
 file(GLOB_RECURSE External_SRC  CONFIGURE_DEPENDS  "external/src/*.cpp")
 
@@ -305,7 +308,13 @@ endif()
 if (MSVC)
     target_compile_options(${EXE_NAME} PRIVATE /W4 /WX)
 else()
-    target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(${EXE_NAME} PRIVATE
+        -Wall
+        -Wextra
+        # Apply pedantic only to standard C and C++ files, ignoring CUDA (.cu)
+        $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
+        $<$<COMPILE_LANGUAGE:C>:-Wpedantic>
+    )
 endif()
 
 ## Link Libraries

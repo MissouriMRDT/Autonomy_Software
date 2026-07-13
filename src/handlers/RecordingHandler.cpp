@@ -531,6 +531,8 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
         // Check if recording for the camera at this index is enabled and tag detector is not null.
         if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
         {
+            ZoneScopedNC("Await Tag Frame", tracy::Color::DarkOrange3);
+            ZoneValue(nIter);
             // Wait for future to be fulfilled.
             if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
             {
@@ -660,6 +662,8 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
         // Check if recording for the camera at this index is enabled and tag detector is not null.
         if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
         {
+            ZoneScopedNC("Await Object Frame", tracy::Color::DarkOrange3);
+            ZoneValue(nIter);
             // Wait for future to be fulfilled.
             if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
             {

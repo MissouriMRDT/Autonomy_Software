@@ -19,6 +19,7 @@
 #include <opencv2/opencv.hpp>
 #include <torch/script.h>
 #include <torch/torch.h>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -73,6 +74,7 @@ namespace yolomodel
                                   float fMinObjectConfidence,
                                   float fNMSThreshold)
     {
+        ZoneScopedC(tracy::Color::Honeydew1);
         // Create instance variables.
         std::vector<int> vNMSValidIndices;
 
@@ -106,6 +108,7 @@ namespace yolomodel
      ******************************************************************************/
     inline void DrawDetections(cv::Mat& cvInputFrame, std::vector<Detection>& vObjects)
     {
+        ZoneScopedC(tracy::Color::Honeydew1);
         // Loop through each detection.
         for (Detection stObject : vObjects)
         {
@@ -307,6 +310,7 @@ namespace yolomodel
                  ******************************************************************************/
                 std::vector<Detection> Inference(const cv::Mat& cvInputFrame, const float fMinObjectConfidence = 0.85, const float fNMSThreshold = 0.6)
                 {
+                    ZoneScopedC(tracy::Color::Honeydew1);
                     // Force single-threaded execution (if acceptable for your workload)
                     torch::set_num_threads(1);
                     // Create instance variables.
@@ -321,6 +325,7 @@ namespace yolomodel
                     torch::Tensor trOutputTensor;
                     try
                     {
+                        ZoneScopedNC("PyTorch forward", tracy::Color::Honeydew2);
                         trOutputTensor = m_trModel.forward(vInputs).toTensor();
                     }
                     catch (const c10::Error& trError)
@@ -412,12 +417,16 @@ namespace yolomodel
                  ******************************************************************************/
                 torch::Tensor PreprocessImage(const cv::Mat& cvInputFrame, const torch::Device& trDevice)
                 {
+                    ZoneScopedC(tracy::Color::Honeydew2);
                     // Resize the input image to match model and normalize it to 0-1.
                     cv::Mat cvResizedImage;
+                    ZoneNamedN(resize, "Resize", true);
                     cv::resize(cvInputFrame, cvResizedImage, cv::Size(m_cvModelInputSize.width, m_cvModelInputSize.height), cv::INTER_LINEAR);
+                    ZoneNamedN(normalize, "Normalize", true);
                     cvResizedImage.convertTo(cvResizedImage, CV_32FC3, 1.0 / 255.0);
 
                     // Convert OpenCV mat to a tensor.
+                    ZoneNamedN(toTensor, "Convert to Tensor", true);
                     torch::Tensor trTensorImage = torch::from_blob(cvResizedImage.data, {1, cvResizedImage.rows, cvResizedImage.cols, 3}, torch::kFloat);
                     trTensorImage               = trTensorImage.permute({0, 3, 1, 2});    // Convert to CxHxW format.
                     trTensorImage               = trTensorImage.to(trDevice);             // Move tensor to the specified hardware device.
@@ -446,6 +455,7 @@ namespace yolomodel
                                              const cv::Size& cvInputFrameSize,
                                              const float fMinObjectConfidence)
                 {
+                    ZoneScopedC(tracy::Color::Honeydew2);
                     /*
                      * For YOLOv5, you divide your image size, i.e. 640 by the P3, P4, P5 output strides of 8, 16, 32 to arrive at grid sizes
                      * of 80x80, 40x40, 20x20. Each grid point has 3 anchors by default (anchor box values: small, medium, large), and each anchor contains a vector 5 +
@@ -554,6 +564,7 @@ namespace yolomodel
                                              const cv::Size& cvInputFrameSize,
                                              const float fMinObjectConfidence)
                 {
+                    ZoneScopedC(tracy::Color::Honeydew2);
                     /*
                      * Permute the output tensor shape to match the expected format of the model. If the model is YOLOv8, the output
                      * shape for a 640x640 image will be [1, 4 + nc, 8400] (nc = number of classes). Notice how the larger dimensions is swapped
