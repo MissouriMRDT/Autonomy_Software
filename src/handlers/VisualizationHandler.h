@@ -109,16 +109,11 @@ class VisualizationHandler : public AutonomyThread<void>
         std::vector<char> OnRequestDetectionList(const std::string& szQuery);
         std::vector<char> OnRequestPointCloud(const std::string& szQuery);
 
-        // Local Asset API.
-        std::vector<char> OnRequestLibThree(const std::string& szQuery);
-        std::vector<char> OnRequestLibOrbit(const std::string& szQuery);
-
         // Utilities.
         std::vector<char> LoadFileToBuffer(const std::string& szPath);
         std::string Base64Encode(const std::vector<char>& vData);
 
         // HTML Generators.
-        std::string GetEmbeddedHtml();
         std::string GenerateStaticHtml(const std::vector<LiDARHandler::PointRow>& vLidar);
 
         // Internals

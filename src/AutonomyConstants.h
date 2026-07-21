@@ -42,6 +42,7 @@ namespace constants
     extern const uint SIM_WEBRTC_QP;
     extern const std::string SIM_MAINCAM_NAME;
     extern const std::string SIM_REARCAM_NAME;
+    extern const bool SIM_DEPTH_STREAM_USE_GPU;
 
     // Safety constants.
     extern const double BATTERY_MINIMUM_CELL_VOLTAGE;
@@ -319,8 +320,7 @@ namespace constants
 
     // LiDAR Data Handler.
     extern const int VISUALIZER_WEBSERVER_PORT;
-    extern const std::string VISUALIZER_THREEJS_PATH;
-    extern const std::string VISUALIZER_ORBITCONTROLS_PATH;
+    extern const std::string VISUALIZER_RESOURCE_PATH;
 
     ///////////////////////////////////////////////////////////////////////////
 

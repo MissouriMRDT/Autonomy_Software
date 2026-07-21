@@ -688,7 +688,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 bool WebRTC::InitializeH264Decoder()
 {
     // Configure logging level from FFMPEG library.
-    av_log_set_level(AV_LOG_DEBUG);
+    av_log_set_level(AV_LOG_QUIET);
 
     // Find the H264 decoder
     const AVCodec* avCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
@@ -710,7 +710,7 @@ bool WebRTC::InitializeH264Decoder()
     m_pAVCodecContext->rc_buffer_size  = 50 * 1024 * 1024;    // 50 MB buffer size.
     av_opt_set_int(m_pAVCodecContext, "refcounted_frames", 1, 0);
     av_opt_set_int(m_pAVCodecContext, "error_concealment", FF_EC_GUESS_MVS | FF_EC_DEBLOCK, 0);
-    av_opt_set_int(m_pAVCodecContext, "threads", 4, 0);
+    av_opt_set_int(m_pAVCodecContext, "threads", 1, 0);    // Single threaded is optimal for decoding H.264
 
     // Open the codec
     if (avcodec_open2(m_pAVCodecContext, avCodec, nullptr) < 0)

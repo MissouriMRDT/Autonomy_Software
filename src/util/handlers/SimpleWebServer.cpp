@@ -85,10 +85,10 @@ void SimpleWebServer::RegisterEndpoint(const std::string& szEndpoint, RequestCal
 }
 
 /******************************************************************************
- * @brief Adds a static directory to serve files from.
+ * @brief Adds a local directory to serve files from.
  *
  * @param szUrlPrefix - The URL prefix to register.
- * @param szLocalDir - The local directory to serve files from.
+ * @param szLocalDir - The local directory to serve files from, relative to the executable.
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2026-01-30
@@ -104,7 +104,14 @@ void SimpleWebServer::AddStaticDirectory(const std::string& szUrlPrefix, const s
     if (szPrefix.length() > 1 && szPrefix.back() == '/')
         szPrefix.pop_back();
 
-    m_mStaticDirectories[szPrefix] = {szLocalDir};
+    if (std::filesystem::exists(szLocalDir) && std::filesystem::is_directory(szLocalDir))
+    {
+        m_mStaticDirectories[szPrefix] = std::filesystem::path(szLocalDir);
+    }
+    else
+    {
+        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Static directory does not exist or is not a directory: {}", szLocalDir);
+    }
 }
 
 /******************************************************************************
@@ -116,7 +123,7 @@ void SimpleWebServer::AddStaticDirectory(const std::string& szUrlPrefix, const s
  * @author Targed (ltklionel@gmail.com)
  * @date 2026-01-30
  ******************************************************************************/
-std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
+std::vector<char> SimpleWebServer::LoadFile(const std::filesystem::path& szPath)
 {
     std::ifstream file(szPath, std::ios::binary | std::ios::ate);
     if (!file.is_open())
@@ -127,7 +134,7 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
     // Validate file size to prevent buffer overflow (CWE-120, CWE-20)
     if (stdSize < 0)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "WebServer: Failed to get file size for {}", szPath);
+        LOG_ERROR(logging::g_qSharedLogger, "WebServer: Failed to get file size for {}", szPath.string());
         return {};
     }
 
@@ -135,7 +142,7 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
     const std::streamsize stdMaxFileSize = 100 * 1024 * 1024;
     if (stdSize > stdMaxFileSize)
     {
-        LOG_ERROR(logging::g_qSharedLogger, "WebServer: File too large: {} ({} bytes)", szPath, stdSize);
+        LOG_ERROR(logging::g_qSharedLogger, "WebServer: File too large: {} ({} bytes)", szPath.string(), stdSize);
         return {};
     }
 
@@ -147,7 +154,7 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
     // Verify the actual number of bytes read matches expected size
     if (static_cast<std::streamsize>(vBuffer.size()) != stdSize)
     {
-        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Partial read for {} (expected {} bytes, got {})", szPath, stdSize, vBuffer.size());
+        LOG_WARNING(logging::g_qSharedLogger, "WebServer: Partial read for {} (expected {} bytes, got {})", szPath.string(), stdSize, vBuffer.size());
     }
 
     return vBuffer;
@@ -162,9 +169,9 @@ std::vector<char> SimpleWebServer::LoadFile(const std::string& szPath)
  * @author Targed (ltklionel@gmail.com)
  * @date 2026-01-30
  ******************************************************************************/
-std::string SimpleWebServer::GetMimeType(const std::string& szPath)
+std::string SimpleWebServer::GetMimeType(const std::filesystem::path& szPath)
 {
-    std::string szExt = std::filesystem::path(szPath).extension().string();
+    std::string szExt = szPath.extension().string();
     // Convert to lowercase
     std::transform(szExt.begin(), szExt.end(), szExt.begin(), ::tolower);
 
@@ -372,6 +379,14 @@ void SimpleWebServer::HandleClient(int nClientFD)
             szQuery = szPath.substr(siQPos + 1);
             szPath  = szPath.substr(0, siQPos);
         }
+        if (szPath.empty())
+        {
+            szPath = "/";
+        }
+        if (szPath == "/")
+        {
+            szPath = "/index.html";
+        }
 
         // Create callback and HTML copy variables to use outside lock.
         RequestCallback fnCallback = nullptr;
@@ -389,15 +404,17 @@ void SimpleWebServer::HandleClient(int nClientFD)
             }
             else
             {
-                for (const std::pair<const std::string, StaticDir>& stPair : m_mStaticDirectories)
+                // Iterate backwards so that "/" comes last, allowing more specific prefixes to take precedence.
+                for (auto it = m_mStaticDirectories.rbegin(); it != m_mStaticDirectories.rend(); ++it)
                 {
+                    const auto& [szEndpoint, szLocalDir] = *it;
                     // Check if the requested path starts with this prefix
                     // e.g. Request "/detections/img.jpg" starts with "/detections"
-                    if (szPath.starts_with(stPair.first))
+                    if (szPath.starts_with(szEndpoint))
                     {
                         // Construct the local file path
                         // Remove prefix length from request path
-                        std::string szSubPath = szPath.substr(stPair.first.length());
+                        std::string szSubPath = szPath.substr(szEndpoint.length());
 
                         // Check if subPath is empty or only contains a slash (accessing directory directly)
                         if (szSubPath.empty() || szSubPath == "/")
@@ -420,14 +437,14 @@ void SimpleWebServer::HandleClient(int nClientFD)
                         }
 
                         // Combine with local dir.
-                        std::filesystem::path szLocalPath = std::filesystem::path(stPair.second.szLocalPath) / std::filesystem::path(szSubPath);
+                        std::filesystem::path szLocalPath = szLocalDir / std::filesystem::path(szSubPath);
 
                         // Get canonical paths to prevent traversal attacks
                         std::error_code stdErrorCode;
-                        std::filesystem::path szCanonicalBase = std::filesystem::canonical(stPair.second.szLocalPath, stdErrorCode);
+                        std::filesystem::path szCanonicalBase = std::filesystem::canonical(szLocalPath, stdErrorCode);
                         if (stdErrorCode)
                         {
-                            LOG_WARNING(logging::g_qSharedLogger, "WebServer: Failed to canonicalize base path: {}", stPair.second.szLocalPath);
+                            LOG_WARNING(logging::g_qSharedLogger, "WebServer: Failed to canonicalize base path: {}", szLocalPath.string());
                             break;
                         }
 
@@ -514,14 +531,6 @@ void SimpleWebServer::HandleClient(int nClientFD)
                 siRemaining -= result;
             }
         }
-        // If no callback, serve HTML if requested.
-        else if (szPath == "/" || szPath == "/index.html")
-        {
-            // Create and send HTTP response with HTML content.
-            std::string szHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + std::to_string(szHtmlCopy.size()) + "\r\nConnection: close\r\n\r\n";
-            send(nClientFD, szHeader.c_str(), szHeader.size(), MSG_NOSIGNAL);
-            send(nClientFD, szHtmlCopy.c_str(), szHtmlCopy.size(), MSG_NOSIGNAL);
-        }
         // Check if we have a static file to serve
         else if (!szStaticFileToServe.empty())
         {
@@ -565,6 +574,14 @@ void SimpleWebServer::HandleClient(int nClientFD)
                 std::string szResp = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
                 send(nClientFD, szResp.c_str(), szResp.size(), MSG_NOSIGNAL);
             }
+        }
+        // If no callback, serve HTML if requested.
+        else if (szPath == "/" || szPath == "/index.html")
+        {
+            // Create and send HTTP response with HTML content.
+            std::string szHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + std::to_string(szHtmlCopy.size()) + "\r\nConnection: close\r\n\r\n";
+            send(nClientFD, szHeader.c_str(), szHeader.size(), MSG_NOSIGNAL);
+            send(nClientFD, szHtmlCopy.c_str(), szHtmlCopy.size(), MSG_NOSIGNAL);
         }
         // If neither, respond with 404.
         else

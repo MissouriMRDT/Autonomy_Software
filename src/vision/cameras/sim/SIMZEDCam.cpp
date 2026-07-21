@@ -206,7 +206,35 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
         return;
     }
 
-    EstimateDepthMeasureCUDA(cvDepthImage, cvDepthMeasure, fMaxDepth);
+    if (constants::SIM_DEPTH_STREAM_USE_GPU)
+    {
+        // Estimate the depth measure using CUDA.
+        EstimateDepthMeasureCUDA(cvDepthImage, cvDepthMeasure, fMaxDepth);
+    }
+    else
+    {
+        // #pragma omp parallel for collapse(2)
+
+        // Iterate over each pixel in the cvDepthImage image.
+        for (int nY = 0; nY < cvDepthImage.rows; ++nY)
+        {
+            for (int nX = 0; nX < cvDepthImage.cols; ++nX)
+            {
+                // For this, we are just using the depth image to estimate the depth measure. We will treat 255 as 0 cm and 0 as fMaxDepth - 1 cm.
+                // Get the depth value from the depth image.
+                uchar ucDepthValue = cvDepthImage.at<uchar>(nY, nX);
+
+                // Calculate the depth in cm.
+                float fDepth = (1.0f - (ucDepthValue / 255.0f)) * fMaxDepth;
+                // Check if nY and nX are within the bounds of the depth measure image.
+                if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
+                {
+                    // Store the estimated depth in the new cv::Mat. Convert cm to m.
+                    cvDepthMeasure.at<float>(nY, nX) = fDepth / 100.0f;    // Convert cm to m.
+                }
+            }
+        }
+    }
 }
 
 /******************************************************************************
@@ -230,7 +258,41 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
     const double dCx = cvDepthMeasure.cols / 2.0;
     const double dCy = cvDepthMeasure.rows / 2.0;
 
-    CalculatePointCloudCUDA(cvDepthMeasure, cvPointCloud, dFx, dFy, dCx, dCy);
+    if (constants::SIM_DEPTH_STREAM_USE_GPU)
+    {
+        // Calculate the point cloud using CUDA.
+        CalculatePointCloudCUDA(cvDepthMeasure, cvPointCloud, dFx, dFy, dCx, dCy);
+    }
+    else
+    {
+        // This is a parallel for loop that calculates the point cloud from the decoded depth measure.
+        // #pragma omp parallel for collapse(2)
+
+        // Iterate over each pixel in the cvDepthMeasure image.
+        for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
+        {
+            for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
+            {
+                // Get depth value.
+                float fDepth = cvDepthMeasure.at<float>(nY, nX);
+
+                // Skip invalid depth values.
+                if (fDepth <= 0)
+                {
+                    cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(0, 0, 0, 0);
+                    continue;
+                }
+
+                // Convert from pixel coordinates to 3D coordinates.
+                float fX = static_cast<float>((nX - dCx) * fDepth / dFx);
+                float fY = static_cast<float>((dCy - nY) * fDepth / dFy);
+                float fZ = fDepth;
+
+                // Store point. (XYZ + intensity, using Y channel for intensity)
+                cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 255);
+            }
+        }
+    }
 }
 
 /******************************************************************************
