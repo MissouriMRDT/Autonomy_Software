@@ -55,6 +55,7 @@ VisualizationHandler::VisualizationHandler(int nPort)
     m_pWebServer->RegisterEndpoint("/api/waypoints", std::bind(&VisualizationHandler::OnRequestWaypoints, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/api/detections", std::bind(&VisualizationHandler::OnRequestDetections, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/api/detection_list", std::bind(&VisualizationHandler::OnRequestDetectionList, this, std::placeholders::_1));
+    m_pWebServer->RegisterEndpoint("/api/point_cloud", std::bind(&VisualizationHandler::OnRequestPointCloud, this, std::placeholders::_1));
 
     // Set main thread's max iteration rate.
     this->SetMainThreadIPSLimit(20);    // 20 Hz
@@ -112,6 +113,7 @@ void VisualizationHandler::ThreadedContinuousCode()
         this->UpdatePathHistory(stRoverUTM);
         this->UpdateGoalBeacons(stRoverUTM);
         this->UpdateDetections();
+        this->UpdatePointCloud();
 
         static std::chrono::system_clock::time_point tmLastAuxUpdate = std::chrono::system_clock::now();
         // Update auxiliary data at 1 Hz.
@@ -467,6 +469,35 @@ void VisualizationHandler::UpdateDetections()
         {
             ProcessDetection(fX, fY, fZ, nType);
         }
+    }
+}
+
+/******************************************************************************
+ * @brief Updates the point cloud for visualization.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-01-22
+ ******************************************************************************/
+void VisualizationHandler::UpdatePointCloud()
+{
+    std::shared_ptr<ZEDCamera> pFrontCam = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    std::shared_ptr<ZEDCamera> pRearCam  = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
+    if (!pFrontCam || !pRearCam)
+    {
+        LOG_WARNING(logging::g_qSharedLogger, "VisualizationHandler: Cannot update point cloud, one or both ZED cameras are not available.");
+        return;
+    }
+    std::lock_guard lkFrontLock(m_muPointCloudMutex);
+    auto fuFrontPointCloudCopyStatus = pFrontCam->RequestPointCloudCopy(m_cvFrontPointCloud);
+    auto fuRearPointCloudCopyStatus  = pRearCam->RequestPointCloudCopy(m_cvRearPointCloud);
+    if (fuFrontPointCloudCopyStatus.get() && fuRearPointCloudCopyStatus.get())
+    {
+        LOG_DEBUG(logging::g_qSharedLogger, "VisualizationHandler: Updated point cloud for visualization.");
+    }
+    else
+    {
+        LOG_WARNING(logging::g_qSharedLogger, "VisualizationHandler: Failed to update point cloud for visualization.");
     }
 }
 
@@ -834,6 +865,55 @@ std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string
 
     // Convert string to vector
     return std::vector<char>(szJson.begin(), szJson.end());
+}
+
+/******************************************************************************
+ * @brief Handles point cloud requests from the web server.
+ *
+ * @param szQuery - The query string from the request.
+ * @return std::vector<char> - The binary response data.
+ *
+ * @author Targed (ltklionel@gmail.com)
+ * @date 2026-01-30
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::OnRequestPointCloud(const std::string& szQuery)
+{
+    ZoneScopedC(tracy::Color::Tan);
+    (void) szQuery;
+    const int nPointCloudDensity  = 8;    // TODO: get this from the query
+    const auto fnAppendPointCloud = [](const cv::Mat& cvPointCloud, std::vector<char>& vBuffer, int nDensity)
+    {
+        uint32_t unPointCount = (cvPointCloud.rows / nDensity) * (cvPointCloud.cols / nDensity);
+        // Reserve more memory than needed. The vector therefore will not invalidate itBegin
+        vBuffer.reserve(vBuffer.size() + sizeof(unPointCount) + unPointCount * 3 * sizeof(float));
+        const auto itBegin = vBuffer.end();
+        // Skip over pointCount
+        vBuffer.resize(vBuffer.size() + sizeof(unPointCount));
+        unPointCount = 0;
+        for (int y = 0; y < cvPointCloud.rows; y += nDensity)
+        {
+            for (int x = 0; x < cvPointCloud.cols; x += nDensity)
+            {
+                cv::Vec4f point = cvPointCloud.at<cv::Vec4f>(y, x);
+                if (point[3] == 0.0f)    // Check if the point is valid (not NaN)
+                {
+                    continue;
+                }
+                ++unPointCount;
+                const float aData[3] = {point[0], point[1], point[2]};
+                const char* pStart   = reinterpret_cast<const char*>(aData);
+                vBuffer.insert(vBuffer.end(), pStart, pStart + sizeof(aData));
+            }
+        }
+        // Insert point count at beginning
+        uint32_t* pCountLocation = reinterpret_cast<uint32_t*>(std::addressof(*itBegin));
+        *pCountLocation          = unPointCount;
+    };
+    std::vector<char> vBuffer;
+    std::lock_guard lkFrontLock(m_muPointCloudMutex);
+    fnAppendPointCloud(m_cvFrontPointCloud, vBuffer, nPointCloudDensity);
+    fnAppendPointCloud(m_cvRearPointCloud, vBuffer, nPointCloudDensity);
+    return vBuffer;
 }
 
 /******************************************************************************
@@ -1256,7 +1336,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    let camera, scene, renderer, controls, roverMesh, pathLine, plannedPathLine, currentPoints;
+    let camera, scene, renderer, controls, roverMesh, pathLine, plannedPathLine, currentPoints, frontPointCloud, rearPointCloud;
     let waypointGroup, detectionGroup; 
     let markerLayer; 
     let activeWaypoints = []; 
@@ -1524,6 +1604,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         };
 
         requestTelemetryLoop();
+        requestPointCloudLoop();
         setInterval(fetchPlannedPath, 2000); 
         setInterval(fetchWaypoints, 2000); 
         setInterval(fetchDetections, 1000); 
@@ -2007,6 +2088,77 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         document.getElementById('stats').innerText = "Points: " + count;
     }
 
+    // --- RECURSIVE LOOP ---
+    async function requestPointCloudLoop() {
+        if (!document.hidden) await fetchPointCloud();
+        setTimeout(requestPointCloudLoop, 500);
+    }
+
+    async function fetchPointCloud() {
+        try {
+            const url = `/api/point_cloud?density=6`;
+            const response = await fetch(url);
+            const buffer = await response.arrayBuffer();
+            loadPointCloud(buffer);
+        } catch(e) { console.error(e); }
+    }
+
+
+    function loadPointCloud(buffer) {
+
+        if (!roverMesh) return;
+        if (!frontPointCloud) {
+            frontPointCloud = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 0.1, color: 0x00ffff }));
+            frontPointCloud.geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(0), 3));
+            frontPointCloud.geometry.attributes.position.usage = THREE.DynamicDrawUsage;
+            roverMesh.add(frontPointCloud);
+        }
+        if (!rearPointCloud) {
+            rearPointCloud = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: 0.1, color: 0xff0000 }));
+            rearPointCloud.geometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(0), 3));
+            rearPointCloud.geometry.attributes.position.usage = THREE.DynamicDrawUsage;
+            rearPointCloud.scale.set(1, 1, -1);
+            roverMesh.add(rearPointCloud);
+        }
+
+        const view = new DataView(buffer);
+
+        // Front point cloud
+        const frontCount = view.getUint32(0, true) * 3;
+        let frontPoints = frontPointCloud.geometry.attributes.position.array;
+        if (frontPoints.length < frontCount) {
+            frontPoints = new Float32Array(frontCount);
+            frontPointCloud.geometry.setAttribute('position', new THREE.Float32BufferAttribute(frontPoints, 3));
+            console.log("Resized front point cloud to", frontCount, "floats.");
+        }
+        const frontView = new DataView(buffer, 4, frontCount * 4);
+        for(let i=0; i<frontCount; i+=3) {
+            frontPoints[i] = frontView.getFloat32(i * 4, true);
+            frontPoints[i+1] = -frontView.getFloat32((i * 4) + 4, true);
+            frontPoints[i+2] = -frontView.getFloat32((i * 4) + 8, true);
+        }
+        frontPointCloud.geometry.setDrawRange(0, frontCount / 3);
+        frontPointCloud.geometry.attributes.position.needsUpdate = true;
+        
+        // Back point cloud
+        const rearCount = view.getUint32(4 + frontCount * 4, true) * 3;
+        let rearPoints = rearPointCloud.geometry.attributes.position.array;
+        if (rearPoints.length < rearCount) {
+            rearPoints = new Float32Array(rearCount);
+            rearPointCloud.geometry.setAttribute('position', new THREE.Float32BufferAttribute(rearPoints, 3));
+            console.log("Resized rear point cloud to", rearCount, "floats.");
+        }
+        const rearView = new DataView(buffer, 4 + frontCount * 4 + 4, rearCount * 4);
+        for(let i=0; i<rearCount; i+=3) {
+            rearPoints[i] = rearView.getFloat32(i * 4, true);
+            rearPoints[i+1] = -rearView.getFloat32((i * 4) + 4, true);
+            rearPoints[i+2] = -rearView.getFloat32((i * 4) + 8, true);
+        }
+        rearPointCloud.geometry.setDrawRange(0, rearCount / 3);
+        rearPointCloud.geometry.attributes.position.needsUpdate = true;
+        console.log("Loaded", frontCount + rearCount, "points.", rovermesh);
+    }
+
     function onKey(e, p) { 
         if(keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = p; 
         if(e.key === 'Shift') keys.shift = p;
@@ -2355,6 +2507,15 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
 
     init();
     animate();
+    // const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    // const updateLidar = async () => {
+    //     while(true){
+    //         await fetchPointCloud();
+    //         sleep(3000);
+    //     }
+    // };
+    // updateLidar();
+
 
     function init() {
         markerLayer = document.getElementById('marker-layer');
@@ -2605,7 +2766,7 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     }
     function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
 
-    function animate() {
+    async function animate() {
         requestAnimationFrame(animate);
         const now = performance.now();
         const dt = Math.min((now - lastTime) / 1000.0, 0.1);

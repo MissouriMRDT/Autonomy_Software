@@ -98,6 +98,7 @@ class VisualizationHandler : public AutonomyThread<void>
         void UpdateWaypoints();
         void UpdateGoalBeacons(const geoops::UTMCoordinate& stRoverUTM);
         void UpdateDetections();
+        void UpdatePointCloud();
 
         // API.
         std::vector<char> OnRequestTelemetry(const std::string& szQuery);
@@ -106,6 +107,7 @@ class VisualizationHandler : public AutonomyThread<void>
         std::vector<char> OnRequestWaypoints(const std::string& szQuery);
         std::vector<char> OnRequestDetections(const std::string& szQuery);
         std::vector<char> OnRequestDetectionList(const std::string& szQuery);
+        std::vector<char> OnRequestPointCloud(const std::string& szQuery);
 
         // Local Asset API.
         std::vector<char> OnRequestLibThree(const std::string& szQuery);
@@ -148,5 +150,8 @@ class VisualizationHandler : public AutonomyThread<void>
         // Detections.
         std::vector<DisplayDetection> m_vDetections;
         std::mutex m_muDetectionMutex;
+        // Point Cloud
+        cv::Mat m_cvFrontPointCloud, m_cvRearPointCloud;
+        std::mutex m_muPointCloudMutex;
 };
 #endif

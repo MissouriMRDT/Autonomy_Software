@@ -19,7 +19,6 @@
 
 /// \cond
 #include <cmath>
-#include <nlohmann/json.hpp>
 
 // #include <omp.h>
 
@@ -179,7 +178,7 @@ void SIMZEDCam::SetCallbacks()
                 // Deep copy the frame to the depth image buffer.
                 m_cvDepthImageBuffer = cvFrame.clone();
                 // Convert the depth image buffer to grayscale.
-                cv::cvtColor(m_cvDepthImageBuffer, m_cvDepthImage, cv::COLOR_BGR2GRAY);
+                cv::cvtColor(m_cvDepthImageBuffer, m_cvDepthImageBuffer, cv::COLOR_BGR2GRAY);
             }
         });
 }

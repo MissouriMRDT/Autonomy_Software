@@ -12,6 +12,7 @@
 #define SIMPLEWEBSERVER_H
 
 /// \cond
+#include "../../../external/threadpool/include/BS_thread_pool.hpp"
 #include <atomic>
 #include <functional>
 #include <map>
@@ -72,7 +73,7 @@ class SimpleWebServer
 
         // Thread Management.
         std::thread m_thAcceptThread;
-        std::vector<std::thread> m_vWorkerThreads;
+        BS::thread_pool<> m_tpWorkerPool = BS::thread_pool<>(1);
         std::mutex m_muThreadMutex;
 
         ////////////////////////////////////

@@ -269,16 +269,8 @@ void SimpleWebServer::StopServer()
         m_thAcceptThread.join();
     }
 
-    // Join all workers to prevent use-after-free.
-    std::lock_guard<std::mutex> lk(m_muThreadMutex);
-    for (std::thread& thThread : m_vWorkerThreads)
-    {
-        if (thThread.joinable())
-            thThread.join();
-    }
-
-    // Clear worker threads vector.
-    m_vWorkerThreads.clear();
+    // Wait for threads to join
+    m_tpWorkerPool.wait();
 }
 
 /******************************************************************************
@@ -293,13 +285,6 @@ void SimpleWebServer::AcceptLoop()
     // Continue accepting while running.
     while (m_bRunning)
     {
-        // Clean up finished threads.
-        {
-            std::lock_guard<std::mutex> lkThreadLock(m_muThreadMutex);
-            std::vector<std::thread>::iterator itIndex = std::remove_if(m_vWorkerThreads.begin(), m_vWorkerThreads.end(), [](std::thread& t) { return !t.joinable(); });
-            m_vWorkerThreads.erase(itIndex, m_vWorkerThreads.end());
-        }
-
         // Configure client address structure.
         struct sockaddr_in stClientAddr;
         socklen_t clientLen = sizeof(stClientAddr);
@@ -312,8 +297,12 @@ void SimpleWebServer::AcceptLoop()
         }
 
         // If client accepted, spawn a new thread to handle it.
-        std::lock_guard<std::mutex> lkThreadLock(m_muThreadMutex);
-        m_vWorkerThreads.emplace_back(&SimpleWebServer::HandleClient, this, nClientFD);
+        m_tpWorkerPool.detach_task(
+            [this, nClientFD]()
+            {
+                this->HandleClient(nClientFD);
+                close(nClientFD);
+            });
     }
 }
 

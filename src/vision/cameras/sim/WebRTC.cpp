@@ -437,6 +437,8 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                     }
                     ZoneScopedNC("WebRTC::onFrame", tracy::Color::Green);
                     ZoneName(m_szStreamerID.c_str(), m_szStreamerID.length());
+                    ZoneValue(rtcFrameInfo.payloadType);
+                    ZoneValue(rtcFrameInfo.timestamp);
 
                     // Prepare buffer for H.264 bytes.
                     std::vector<uint8_t> vH264EncodedBytes;
