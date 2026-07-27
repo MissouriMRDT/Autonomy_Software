@@ -39,10 +39,10 @@ class TagDetectionHandler
         // publishes overlay frames while a Subscription is alive, so this handler holds one for
         // the lifetime of its detectors. That is what keeps GetDetectionOverlayFrame() and any
         // direct reader of the last-good overlay (for example VerifyingMarkerState) supplied.
-        pubsub::Subscription m_subMainCamOverlay;
-        pubsub::Subscription m_subMainCamLastGoodOverlay;
-        pubsub::Subscription m_subRearCamOverlay;
-        pubsub::Subscription m_subRearCamLastGoodOverlay;
+        pubsub::Reader<cv::Mat> m_rdMainCamOverlay;
+        pubsub::Reader<cv::Mat> m_rdMainCamLastGoodOverlay;
+        pubsub::Reader<cv::Mat> m_rdRearCamOverlay;
+        pubsub::Reader<cv::Mat> m_rdRearCamLastGoodOverlay;
 
     public:
         /////////////////////////////////////////

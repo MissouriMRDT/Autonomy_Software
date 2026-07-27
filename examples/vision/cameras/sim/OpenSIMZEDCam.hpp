@@ -49,9 +49,9 @@ void RunExample()
 
     // Register demand for the channels we want. The camera produces a data type only while
     // something is subscribed to it, so these handles are what turn each one on.
-    pubsub::Subscription subFrame        = pZEDCam->GetFrameCPUPublisher().Subscribe();
-    pubsub::Subscription subDepthImage   = pZEDCam->GetDepthImageCPUPublisher().Subscribe();
-    pubsub::Subscription subDepthMeasure = pZEDCam->GetDepthMeasureCPUPublisher().Subscribe();
+    pubsub::Reader<cv::Mat> subFrame        = pZEDCam->GetFrameCPUReader();
+    pubsub::Reader<cv::Mat> subDepthImage   = pZEDCam->GetDepthImageCPUReader();
+    pubsub::Reader<cv::Mat> subDepthMeasure = pZEDCam->GetDepthMeasureCPUReader();
 
     // Track which frame we last processed so we can skip iterations with nothing new.
     unsigned long long ullLastProcessedSequence = 0;
@@ -60,9 +60,9 @@ void RunExample()
     {
         // Load the newest snapshot of each channel ONCE into a local. Non-blocking reads that
         // return null until the simulator connects and the camera publishes.
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pFrame        = pZEDCam->GetFrameCPUPublisher().Get();
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pDepthImage   = pZEDCam->GetDepthImageCPUPublisher().Get();
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pDepthMeasure = pZEDCam->GetDepthMeasureCPUPublisher().Get();
+        pubsub::Reader<cv::Mat>::SharedSnapshot pFrame        = subFrame.Get();
+        pubsub::Reader<cv::Mat>::SharedSnapshot pDepthImage   = subDepthImage.Get();
+        pubsub::Reader<cv::Mat>::SharedSnapshot pDepthMeasure = subDepthMeasure.Get();
 
         // Only redraw when the camera has actually produced a new frame.
         if (pFrame != nullptr && pFrame->ullSequence != ullLastProcessedSequence)

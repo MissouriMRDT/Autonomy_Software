@@ -11,6 +11,10 @@
 #ifndef BASICCAMERA_HPP
 #define BASICCAMERA_HPP
 
+// AutonomyConstants.h is needed for the publisher pool sizing constants used below. It is safe
+// to include here (it includes Camera.hpp, not this header, so there is no cycle) and without it
+// this header only compiles when some other header happens to have pulled constants in first.
+#include "../AutonomyConstants.h"
 #include "../util/threading/Publisher.hpp"
 #include "Camera.hpp"
 
@@ -145,13 +149,15 @@ class BasicCamera : public Camera<cv::Mat>
         /******************************************************************************
          * @brief Accessor for this camera's publish-latest frame channel.
          *
-         *      Consumers Subscribe() to express demand (the producer only reads and
-         *      publishes frames while at least one subscriber is alive) and Get() the
-         *      newest immutable frame snapshot with a lock-free, non-blocking read.
+         *      Returns a Reader: holding it expresses demand (the producer only reads
+         *      and publishes frames while at least one Reader is alive) and Get()s the
+         *      newest immutable frame snapshot with a non-blocking read. Because the
+         *      Reader is the only thing handed out, a consumer can neither publish into
+         *      this channel nor read it without registering demand.
          *      Both the real BasicCam and the simulated SIMBasicCam publish through
          *      this same channel, so consumers stay drop-in interchangeable.
          *
-         * @return pubsub::Publisher<cv::Mat>& - The frame publisher.
+         * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the frame channel.
          *
          * @note Load a snapshot once into a local and work from that local; calling
          *      Get() repeatedly returns whatever is newest each time. To modify a
@@ -161,7 +167,7 @@ class BasicCamera : public Camera<cv::Mat>
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2026-07-24
          ******************************************************************************/
-        pubsub::Publisher<cv::Mat>& GetFramePublisher() { return m_pubFrame; }
+        pubsub::Reader<cv::Mat> GetFrameReader() { return m_pubFrame.CreateReader(); }
 
     protected:
         // Declare protected methods and member variables.

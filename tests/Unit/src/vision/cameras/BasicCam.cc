@@ -161,18 +161,16 @@ TEST_F(BasicCamTests, FramePublisher)
     // Create a BasicCam object (the device will not open in CI, so nothing publishes).
     BasicCam basicCam("/dev/video0", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
 
-    // No consumer has expressed demand yet, and nothing has been published.
-    EXPECT_FALSE(basicCam.GetFramePublisher().HasSubscribers());
-    EXPECT_EQ(basicCam.GetFramePublisher().Get(), nullptr);
-
-    // Subscribing registers demand so the producer knows to publish this channel.
-    pubsub::Subscription subFrames = basicCam.GetFramePublisher().Subscribe();
-    EXPECT_TRUE(basicCam.GetFramePublisher().HasSubscribers());
+    // Taking a Reader is the only way to read this channel, and holding it is what registers
+    // demand. The camera exposes no Publisher, so a consumer cannot publish into the channel.
+    pubsub::Reader<cv::Mat> rdFrames = basicCam.GetFrameReader();
+    EXPECT_TRUE(rdFrames.IsActive());
 
     // Reading with nothing published must return null immediately rather than blocking.
-    EXPECT_EQ(basicCam.GetFramePublisher().Get(), nullptr);
+    EXPECT_EQ(rdFrames.Get(), nullptr);
 
-    // Releasing the last subscription drops demand so the producer stops doing the work.
-    subFrames.Release();
-    EXPECT_FALSE(basicCam.GetFramePublisher().HasSubscribers());
+    // Releasing the handle drops demand and makes the reader inactive.
+    rdFrames.Release();
+    EXPECT_FALSE(rdFrames.IsActive());
+    EXPECT_EQ(rdFrames.Get(), nullptr);
 }

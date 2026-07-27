@@ -189,21 +189,22 @@ void TagDetector::EnsureCameraSubscriptions()
                            // Subscribe to whichever memory channel this detector was configured for.
                            if (m_bUsingGpuMats)
                            {
-                               // Express demand on the GPU channels.
-                               m_subCameraFrame      = pZEDCamera->GetFrameGPUPublisher().Subscribe();
-                               m_subCameraPointCloud = pZEDCamera->GetPointCloudGPUPublisher().Subscribe();
+                               // Take read handles on the GPU channels. Holding them is what makes the
+                               // camera retrieve these data types at all.
+                               m_rdCameraFrameGPU      = pZEDCamera->GetFrameGPUReader();
+                               m_rdCameraPointCloudGPU = pZEDCamera->GetPointCloudGPUReader();
                            }
                            else
                            {
-                               // Express demand on the CPU channels.
-                               m_subCameraFrame      = pZEDCamera->GetFrameCPUPublisher().Subscribe();
-                               m_subCameraPointCloud = pZEDCamera->GetPointCloudCPUPublisher().Subscribe();
+                               // Take read handles on the CPU channels.
+                               m_rdCameraFrameCPU      = pZEDCamera->GetFrameCPUReader();
+                               m_rdCameraPointCloudCPU = pZEDCamera->GetPointCloudCPUReader();
                            }
                        }
                        else
                        {
                            // Basic cameras publish a single BGRA frame channel and no point cloud.
-                           m_subCameraFrame = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetFramePublisher().Subscribe();
+                           m_rdCameraFrameCPU = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetFrameReader();
                        }
                    });
 }
@@ -237,8 +238,8 @@ bool TagDetector::LoadLatestCameraFrames()
         if (m_bUsingGpuMats)
         {
             // Load both GPU snapshots once into locals.
-            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pFrameSnapshot = pZEDCamera->GetFrameGPUPublisher().Get();
-            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pCloudSnapshot = pZEDCamera->GetPointCloudGPUPublisher().Get();
+            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pFrameSnapshot = m_rdCameraFrameGPU.Get();
+            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pCloudSnapshot = m_rdCameraPointCloudGPU.Get();
             // Nothing has been published yet.
             if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
             {
@@ -263,8 +264,8 @@ bool TagDetector::LoadLatestCameraFrames()
         else
         {
             // Load both CPU snapshots once into locals.
-            pubsub::Publisher<cv::Mat>::SharedSnapshot pFrameSnapshot = pZEDCamera->GetFrameCPUPublisher().Get();
-            pubsub::Publisher<cv::Mat>::SharedSnapshot pCloudSnapshot = pZEDCamera->GetPointCloudCPUPublisher().Get();
+            pubsub::Reader<cv::Mat>::SharedSnapshot pFrameSnapshot = m_rdCameraFrameCPU.Get();
+            pubsub::Reader<cv::Mat>::SharedSnapshot pCloudSnapshot = m_rdCameraPointCloudCPU.Get();
             // Nothing has been published yet.
             if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
             {
@@ -288,7 +289,7 @@ bool TagDetector::LoadLatestCameraFrames()
     else
     {
         // Load the basic camera's frame snapshot once into a local.
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pFrameSnapshot = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetFramePublisher().Get();
+        pubsub::Reader<cv::Mat>::SharedSnapshot pFrameSnapshot = m_rdCameraFrameCPU.Get();
         // Nothing has been published yet.
         if (pFrameSnapshot == nullptr)
         {

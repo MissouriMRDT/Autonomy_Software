@@ -103,21 +103,21 @@ class TagDetector : public AutonomyThread<void>
 
         /******************************************************************************
          * @brief Accessor for the detection-overlay frame publisher.
-         * @return pubsub::Publisher<cv::Mat>& - The detection overlay channel.
+         * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the detection overlay channel.
          ******************************************************************************/
-        pubsub::Publisher<cv::Mat>& GetDetectionOverlayPublisher() { return m_pubDetectionOverlay; }
+        pubsub::Reader<cv::Mat> GetDetectionOverlayReader() { return m_pubDetectionOverlay.CreateReader(); }
 
         /******************************************************************************
          * @brief Accessor for the last-good detection-overlay frame publisher.
-         * @return pubsub::Publisher<cv::Mat>& - The last-good overlay channel.
+         * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the last-good overlay channel.
          ******************************************************************************/
-        pubsub::Publisher<cv::Mat>& GetLastGoodOverlayPublisher() { return m_pubLastGoodOverlay; }
+        pubsub::Reader<cv::Mat> GetLastGoodOverlayReader() { return m_pubLastGoodOverlay.CreateReader(); }
 
         /******************************************************************************
          * @brief Accessor for the detected aruco tags publisher.
-         * @return pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>>& - The tags channel.
+         * @return pubsub::Reader<std::vector<tagdetectutils::ArucoTag>> - A demand-carrying read handle for the tags channel.
          ******************************************************************************/
-        pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>>& GetDetectedTagsPublisher() { return m_pubDetectedTags; }
+        pubsub::Reader<std::vector<tagdetectutils::ArucoTag>> GetDetectedTagsReader() { return m_pubDetectedTags.CreateReader(); }
 
         /******************************************************************************
          * @brief Accessor for the number of detection passes skipped because the camera
@@ -189,8 +189,14 @@ class TagDetector : public AutonomyThread<void>
         // lifetime so the camera retrieves and publishes only what is actually being used.
 
         std::once_flag m_ocCameraSubscribeOnce;
-        pubsub::Subscription m_subCameraFrame;
-        pubsub::Subscription m_subCameraPointCloud;
+        // Typed read handles onto the camera channels this detector consumes. Only the pair
+        // matching the camera's memory mode is ever active; the other stays default constructed
+        // and inactive. Each handle both expresses demand (the camera retrieves nothing without
+        // it) and is the only way to read the channel, so the two can never drift apart.
+        pubsub::Reader<cv::Mat> m_rdCameraFrameCPU;
+        pubsub::Reader<cv::Mat> m_rdCameraPointCloudCPU;
+        pubsub::Reader<cv::cuda::GpuMat> m_rdCameraFrameGPU;
+        pubsub::Reader<cv::cuda::GpuMat> m_rdCameraPointCloudGPU;
 
         // Sequence number of the last camera frame this detector actually ran detection on. Used
         // to skip an entire detection pass when the camera has not published a new frame yet.

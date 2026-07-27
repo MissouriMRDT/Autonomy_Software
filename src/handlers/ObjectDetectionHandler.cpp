@@ -94,10 +94,10 @@ void ObjectDetectionHandler::StartAllDetectors()
     // Register this handler's demand for every detector's overlay channels. Detectors only clone
     // and publish overlay frames while a Subscription is alive, so holding these for the lifetime
     // of the detectors is what keeps GetDetectionOverlayFrame() supplied with frames.
-    m_subMainCamOverlay         = m_pObjectDetectorMainCam->GetDetectionOverlayPublisher().Subscribe();
-    m_subMainCamLastGoodOverlay = m_pObjectDetectorMainCam->GetLastGoodOverlayPublisher().Subscribe();
-    m_subRearCamOverlay         = m_pObjectDetectorRearCam->GetDetectionOverlayPublisher().Subscribe();
-    m_subRearCamLastGoodOverlay = m_pObjectDetectorRearCam->GetLastGoodOverlayPublisher().Subscribe();
+    m_rdMainCamOverlay         = m_pObjectDetectorMainCam->GetDetectionOverlayReader();
+    m_rdMainCamLastGoodOverlay = m_pObjectDetectorMainCam->GetLastGoodOverlayReader();
+    m_rdRearCamOverlay         = m_pObjectDetectorRearCam->GetDetectionOverlayReader();
+    m_rdRearCamLastGoodOverlay = m_pObjectDetectorRearCam->GetLastGoodOverlayReader();
 }
 
 /******************************************************************************
@@ -123,10 +123,10 @@ void ObjectDetectionHandler::StartRecording()
 void ObjectDetectionHandler::StopAllDetectors()
 {
     // Drop our overlay demand first so the detectors stop cloning frames nobody will read.
-    m_subMainCamOverlay.Release();
-    m_subMainCamLastGoodOverlay.Release();
-    m_subRearCamOverlay.Release();
-    m_subRearCamLastGoodOverlay.Release();
+    m_rdMainCamOverlay.Release();
+    m_rdMainCamLastGoodOverlay.Release();
+    m_rdRearCamOverlay.Release();
+    m_rdRearCamLastGoodOverlay.Release();
 
     // Stop recording handler.
     m_pRecordingHandler->RequestStop();
@@ -204,7 +204,7 @@ cv::Mat ObjectDetectionHandler::GetDetectionOverlayFrame(ObjectDetectors eDetect
 
     // Load the newest published overlay snapshot once into a local. This handler holds a
     // Subscription for the detector's lifetime, so the detector is publishing this channel.
-    pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = pDetector->GetDetectionOverlayPublisher().Get();
+    pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = pDetector->GetDetectionOverlayReader().Get();
     if (pSnapshot == nullptr)
     {
         // Submit logger message.

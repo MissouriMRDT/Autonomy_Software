@@ -718,7 +718,7 @@ void SIMZEDCam::ImplSetPositionalPose(const double dX, const double dY, const do
 bool SIMZEDCam::GetCameraIsOpen()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
     return pStatus != nullptr && pStatus->tData.bCameraIsOpen && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 
@@ -763,7 +763,7 @@ std::string SIMZEDCam::GetCameraModel()
 bool SIMZEDCam::GetPositionalTrackingEnabled()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
     return pStatus != nullptr && pStatus->tData.bPositionalTrackingEnabled && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 

@@ -100,6 +100,15 @@ void TagDetectionHandler::StartAllDetectors()
 
     // Start ZED rearcam detector.
     m_pTagDetectorRearCam->Start();
+
+    // Take read handles on every detector's overlay channels. Detectors only clone and publish
+    // overlay frames while a Reader for that channel is alive, so holding these for the lifetime
+    // of the detectors is what keeps GetDetectionOverlayFrame() and any direct reader of the
+    // last-good overlay supplied with frames.
+    m_rdMainCamOverlay         = m_pTagDetectorMainCam->GetDetectionOverlayReader();
+    m_rdMainCamLastGoodOverlay = m_pTagDetectorMainCam->GetLastGoodOverlayReader();
+    m_rdRearCamOverlay         = m_pTagDetectorRearCam->GetDetectionOverlayReader();
+    m_rdRearCamLastGoodOverlay = m_pTagDetectorRearCam->GetLastGoodOverlayReader();
 }
 
 /******************************************************************************
@@ -124,6 +133,12 @@ void TagDetectionHandler::StartRecording()
  ******************************************************************************/
 void TagDetectionHandler::StopAllDetectors()
 {
+    // Drop our overlay demand first so the detectors stop cloning frames nobody will read.
+    m_rdMainCamOverlay.Release();
+    m_rdMainCamLastGoodOverlay.Release();
+    m_rdRearCamOverlay.Release();
+    m_rdRearCamLastGoodOverlay.Release();
+
     // Stop recording handler.
     m_pRecordingHandler->RequestStop();
     m_pRecordingHandler->Join();
@@ -200,7 +215,7 @@ cv::Mat TagDetectionHandler::GetDetectionOverlayFrame(TagDetectors eDetector)
 
     // Load the newest published overlay snapshot once into a local. This handler holds a
     // Subscription for the detector's lifetime, so the detector is publishing this channel.
-    pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = pDetector->GetDetectionOverlayPublisher().Get();
+    pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = pDetector->GetDetectionOverlayReader().Get();
     if (pSnapshot == nullptr)
     {
         // Submit logger message.

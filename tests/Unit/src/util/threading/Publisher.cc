@@ -61,7 +61,7 @@ class PublisherTests : public TestingBase<PublisherTests>
 TEST_F(PublisherTests, GetBeforePublishIsNull)
 {
     pubsub::Publisher<int> pub(4);
-    EXPECT_EQ(pub.Get(), nullptr);
+    EXPECT_EQ(pub.PeekLatest(), nullptr);
     EXPECT_EQ(pub.GetSequence(), 0ull);
 }
 
@@ -75,7 +75,7 @@ TEST_F(PublisherTests, PublishThenGetReturnsValueAndStampsMetadata)
     pSlot->tData = 123;
     pub.Publish(std::move(pSlot));
 
-    auto pSnap = pub.Get();
+    auto pSnap = pub.PeekLatest();
     ASSERT_NE(pSnap, nullptr);
     EXPECT_EQ(pSnap->tData, 123);
     EXPECT_EQ(pSnap->ullSequence, 1ull);
@@ -85,8 +85,8 @@ TEST_F(PublisherTests, PublishThenGetReturnsValueAndStampsMetadata)
     auto pSlot2   = pub.Acquire();
     pSlot2->tData = 456;
     pub.Publish(std::move(pSlot2));
-    EXPECT_EQ(pub.Get()->tData, 456);
-    EXPECT_EQ(pub.Get()->ullSequence, 2ull);
+    EXPECT_EQ(pub.PeekLatest()->tData, 456);
+    EXPECT_EQ(pub.PeekLatest()->ullSequence, 2ull);
 }
 
 /******************************************************************************
@@ -164,7 +164,7 @@ TEST_F(PublisherTests, HeldSnapshotIsImmutableAcrossManyProducerCycles)
     };
 
     Publish(7);
-    auto pHeld = pub.Get();
+    auto pHeld = pub.PeekLatest();
     EXPECT_EQ(std::accumulate(pHeld->tData.vData.begin(), pHeld->tData.vData.end(), 0ll), 7ll * 256);
 
     for (int nIter = 0; nIter < 5000; ++nIter)
@@ -186,7 +186,7 @@ TEST_F(PublisherTests, SnapshotOutlivesPublisherViaWeakPtrDeleter)
         auto pSlot = pub.Acquire();
         pSlot->tData.vData.assign(64, 99);
         pub.Publish(std::move(pSlot));
-        pSurvivor = pub.Get();
+        pSurvivor = pub.PeekLatest();
         ASSERT_NE(pSurvivor, nullptr);
     }
     ASSERT_NE(pSurvivor, nullptr);
@@ -196,17 +196,17 @@ TEST_F(PublisherTests, SnapshotOutlivesPublisherViaWeakPtrDeleter)
 }
 
 /******************************************************************************
- * @brief HasSubscribers reflects the number of live Subscription handles.
+ * @brief HasSubscribers reflects the number of live Reader handles.
  ******************************************************************************/
-TEST_F(PublisherTests, SubscriptionTracksDemand)
+TEST_F(PublisherTests, ReaderTracksDemand)
 {
     pubsub::Publisher<int> pub(2);
     EXPECT_FALSE(pub.HasSubscribers());
     {
-        auto sub1 = pub.Subscribe();
+        auto sub1 = pub.CreateReader();
         EXPECT_TRUE(pub.HasSubscribers());
         {
-            auto sub2 = pub.Subscribe();
+            auto sub2 = pub.CreateReader();
             EXPECT_TRUE(pub.HasSubscribers());
         }
         EXPECT_TRUE(pub.HasSubscribers());
@@ -215,36 +215,63 @@ TEST_F(PublisherTests, SubscriptionTracksDemand)
 }
 
 /******************************************************************************
- * @brief Moving a Subscription transfers its demand without dropping it.
+ * @brief Moving a Reader transfers its demand without dropping it.
  ******************************************************************************/
-TEST_F(PublisherTests, SubscriptionMoveSemantics)
+TEST_F(PublisherTests, ReaderMoveSemantics)
 {
     pubsub::Publisher<int> pub(2);
-    pubsub::Subscription subOuter;
-    EXPECT_FALSE(subOuter.IsActive());
+    pubsub::Reader<int> rdOuter;
+    EXPECT_FALSE(rdOuter.IsActive());
     {
-        auto subInner = pub.Subscribe();
+        auto rdInner = pub.CreateReader();
         EXPECT_TRUE(pub.HasSubscribers());
-        subOuter = std::move(subInner);
-        EXPECT_TRUE(subOuter.IsActive());
+        rdOuter = std::move(rdInner);
+        EXPECT_TRUE(rdOuter.IsActive());
     }
     EXPECT_TRUE(pub.HasSubscribers());
-    subOuter.Release();
+    rdOuter.Release();
     EXPECT_FALSE(pub.HasSubscribers());
 }
 
 /******************************************************************************
- * @brief A Subscription released after its Publisher dies must not crash.
+ * @brief A Reader that outlives its Publisher must stay usable, not dangle. The
+ *      channel is kept alive by the Reader, so Get() keeps returning the last value
+ *      that was published rather than reading freed memory.
  ******************************************************************************/
-TEST_F(PublisherTests, SubscriptionOutlivingPublisherDoesNotCrash)
+TEST_F(PublisherTests, ReaderOutlivingPublisherStaysUsable)
 {
-    pubsub::Subscription sub;
+    pubsub::Reader<int> rd;
     {
         pubsub::Publisher<int> pub(2);
-        sub = pub.Subscribe();
+        rd         = pub.CreateReader();
+        auto pSlot = pub.Acquire();
+        pSlot->tData = 77;
+        pub.Publish(std::move(pSlot));
     }
-    sub.Release();
+
+    // The publisher is gone, but the channel and its last value survive through the Reader.
+    auto pSnapshot = rd.Get();
+    ASSERT_NE(pSnapshot, nullptr);
+    EXPECT_EQ(pSnapshot->tData, 77);
+
+    // Releasing afterwards must not crash either.
+    rd.Release();
+    EXPECT_EQ(rd.Get(), nullptr);
     SUCCEED();
+}
+
+/******************************************************************************
+ * @brief A default-constructed Reader is inactive and reads as empty rather than
+ *      crashing, so it is safe as a not-yet-assigned member.
+ ******************************************************************************/
+TEST_F(PublisherTests, InactiveReaderReadsEmpty)
+{
+    pubsub::Reader<int> rd;
+    EXPECT_FALSE(rd.IsActive());
+    EXPECT_EQ(rd.Get(), nullptr);
+    // Releasing an inactive reader is a no-op.
+    rd.Release();
+    EXPECT_EQ(rd.Get(), nullptr);
 }
 
 /******************************************************************************
@@ -277,7 +304,7 @@ TEST_F(PublisherTests, ConcurrentPublishAndGetNoTears)
             {
                 while (!abStop.load())
                 {
-                    auto pSnap = pub.Get();
+                    auto pSnap = pub.PeekLatest();
                     if (pSnap == nullptr)
                     {
                         continue;

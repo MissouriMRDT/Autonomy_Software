@@ -97,10 +97,14 @@ class RecordingHandler : public AutonomyThread<void>
         std::vector<cv::Mat> m_vFrames;
         std::vector<cv::cuda::GpuMat> m_vGPUFrames;
 
-        // Demand handles for the publish-latest channels this handler records from. A camera or
-        // detector only produces a data type while at least one Subscription for it is alive, so
-        // these are taken when a feed's recording is enabled and released when it is disabled.
-        // This replaces the old per-iteration request/future fan-out entirely.
-        std::vector<pubsub::Subscription> m_vFrameSubscriptions;
+        // Read handles for the publish-latest channels this handler records from. A camera or
+        // detector only produces a data type while at least one Reader for it is alive, so these
+        // are taken when a feed's recording is enabled and released when it is disabled. The
+        // handle is also the only way to read the channel, so demand and reads cannot drift apart.
+        // Two vectors because a feed is either a cv::Mat channel (BasicCam, or a ZED in CPU mode,
+        // or a detector overlay) or a cv::cuda::GpuMat channel (a ZED in GPU mode); only one entry
+        // per feed index is ever active.
+        std::vector<pubsub::Reader<cv::Mat>> m_vFrameReadersCPU;
+        std::vector<pubsub::Reader<cv::cuda::GpuMat>> m_vFrameReadersGPU;
 };
 #endif

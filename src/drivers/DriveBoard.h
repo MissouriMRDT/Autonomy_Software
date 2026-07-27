@@ -91,8 +91,8 @@ class DriveBoard
         // Persistent demand for the main camera's sensor data, taken on the first call to
         // VariableDriveEffort(). The camera only retrieves and publishes sensor data while a
         // Subscription is alive; this member holds ours for the lifetime of the DriveBoard.
-        std::once_flag m_ocSensorSubscribeOnce;
-        pubsub::Subscription m_subMainCamSensors;
+        std::once_flag m_ocSensorReaderOnce;
+        pubsub::Reader<sl::SensorsData> m_rdMainCamSensors;
 
         /////////////////////////////////////////
         // Declare private methods.

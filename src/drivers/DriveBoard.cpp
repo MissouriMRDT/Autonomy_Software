@@ -288,14 +288,14 @@ float DriveBoard::VariableDriveEffort()
     // Register demand for the camera's sensor data exactly once. The camera only retrieves and
     // publishes sensor data while a Subscription is alive, and this member holds ours for the
     // lifetime of the DriveBoard.
-    std::call_once(m_ocSensorSubscribeOnce, [this, &ExampleZEDCam1]() { m_subMainCamSensors = ExampleZEDCam1->GetSensorsPublisher().Subscribe(); });
+    std::call_once(m_ocSensorReaderOnce, [this, &ExampleZEDCam1]() { m_rdMainCamSensors = ExampleZEDCam1->GetSensorsReader(); });
 
     // Default multiplier used when no sensor data is available yet.
     float fMultiplier = 1;
 
     // Load the newest published sensor snapshot once into a local. Lock free and non-blocking;
     // null until the camera has published its first sensor snapshot.
-    pubsub::Publisher<sl::SensorsData>::SharedSnapshot pSensorSnapshot = ExampleZEDCam1->GetSensorsPublisher().Get();
+    pubsub::Reader<sl::SensorsData>::SharedSnapshot pSensorSnapshot = m_rdMainCamSensors.Get();
     if (pSensorSnapshot != nullptr)
     {
         // Declare roll, pitch, yaw from sensor data

@@ -47,7 +47,8 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
             m_vGPUFrames.resize(m_nTotalVideoFeeds);
-            m_vFrameSubscriptions.resize(m_nTotalVideoFeeds);
+            m_vFrameReadersCPU.resize(m_nTotalVideoFeeds);
+            m_vFrameReadersGPU.resize(m_nTotalVideoFeeds);
             break;
 
         // RecordingHandler was initialized to record feeds from the TagDetectionHandler.
@@ -59,7 +60,8 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
-            m_vFrameSubscriptions.resize(m_nTotalVideoFeeds);
+            m_vFrameReadersCPU.resize(m_nTotalVideoFeeds);
+            m_vFrameReadersGPU.resize(m_nTotalVideoFeeds);
             break;
 
         // RecordingHandler was initialized to record feeds from the TagDetectionHandler.
@@ -71,7 +73,8 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
-            m_vFrameSubscriptions.resize(m_nTotalVideoFeeds);
+            m_vFrameReadersCPU.resize(m_nTotalVideoFeeds);
+            m_vFrameReadersGPU.resize(m_nTotalVideoFeeds);
             break;
 
         default:
@@ -186,13 +189,13 @@ void RecordingHandler::UpdateRecordableCameras()
         {
             // Set recording toggle.
             m_vRecordingToggles[nCamera - 1] = true;
-            // Register demand for this camera's frames if we have not already. The camera only
-            // retrieves and publishes frames while a Subscription is alive, so this is what makes
-            // the feed available to us at all.
-            if (!m_vFrameSubscriptions[nCamera - 1].IsActive())
+            // Take a read handle on this camera's frames if we have not already. The camera only
+            // retrieves and publishes frames while a Reader is alive, so this is what makes the
+            // feed available to us at all.
+            if (!m_vFrameReadersCPU[nCamera - 1].IsActive())
             {
-                // Take a persistent subscription for this feed.
-                m_vFrameSubscriptions[nCamera - 1] = pBasicCamera->GetFramePublisher().Subscribe();
+                // Take a persistent read handle for this feed.
+                m_vFrameReadersCPU[nCamera - 1] = pBasicCamera->GetFrameReader();
             }
             // Setup VideoWriter if needed.
             if (!m_vCameraWriters[nCamera - 1].isOpened())
@@ -242,7 +245,7 @@ void RecordingHandler::UpdateRecordableCameras()
             // Set recording toggle.
             m_vRecordingToggles[nCamera - 1] = false;
             // Drop our demand so the camera stops doing work nobody is recording.
-            m_vFrameSubscriptions[nCamera - 1].Release();
+            m_vFrameReadersCPU[nCamera - 1].Release();
         }
     }
 
@@ -261,14 +264,22 @@ void RecordingHandler::UpdateRecordableCameras()
         {
             // Set recording toggle.
             m_vRecordingToggles[nCamera + nIndexOffset] = true;
-            // Register demand for this camera's frames if we have not already, on whichever memory
-            // channel the camera is configured for. The camera only retrieves and publishes frames
-            // while a Subscription is alive, so this is what makes the feed available to us.
-            if (!m_vFrameSubscriptions[nCamera + nIndexOffset].IsActive())
+            // Take a read handle on this camera's frames if we have not already, on whichever
+            // memory channel the camera is configured for. The camera only retrieves and publishes
+            // frames while a Reader is alive, so this is what makes the feed available to us.
+            if (!m_vFrameReadersCPU[nCamera + nIndexOffset].IsActive() && !m_vFrameReadersGPU[nCamera + nIndexOffset].IsActive())
             {
-                // Take a persistent subscription on the matching memory channel.
-                m_vFrameSubscriptions[nCamera + nIndexOffset] =
-                    pZEDCamera->GetUsingGPUMem() ? pZEDCamera->GetFrameGPUPublisher().Subscribe() : pZEDCamera->GetFrameCPUPublisher().Subscribe();
+                // Take a persistent read handle on the matching memory channel.
+                if (pZEDCamera->GetUsingGPUMem())
+                {
+                    // GPU memory mode: read the GPU frame channel.
+                    m_vFrameReadersGPU[nCamera + nIndexOffset] = pZEDCamera->GetFrameGPUReader();
+                }
+                else
+                {
+                    // CPU memory mode: read the CPU frame channel.
+                    m_vFrameReadersCPU[nCamera + nIndexOffset] = pZEDCamera->GetFrameCPUReader();
+                }
             }
             // Setup VideoWriter if needed.
             if (!m_vCameraWriters[nCamera + nIndexOffset].isOpened())
@@ -320,7 +331,8 @@ void RecordingHandler::UpdateRecordableCameras()
             // Set recording toggle.
             m_vRecordingToggles[nCamera + nIndexOffset] = false;
             // Drop our demand so the camera stops doing work nobody is recording.
-            m_vFrameSubscriptions[nCamera + nIndexOffset].Release();
+            m_vFrameReadersCPU[nCamera + nIndexOffset].Release();
+            m_vFrameReadersGPU[nCamera + nIndexOffset].Release();
         }
     }
 }
@@ -353,7 +365,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
         if (m_vBasicCameras[nIter] != nullptr)
         {
             // Load the newest published frame snapshot once into a local.
-            pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = m_vBasicCameras[nIter]->GetFramePublisher().Get();
+            pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = m_vFrameReadersCPU[nIter].Get();
             // Nothing has been published yet.
             if (pSnapshot == nullptr)
             {
@@ -369,7 +381,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
             if (m_vZEDCameras[nIter]->GetUsingGPUMem())
             {
                 // Load the newest published GPU frame snapshot once into a local.
-                pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pSnapshot = m_vZEDCameras[nIter]->GetFrameGPUPublisher().Get();
+                pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pSnapshot = m_vFrameReadersGPU[nIter].Get();
                 // Nothing has been published yet.
                 if (pSnapshot == nullptr)
                 {
@@ -382,7 +394,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
             else
             {
                 // Load the newest published CPU frame snapshot once into a local.
-                pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = m_vZEDCameras[nIter]->GetFrameCPUPublisher().Get();
+                pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = m_vFrameReadersCPU[nIter].Get();
                 // Nothing has been published yet.
                 if (pSnapshot == nullptr)
                 {
@@ -465,12 +477,12 @@ void RecordingHandler::UpdateRecordableTagDetectors()
         {
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = true;
-            // Register demand for this detector's overlay frames if we have not already. The
-            // detector only clones and publishes overlays while a Subscription is alive.
-            if (!m_vFrameSubscriptions[nDetector - 1].IsActive())
+            // Take a read handle on this detector's overlay frames if we have not already. The
+            // detector only clones and publishes overlays while a Reader is alive.
+            if (!m_vFrameReadersCPU[nDetector - 1].IsActive())
             {
-                // Take a persistent subscription for this feed.
-                m_vFrameSubscriptions[nDetector - 1] = pTagDetector->GetDetectionOverlayPublisher().Subscribe();
+                // Take a persistent read handle for this feed.
+                m_vFrameReadersCPU[nDetector - 1] = pTagDetector->GetDetectionOverlayReader();
             }
             // Setup VideoWriter if needed.
             if (!m_vCameraWriters[nDetector - 1].isOpened())
@@ -520,7 +532,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = false;
             // Drop our demand so the detector stops cloning overlays nobody is recording.
-            m_vFrameSubscriptions[nDetector - 1].Release();
+            m_vFrameReadersCPU[nDetector - 1].Release();
         }
     }
 }
@@ -549,7 +561,7 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
         }
 
         // Load the newest published overlay snapshot once into a local.
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = m_vTagDetectors[nIter]->GetDetectionOverlayPublisher().Get();
+        pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = m_vFrameReadersCPU[nIter].Get();
         // Nothing has been published yet.
         if (pSnapshot == nullptr)
         {
@@ -591,12 +603,12 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
         {
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = true;
-            // Register demand for this detector's overlay frames if we have not already. The
-            // detector only clones and publishes overlays while a Subscription is alive.
-            if (!m_vFrameSubscriptions[nDetector - 1].IsActive())
+            // Take a read handle on this detector's overlay frames if we have not already. The
+            // detector only clones and publishes overlays while a Reader is alive.
+            if (!m_vFrameReadersCPU[nDetector - 1].IsActive())
             {
-                // Take a persistent subscription for this feed.
-                m_vFrameSubscriptions[nDetector - 1] = pObjectDetector->GetDetectionOverlayPublisher().Subscribe();
+                // Take a persistent read handle for this feed.
+                m_vFrameReadersCPU[nDetector - 1] = pObjectDetector->GetDetectionOverlayReader();
             }
             // Setup VideoWriter if needed.
             if (!m_vCameraWriters[nDetector - 1].isOpened())
@@ -646,7 +658,7 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = false;
             // Drop our demand so the detector stops cloning overlays nobody is recording.
-            m_vFrameSubscriptions[nDetector - 1].Release();
+            m_vFrameReadersCPU[nDetector - 1].Release();
         }
     }
 }
@@ -675,7 +687,7 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
         }
 
         // Load the newest published overlay snapshot once into a local.
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = m_vObjectDetectors[nIter]->GetDetectionOverlayPublisher().Get();
+        pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = m_vFrameReadersCPU[nIter].Get();
         // Nothing has been published yet.
         if (pSnapshot == nullptr)
         {

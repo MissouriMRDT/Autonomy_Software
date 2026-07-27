@@ -22,7 +22,7 @@
  *      Cameras hand data out through a publish-latest channel instead of per-consumer
  *      requests. There are only two things a consumer does:
  *
- *      1. Subscribe() once, and hold the returned pubsub::Subscription for as long as
+ *      1. Take a Reader once, and hold it for as long as
  *         you want the data produced. The camera only reads and publishes a data type
  *         while at least one subscriber is alive, so a channel nobody wants costs
  *         nothing. Letting the Subscription go out of scope withdraws that demand.
@@ -59,7 +59,7 @@ void RunExample()
 
     // Register demand for this camera's frames. Hold this handle for as long as we want the
     // camera to keep producing; the camera reads nothing while it has no subscribers.
-    pubsub::Subscription subFrames = ExampleBasicCam1->GetFramePublisher().Subscribe();
+    pubsub::Reader<cv::Mat> subFrames = ExampleBasicCam1->GetFrameReader();
 
     // Declare a mat to draw our annotated copy into.
     cv::Mat cvDisplayFrame;
@@ -77,10 +77,10 @@ void RunExample()
 
         // Load the newest published frame ONCE into a local. Everything below works from this
         // local, so the frame cannot change underneath us mid-iteration.
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pFrameSnapshot;
+        pubsub::Reader<cv::Mat>::SharedSnapshot pFrameSnapshot;
         {
             ZoneScopedNC("Get Snapshot", tracy::Color::Wheat2);
-            pFrameSnapshot = ExampleBasicCam1->GetFramePublisher().Get();
+            pFrameSnapshot = subFrames.Get();
         }
 
         // A null snapshot just means the camera has not published a frame yet (it may still be

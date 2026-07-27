@@ -22,12 +22,12 @@
  *      A TagDetector is both a consumer and a producer. It subscribes to its camera's
  *      frame channel internally, and publishes its own results on three channels:
  *
- *      - GetDetectedTagsPublisher()      - the detected tags. Published unconditionally,
+ *      - GetDetectedTagsReader()         - the detected tags. Published unconditionally,
  *                                          because the detection pass already computed
  *                                          them, so no Subscription is needed to read it.
- *      - GetDetectionOverlayPublisher()  - the annotated frame. Demand gated, because it
+ *      - GetDetectionOverlayReader()     - the annotated frame. Demand gated, because it
  *                                          costs a full-frame clone. Subscribe to enable.
- *      - GetLastGoodOverlayPublisher()   - the last annotated frame that had detections.
+ *      - GetLastGoodOverlayReader()      - the last annotated frame that had detections.
  *                                          Also demand gated.
  *
  *      Reading any of them is a non-blocking Get(), so this loop never waits on the
@@ -54,8 +54,8 @@ void RunExample()
     // Register demand for the camera's frames and the detector's overlay frame. The camera and
     // the detector each produce these only while something is subscribed, so these handles are
     // what turn that work on. The detected-tags channel needs no subscription.
-    pubsub::Subscription subCameraFrame     = ExampleBasicCam1->GetFramePublisher().Subscribe();
-    pubsub::Subscription subDetectionOverlay = ExampleTagDetector1->GetDetectionOverlayPublisher().Subscribe();
+    pubsub::Reader<cv::Mat> subCameraFrame     = ExampleBasicCam1->GetFrameReader();
+    pubsub::Reader<cv::Mat> subDetectionOverlay = ExampleTagDetector1->GetDetectionOverlayReader();
 
     // Declare mats to draw our annotated copies into.
     cv::Mat cvNormalFrame1;
@@ -69,9 +69,9 @@ void RunExample()
     {
         // Load the newest snapshot of each channel ONCE into a local. All three reads are
         // non-blocking and return null until that producer has published something.
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pCameraFrame = ExampleBasicCam1->GetFramePublisher().Get();
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pOverlay     = ExampleTagDetector1->GetDetectionOverlayPublisher().Get();
-        pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>>::SharedSnapshot pTags = ExampleTagDetector1->GetDetectedTagsPublisher().Get();
+        pubsub::Reader<cv::Mat>::SharedSnapshot pCameraFrame = subCameraFrame.Get();
+        pubsub::Reader<cv::Mat>::SharedSnapshot pOverlay     = subDetectionOverlay.Get();
+        pubsub::Reader<std::vector<tagdetectutils::ArucoTag>>::SharedSnapshot pTags = ExampleTagDetector1->GetDetectedTagsReader().Get();
 
         // Show the camera frame.
         if (pCameraFrame != nullptr && !pCameraFrame->tData.empty())

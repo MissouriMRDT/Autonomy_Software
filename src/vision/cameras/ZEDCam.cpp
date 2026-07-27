@@ -1311,7 +1311,7 @@ void ZEDCam::ImplDisableObjectDetection()
 bool ZEDCam::GetCameraIsOpen()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
     return this->GetThreadState() == AutonomyThreadState::eRunning && pStatus != nullptr && pStatus->tData.bCameraIsOpen;
 }
 
@@ -1342,7 +1342,7 @@ bool ZEDCam::GetUsingGPUMem() const
 std::string ZEDCam::GetCameraModel()
 {
     // Lock-free read of the newest published status snapshot; the model travels inside it.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
     return (pStatus != nullptr) ? pStatus->tData.szCameraModel : std::string("NOT_OPENED");
 }
 
@@ -1373,7 +1373,7 @@ unsigned int ZEDCam::GetCameraSerial()
 bool ZEDCam::GetPositionalTrackingEnabled()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
     return pStatus != nullptr && pStatus->tData.bPositionalTrackingEnabled;
 }
 
@@ -1389,7 +1389,7 @@ bool ZEDCam::GetPositionalTrackingEnabled()
 sl::PositionalTrackingStatus ZEDCam::GetPositionalTrackingState()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
     return (pStatus != nullptr) ? pStatus->tData.stPositionalTrackingStatus : sl::PositionalTrackingStatus();
 }
 
@@ -1404,7 +1404,7 @@ sl::PositionalTrackingStatus ZEDCam::GetPositionalTrackingState()
 sl::SPATIAL_MAPPING_STATE ZEDCam::GetSpatialMappingState()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
     return (pStatus != nullptr) ? pStatus->tData.eSpatialMappingState : sl::SPATIAL_MAPPING_STATE::NOT_ENABLED;
 }
 
@@ -1494,6 +1494,6 @@ sl::SPATIAL_MAPPING_STATE ZEDCam::ExtractSpatialMapAsync(std::future<sl::Mesh>& 
 bool ZEDCam::GetObjectDetectionEnabled()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
     return pStatus != nullptr && pStatus->tData.bObjectDetectionEnabled;
 }

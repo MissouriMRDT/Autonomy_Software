@@ -146,7 +146,7 @@ class VisualizationHandler : public AutonomyThread<void>
         std::mutex m_muDetectionMutex;
         // Point Cloud
         std::once_flag m_ocCameraSubscribeOnce;
-        pubsub::Subscription m_subFrontPointCloud;
-        pubsub::Subscription m_subRearPointCloud;
+        pubsub::Reader<cv::Mat> m_rdFrontPointCloud;
+        pubsub::Reader<cv::Mat> m_rdRearPointCloud;
 };
 #endif

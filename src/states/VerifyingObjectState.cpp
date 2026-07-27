@@ -201,7 +201,7 @@ namespace statemachine
                         // The ObjectDetectionHandler holds a Subscription to this channel for the
                         // detector's lifetime, so it is being published. This read is lock free and
                         // never blocks on the detector's loop.
-                        pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = pObjectDetector->GetLastGoodOverlayPublisher().Get();
+                        pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = pObjectDetector->GetLastGoodOverlayReader().Get();
                         if (pSnapshot != nullptr)
                         {
                             // Deep copy the immutable snapshot so we own the frame we are about to save.

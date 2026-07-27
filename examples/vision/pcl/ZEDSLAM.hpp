@@ -104,12 +104,49 @@ void RunExample()
     // Register demand for every channel we read. The camera retrieves NOTHING for a channel with
     // no subscribers, so these handles are what actually turn each retrieval on. Hold them for as
     // long as we want the data.
-    pubsub::Subscription subFrame      = bUsingGPUMem ? pExampleZEDCam1->GetFrameGPUPublisher().Subscribe() : pExampleZEDCam1->GetFrameCPUPublisher().Subscribe();
-    pubsub::Subscription subDepthImage =
-        bUsingGPUMem ? pExampleZEDCam1->GetDepthImageGPUPublisher().Subscribe() : pExampleZEDCam1->GetDepthImageCPUPublisher().Subscribe();
-    pubsub::Subscription subPointCloud =
-        bUsingGPUMem ? pExampleZEDCam1->GetPointCloudGPUPublisher().Subscribe() : pExampleZEDCam1->GetPointCloudCPUPublisher().Subscribe();
-    pubsub::Subscription subPose = pExampleZEDCam1->GetPosePublisher().Subscribe();
+    // Only the handle matching the camera's memory mode is taken; the other stays
+    // default constructed and inactive.
+    pubsub::Reader<cv::Mat> subFrameCPU;
+    pubsub::Reader<cv::cuda::GpuMat> subFrameGPU;
+    if (bUsingGPUMem)
+    {
+        // Take the GPU channel handle.
+        subFrameGPU = pExampleZEDCam1->GetFrameGPUReader();
+    }
+    else
+    {
+        // Take the CPU channel handle.
+        subFrameCPU = pExampleZEDCam1->GetFrameCPUReader();
+    }
+    // Only the handle matching the camera's memory mode is taken; the other stays
+    // default constructed and inactive.
+    pubsub::Reader<cv::Mat> subDepthImageCPU;
+    pubsub::Reader<cv::cuda::GpuMat> subDepthImageGPU;
+    if (bUsingGPUMem)
+    {
+        // Take the GPU channel handle.
+        subDepthImageGPU = pExampleZEDCam1->GetDepthImageGPUReader();
+    }
+    else
+    {
+        // Take the CPU channel handle.
+        subDepthImageCPU = pExampleZEDCam1->GetDepthImageCPUReader();
+    }
+    // Only the handle matching the camera's memory mode is taken; the other stays
+    // default constructed and inactive.
+    pubsub::Reader<cv::Mat> subPointCloudCPU;
+    pubsub::Reader<cv::cuda::GpuMat> subPointCloudGPU;
+    if (bUsingGPUMem)
+    {
+        // Take the GPU channel handle.
+        subPointCloudGPU = pExampleZEDCam1->GetPointCloudGPUReader();
+    }
+    else
+    {
+        // Take the CPU channel handle.
+        subPointCloudCPU = pExampleZEDCam1->GetPointCloudCPUReader();
+    }
+    pubsub::Reader<ZEDCamera::Pose> subPose = pExampleZEDCam1->GetPoseReader();
 
     // Declare mats to store our own working copies in.
     cv::Mat cvNormalFrame1;
@@ -139,9 +176,9 @@ void RunExample()
         if (bUsingGPUMem)
         {
             // Load the newest GPU snapshots ONCE into locals.
-            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pFrame      = pExampleZEDCam1->GetFrameGPUPublisher().Get();
-            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pDepth      = pExampleZEDCam1->GetDepthImageGPUPublisher().Get();
-            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pPointCloud = pExampleZEDCam1->GetPointCloudGPUPublisher().Get();
+            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pFrame      = subFrameGPU.Get();
+            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pDepth      = subDepthImageGPU.Get();
+            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pPointCloud = subPointCloudGPU.Get();
             if (pFrame != nullptr && pDepth != nullptr && pPointCloud != nullptr)
             {
                 // Download memory from GPU mats onto our own mats.
@@ -154,9 +191,9 @@ void RunExample()
         else
         {
             // Load the newest CPU snapshots ONCE into locals.
-            pubsub::Publisher<cv::Mat>::SharedSnapshot pFrame      = pExampleZEDCam1->GetFrameCPUPublisher().Get();
-            pubsub::Publisher<cv::Mat>::SharedSnapshot pDepth      = pExampleZEDCam1->GetDepthImageCPUPublisher().Get();
-            pubsub::Publisher<cv::Mat>::SharedSnapshot pPointCloud = pExampleZEDCam1->GetPointCloudCPUPublisher().Get();
+            pubsub::Reader<cv::Mat>::SharedSnapshot pFrame      = subFrameCPU.Get();
+            pubsub::Reader<cv::Mat>::SharedSnapshot pDepth      = subDepthImageCPU.Get();
+            pubsub::Reader<cv::Mat>::SharedSnapshot pPointCloud = subPointCloudCPU.Get();
             if (pFrame != nullptr && pDepth != nullptr && pPointCloud != nullptr)
             {
                 // Snapshots are immutable and shared, and the code below writes into these mats,
@@ -194,7 +231,7 @@ void RunExample()
             // Wait for the other info to be copied.
             // Load the newest pose snapshot ONCE into a local. Null until positional tracking has
             // published one.
-            pubsub::Publisher<ZEDCamera::Pose>::SharedSnapshot pPose = pExampleZEDCam1->GetPosePublisher().Get();
+            pubsub::Reader<ZEDCamera::Pose>::SharedSnapshot pPose = subPose.Get();
             if (pPose != nullptr)
             {
                 // Work from the immutable snapshot's data.
@@ -305,9 +342,12 @@ void RunExample()
     /////////////////////////////////////////
     // Withdraw our demand so the camera stops retrieving data nobody is reading. This also happens
     // automatically when these handles go out of scope.
-    subFrame.Release();
-    subDepthImage.Release();
-    subPointCloud.Release();
+    subFrameCPU.Release();
+    subFrameGPU.Release();
+    subDepthImageCPU.Release();
+    subDepthImageGPU.Release();
+    subPointCloudCPU.Release();
+    subPointCloudGPU.Release();
     subPose.Release();
 
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.

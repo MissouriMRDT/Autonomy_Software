@@ -39,7 +39,7 @@ StateMachineHandler::StateMachineHandler()
     m_pMainCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     // Register demand for the main camera's sensor data so the camera keeps retrieving and
     // publishing it for the heading-realignment logic below.
-    m_subMainCamSensors = m_pMainCam->GetSensorsPublisher().Subscribe();
+    m_rdMainCamSensors = m_pMainCam->GetSensorsReader();
     m_pRearCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
     m_dZEDHeadingOffset  = 0.0;
     m_dLastRawZEDHeading = 0.0;
@@ -394,7 +394,7 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
 
         // Load the newest published sensor data from the ZED camera once into a local. Lock free
         // and non-blocking; null until the camera has published its first sensor snapshot.
-        pubsub::Publisher<sl::SensorsData>::SharedSnapshot pSensorSnapshot = m_pMainCam->GetSensorsPublisher().Get();
+        pubsub::Reader<sl::SensorsData>::SharedSnapshot pSensorSnapshot = m_rdMainCamSensors.Get();
         if (pSensorSnapshot != nullptr)
         {
             // Get Degrees heading from ZED IMU data.
