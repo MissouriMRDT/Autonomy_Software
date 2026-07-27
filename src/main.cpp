@@ -18,6 +18,7 @@
 /// \cond
 #include <sys/ioctl.h>
 #include <termios.h>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -148,8 +149,8 @@ int main()
     network::g_pRoveCommUDPNode = new rovecomm::RoveCommUDP();
     network::g_pRoveCommTCPNode = new rovecomm::RoveCommTCP();
     // Start RoveComm instances bound on ports.
-    network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
-    network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+    network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->Init(manifest::General::ETHERNET_UDP_PORT);
+    network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->Init(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
 
     // Check if RoveComm was successfully initialized.
     if (!network::g_bRoveCommUDPStatus || !network::g_bRoveCommTCPStatus)
@@ -169,7 +170,7 @@ int main()
         LOG_INFO(logging::g_qSharedLogger, "RoveComm UDP and TCP nodes successfully initialized.");
     }
     // Initialize callbacks.
-    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(logging::SetLoggingLevelsCallback, manifest::Autonomy::COMMANDS.find("SETLOGGINGLEVELS")->second.DATA_ID);
+    network::g_pRoveCommUDPNode->On<manifest::Autonomy::Commands::SETLOGGINGLEVELS>(logging::SetLoggingLevelsCallback);
 
     // Initialize drivers.
     globals::g_pDriveBoard      = new DriveBoard();
@@ -271,6 +272,7 @@ int main()
         */
         while (!bMainStop)
         {
+            ZoneScoped;
             // Add each threads FPS value to the vector.
             vThreadFPSValues.clear();
             vThreadFPSValues.push_back(static_cast<uint32_t>(IterPerSecond.GetExactIPS()));
@@ -498,30 +500,24 @@ int main()
             // Check if rovecomm is initialized and running.
             if (network::g_pRoveCommUDPNode)
             {
-                // Construct a RoveComm packet with the drive data.
-                rovecomm::RoveCommPacket<uint32_t> stPacket;
-                stPacket.unDataId    = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_ID;
-                stPacket.unDataCount = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_COUNT;
-                stPacket.eDataType   = manifest::Autonomy::TELEMETRY.find("THREADFPS")->second.DATA_TYPE;
                 // Create a static variable to act a counter/iterator for the FPS value to use.
-                static uint32_t nThreadFPSIndex = 0;
+                static uint32_t unThreadFPSIndex = 0;
                 // Check if the index is within bounds of the vector.
-                if (nThreadFPSIndex < static_cast<uint32_t>(vThreadFPSValues.size()))
+                if (unThreadFPSIndex < vThreadFPSValues.size())
                 {
-                    // First push back the thread enum identifier cast to an int.
-                    stPacket.vData.push_back(nThreadFPSIndex + 1);
-                    // Add the current FPS value to the packet data.
-                    stPacket.vData.push_back(static_cast<float>(vThreadFPSValues[nThreadFPSIndex]));
+                    network::g_pRoveCommUDPNode->Send<manifest::Autonomy::Telemetry::THREADFPS>(    // Send each thread ID and FPS pair to basestation.
+                        {unThreadFPSIndex + 1,                                                      // Thread enum identifier.
+                         static_cast<uint32_t>(vThreadFPSValues[unThreadFPSIndex])},                // Current FPS value.
+                        {0, 0, 0, 0},
+                        constants::ROVECOMM_OUTGOING_UDP_PORT);
                     // Increment the index for the next iteration.
-                    nThreadFPSIndex++;
+                    unThreadFPSIndex++;
                 }
                 else
                 {
                     // Reset the index if it exceeds the vector size.
-                    nThreadFPSIndex = 0;
+                    unThreadFPSIndex = 0;
                 }
-                // Send the packet over RoveComm UDP.
-                network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "0.0.0.0", constants::ROVECOMM_OUTGOING_UDP_PORT);
             }
 
             // Update IPS tick.
@@ -598,8 +594,8 @@ int main()
 
     // Finally, stop RoveComm.
     LOG_INFO(logging::g_qSharedLogger, "Stopping RoveComm...");
-    network::g_pRoveCommUDPNode->CloseUDPSocket();
-    network::g_pRoveCommTCPNode->CloseTCPSocket();
+    network::g_pRoveCommUDPNode->Close();
+    network::g_pRoveCommTCPNode->Close();
     delete network::g_pRoveCommUDPNode;
     delete network::g_pRoveCommTCPNode;
 

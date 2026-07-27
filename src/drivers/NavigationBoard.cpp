@@ -37,24 +37,19 @@ NavigationBoard::NavigationBoard()
     m_dAngularVelocity        = 0.0;
     m_bNavBoardOutOfDate      = false;
 
-    // Subscribe to NavBoard packets.
-    rovecomm::RoveCommPacket<u_int8_t> stSubscribePacket;
-    stSubscribePacket.unDataId    = manifest::System::SUBSCRIBE_DATA_ID;
-    stSubscribePacket.unDataCount = 0;
-    stSubscribePacket.eDataType   = manifest::DataTypes::UINT8_T;
-    stSubscribePacket.vData       = std::vector<uint8_t>{};
     if (network::g_pRoveCommUDPNode)
     {
         // Determine the IP address to send the subscribe packet to.
-        const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Nav::IP_ADDRESS.IP_STR.c_str();
+        const manifest::AddressEntry& stIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS : manifest::Nav::IP_ADDRESS;
 
         // Send subscribe packet to NavBoard.
-        network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+        network::g_pRoveCommUDPNode->Subscribe(stIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 
         // Set RoveComm callbacks.
-        network::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessGPSData, manifest::Nav::TELEMETRY.find("GPSLATLONALT")->second.DATA_ID);
-        network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessAccuracyData, manifest::Nav::TELEMETRY.find("ACCURACYDATA")->second.DATA_ID);
-        network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessCompassData, manifest::Nav::TELEMETRY.find("COMPASSDATA")->second.DATA_ID);
+        using namespace manifest::Nav::Telemetry;
+        network::g_pRoveCommUDPNode->On<GPSLATLONALT>([this](const auto& stPacket) { ProcessGPSData(stPacket); });
+        // network::g_pRoveCommUDPNode->On<ACCURACYDATA>([this](const auto& stPacket) { ProcessAccuracyData(stPacket); });
+        network::g_pRoveCommUDPNode->On<COMPASSDATA>([this](const auto& stPacket) { ProcessCompassData(stPacket); });
     }
 }
 
@@ -388,4 +383,124 @@ std::chrono::system_clock::duration NavigationBoard::GetCompassLastUpdateTime()
 bool NavigationBoard::IsOutOfDate()
 {
     return m_bNavBoardOutOfDate;
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new GPS data.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
+void NavigationBoard::ProcessGPSData(const rovecomm::RoveCommPacket<double>& stPacket)
+{
+    // Get current time.
+    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+    // Acquire read lock for getting GPS struct.
+    std::shared_lock<std::shared_mutex> lkGPSReadProcessLock(m_muLocationMutex);
+    // Calculate distance of new GPS coordinate to old GPS coordinate.
+    geoops::GeoMeasurement geMeasurement = geoops::CalculateGeoMeasurement(m_stLocation, geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1], stPacket.vData[2]));
+    // Unlock mutex.
+    lkGPSReadProcessLock.unlock();
+
+    // Acquire write lock for writing to velocity member variable.
+    std::unique_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
+    // Calculate rover velocity based on GPS distance traveled over time.
+    m_dVelocity =
+        geMeasurement.dDistanceMeters / static_cast<double>((std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count() / 1e6));
+    // Unlock mutex.
+    lkVelocityProcessLock.unlock();
+
+    // Acquire write lock for writing to GPS struct.
+    std::unique_lock<std::shared_mutex> lkGPSWriteProcessLock(m_muLocationMutex);
+    // Repack data from RoveCommPacket into member variable.
+    m_stLocation.dLatitude   = stPacket.vData[0];
+    m_stLocation.dLongitude  = stPacket.vData[1];
+    m_stLocation.dAltitude   = stPacket.vData[2];
+    m_stLocation.tmTimestamp = tmCurrentTime;
+    // Update GPS update time.
+    m_tmLastGPSUpdateTime = tmCurrentTime;
+    // Unlock mutex.
+    lkGPSWriteProcessLock.unlock();
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Incoming GPS Data: ({} lat, {} lon, {} alt)", m_stLocation.dLatitude, m_stLocation.dLongitude, m_stLocation.dAltitude);
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new Accuracy data.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
+void NavigationBoard::ProcessAccuracyData(const rovecomm::RoveCommPacket<float>& stPacket)
+{
+    // Acquire write lock for writing to GPS struct.
+    std::unique_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+    std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
+    // Repack data from RoveCommPacket into member variable.
+    m_stLocation.d2DAccuracy                = std::fabs(stPacket.vData[0]);
+    m_stLocation.d3DAccuracy                = std::fabs(stPacket.vData[1]);
+    m_dHeadingAccuracy                      = std::fabs(stPacket.vData[2]);
+    m_stLocation.eCoordinateAccuracyFixType = static_cast<geoops::PositionFixType>(stPacket.vData[3]);
+    m_stLocation.bIsDifferential            = static_cast<bool>(stPacket.vData[4]);
+    // Unlock mutex.
+    lkCompassProcessLock.unlock();
+    lkGPSProcessLock.unlock();
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger,
+              "Incoming Accuracy Data: (2D: {}, 3D: {}, Compass: {}, FIX_TYPE: {}, Differential?: {})",
+              stPacket.vData[0],
+              stPacket.vData[1],
+              stPacket.vData[2],
+              stPacket.vData[3],
+              stPacket.vData[4]);
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new Compass data.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com), Jason Pittman (jspencerpittman@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
+void NavigationBoard::ProcessCompassData(const rovecomm::RoveCommPacket<float>& stPacket)
+{
+    // Get current time.
+    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
+
+    // Acquire read lock for heading.
+    std::shared_lock<std::shared_mutex> lkCompassReadLock(m_muHeadingMutex);
+    // Calculate the total change in angle with respect to the last recorded heading.
+    double dNewHeading = stPacket.vData[0];
+    double dDeltaAngle = dNewHeading - m_dHeading;
+    // Assume that the change in angle can't be greater than 180 degrees in a single timestep.
+    // This accounts for changes in angle across the 0/360 degree line.
+    if (std::abs(dDeltaAngle) > 180)
+    {
+        dDeltaAngle = dNewHeading > m_dHeading ? -(360 - dDeltaAngle) : 360 + dDeltaAngle;
+    }
+    // Unlock mutex.
+    lkCompassReadLock.unlock();
+
+    // Acquire write lock for writing to angular velocity member variable.
+    std::unique_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
+    // Calculate rover angular velocity based on change in heading over time.
+    m_dAngularVelocity = dDeltaAngle / (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastCompassUpdateTime).count() / 1e6);
+    // Unlock mutex.
+    lkAngularVelocityProcessLock.unlock();
+
+    // Acquire write lock for heading and compass timestamp.
+    std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
+    // Repack data from RoveCommPacket into member variable.
+    m_dHeading = dNewHeading;
+    // Update compass time.
+    m_tmLastCompassUpdateTime = tmCurrentTime;
+    // Unlock mutex.
+    lkCompassProcessLock.unlock();
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger, "Incoming Compass Data: {}", m_dHeading);
 }

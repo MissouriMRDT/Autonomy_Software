@@ -29,12 +29,13 @@
 WaypointHandler::WaypointHandler()
 {
     // Set RoveComm callbacks.
-    network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddPositionLegCallback, manifest::Autonomy::COMMANDS.find("ADDPOSITIONLEG")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddMarkerLegCallback, manifest::Autonomy::COMMANDS.find("ADDMARKERLEG")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddObjectLegCallback, manifest::Autonomy::COMMANDS.find("ADDOBJECTLEG")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<double>(AddObstacleCallback, manifest::Autonomy::COMMANDS.find("ADDOBSTACLE")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(ClearWaypointsCallback, manifest::Autonomy::COMMANDS.find("CLEARWAYPOINTS")->second.DATA_ID);
-    network::g_pRoveCommUDPNode->AddUDPCallback<uint8_t>(ClearObstaclesCallback, manifest::Autonomy::COMMANDS.find("CLEAROBSTACLES")->second.DATA_ID);
+    using namespace manifest::Autonomy::Commands;
+    network::g_pRoveCommUDPNode->On<ADDPOSITIONLEG>([this](const auto& stPacket) { AddPositionLegCallback(stPacket); });
+    network::g_pRoveCommUDPNode->On<ADDMARKERLEG>([this](const auto& stPacket) { AddMarkerLegCallback(stPacket); });
+    network::g_pRoveCommUDPNode->On<ADDOBJECTLEG>([this](const auto& stPacket) { AddObjectLegCallback(stPacket); });
+    network::g_pRoveCommUDPNode->On<ADDOBSTACLE>([this](const auto& stPacket) { AddObstacleCallback(stPacket); });
+    network::g_pRoveCommUDPNode->On<CLEARWAYPOINTS>([this](const auto& stPacket) { ClearWaypointsCallback(stPacket); });
+    network::g_pRoveCommUDPNode->On<CLEAROBSTACLES>([this](const auto& stPacket) { ClearObstaclesCallback(stPacket); });
 }
 
 /******************************************************************************
@@ -724,4 +725,233 @@ int WaypointHandler::GetObstaclesCount()
     std::shared_lock<std::shared_mutex> lkObstaclesLock(m_muObstaclesMutex);
     // Return total number of objects stored.
     return m_vPermanentObstacles.size();
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new ADDPOSITIONLEG packet.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
+void WaypointHandler::AddPositionLegCallback(const rovecomm::RoveCommPacket<double>& stPacket)
+{
+    // Create new waypoint struct with data from the RoveComm packet.
+    geoops::Waypoint stNavWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eNavigationWaypoint, 0.0, stPacket.vData[2]);
+
+    // Acquire write lock for writing to waypoints vector.
+    std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+    // Queue waypoint.
+    m_vWaypointList.emplace_back(stNavWaypoint);
+    // Unlock mutex.
+    lkWaypointsLock.unlock();
+
+    // Submit logger message.
+    LOG_NOTICE(logging::g_qSharedLogger,
+               "Incoming Navigation Waypoint Data: Added (lat: {}, lon: {}, id: {}) to WaypointHandler queue.",
+               stPacket.vData[0],
+               stPacket.vData[1],
+               stPacket.vData[2]);
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new ADDMARKERLEG packet.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
+void WaypointHandler::AddMarkerLegCallback(const rovecomm::RoveCommPacket<double>& stPacket)
+{
+    // Create instance variables.
+    int nMarkerID  = stPacket.vData[2];
+    double dRadius = stPacket.vData[3];
+
+    // Limit the radius to 0-40.
+    if (dRadius < 0)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Radius is less than 0, setting to 0.");
+        dRadius = 0;
+    }
+    else if (dRadius > 40)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Incoming Marker Waypoint Data: Radius is greater than 40, setting to 40.");
+        dRadius = 40;
+    }
+
+    // Create new waypoint struct with data from the RoveComm packet.
+    geoops::Waypoint stMarkerWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eTagWaypoint, dRadius, nMarkerID);
+
+    // Acquire write lock for writing to waypoints vector.
+    std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+    // Queue waypoint.
+    m_vWaypointList.emplace_back(stMarkerWaypoint);
+    // Unlock mutex.
+    lkWaypointsLock.unlock();
+
+    // Submit logger message.
+    LOG_NOTICE(logging::g_qSharedLogger,
+               "Incoming Marker Waypoint Data: Added (lat: {}, lon: {}, marker ID: {}, radius: {}) to WaypointHandler queue.",
+               stPacket.vData[0],
+               stPacket.vData[1],
+               nMarkerID,
+               dRadius);
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new ADDOBJECTLEG packet.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
+void WaypointHandler::AddObjectLegCallback(const rovecomm::RoveCommPacket<double>& stPacket)
+{
+    // Create instance variables.
+    geoops::WaypointType eWaypointType = geoops::WaypointType::eObjectWaypoint;
+    double dObjectID                   = stPacket.vData[2];
+    double dRadius                     = stPacket.vData[3];
+
+    // Parse the object ID from the RoveComm packet to a waypoint type.
+    if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::MALLET))
+    {
+        eWaypointType = geoops::WaypointType::eMalletWaypoint;
+    }
+    else if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::WATERBOTTLE))
+    {
+        eWaypointType = geoops::WaypointType::eWaterBottleWaypoint;
+    }
+    else if (dObjectID == static_cast<int>(manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ROCKPICK))
+    {
+        eWaypointType = geoops::WaypointType::eRockPickWaypoint;
+    }
+    else
+    {
+        eWaypointType = geoops::WaypointType::eObjectWaypoint;
+    }
+
+    // Limit the radius to 0-40.
+    if (dRadius < 0)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Radius is less than 0, setting to 0.");
+        dRadius = 0;
+    }
+    else if (dRadius > 40)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Incoming Object Waypoint Data: Radius is greater than 40, setting to 40.");
+        dRadius = 40;
+    }
+
+    // Create new waypoint struct with data from the RoveComm packet.
+    geoops::Waypoint stObjectWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), eWaypointType, dRadius);
+
+    // Acquire write lock for writing to waypoints vector.
+    std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+    // Queue waypoint.
+    m_vWaypointList.emplace_back(stObjectWaypoint);
+    // Unlock mutex.
+    lkWaypointsLock.unlock();
+
+    // Submit logger message.
+    LOG_NOTICE(logging::g_qSharedLogger,
+               "Incoming Object Waypoint Data: Added (lat: {}, lon: {}, id: {}, radius: {}) to WaypointHandler queue.",
+               stPacket.vData[0],
+               stPacket.vData[1],
+               dObjectID,
+               dRadius);
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new ADDOBSTACLE packet.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-01-06
+ ******************************************************************************/
+void WaypointHandler::AddObstacleCallback(const rovecomm::RoveCommPacket<double>& stPacket)
+{
+    // Create instance variables.
+    double dRadius = stPacket.vData[2];
+
+    // Limit the radius to 0-40.
+    if (dRadius < 0)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Incoming Obstacle Waypoint Data: Radius is less than 0, setting to 0.");
+        dRadius = 0;
+    }
+    else if (dRadius > 40)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "Incoming Obstacle Waypoint Data: Radius is greater than 40, setting to 40.");
+        dRadius = 40;
+    }
+
+    // Create new waypoint struct with data from the RoveComm packet.
+    geoops::Waypoint stObstacleWaypoint(geoops::GPSCoordinate(stPacket.vData[0], stPacket.vData[1]), geoops::WaypointType::eObstacleWaypoint, dRadius);
+
+    // Acquire write lock for writing to waypoints vector.
+    std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+    // Queue waypoint.
+    m_vPermanentObstacles.emplace_back(stObstacleWaypoint);
+    // Unlock mutex.
+    lkWaypointsLock.unlock();
+
+    // Submit logger message.
+    LOG_NOTICE(logging::g_qSharedLogger,
+               "Incoming Obstacle Waypoint Data: Added (lat: {}, lon: {}, radius: {}) to WaypointHandler queue. Total Obstacles: {}",
+               stPacket.vData[0],
+               stPacket.vData[1],
+               dRadius,
+               m_vPermanentObstacles.size());
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new CLEARWAYPOINTS packet.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2024-03-03
+ ******************************************************************************/
+void WaypointHandler::ClearWaypointsCallback(const rovecomm::RoveCommPacket<uint8_t>& stPacket)
+{
+    // Not using this.
+    (void) stPacket;
+
+    // Acquire write lock for writing to waypoints vector.
+    std::unique_lock<std::shared_mutex> lkWaypointsLock(m_muWaypointsMutex);
+    // Clear waypoints queue.
+    m_vWaypointList.clear();
+    // Unlock mutex.
+    lkWaypointsLock.unlock();
+
+    // Submit logger message.
+    LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Cleared WaypointHandler queue.");
+}
+
+/******************************************************************************
+ * @brief Callback function that is called whenever RoveComm receives new CLEAROBSTACLES packet.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-02-19
+ ******************************************************************************/
+void WaypointHandler::ClearObstaclesCallback(const rovecomm::RoveCommPacket<uint8_t>& stPacket)
+{
+    // Not using this.
+    (void) stPacket;
+
+    // Acquire write lock for obstacle vector.
+    std::unique_lock<std::shared_mutex> lkObstaclesLock(m_muObstaclesMutex);
+    // Clear obstacles queue.
+    m_vPermanentObstacles.clear();
+    // Unlock mutex.
+    lkObstaclesLock.unlock();
+
+    // Submit logger message.
+    LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Obstacles packet: Cleared permanent obstacles list.");
 }

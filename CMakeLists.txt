@@ -24,6 +24,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+    
+set(CMAKE_CUDA_ARCHITECTURES 75)
+set(CMAKE_CUDA_FLAGS "--generate-code=arch=compute_75,code=[compute_75,sm_75]")
 
 ## Project Name and Version
 project(Autonomy_Software VERSION 24.05.00 LANGUAGES C CXX CUDA)
@@ -62,6 +65,9 @@ option(BUILD_VERBOSE_MODE "Enable Verbose Makefile" OFF)
 
 ## Enable or Disable Tests Mode
 option(BUILD_TESTS_MODE "Enable Tests Mode" OFF)
+
+## Enable or Disable Tracy
+option(BUILD_TRACY_MODE "Enable Tracy Profiler" ON)
 
 ## Allow LiDAR/GeoPlanner unit tests (can require special data/env)
 option(ENABLE_LIDAR_GEO_UTESTS "Enable unit tests in LidarHandler.cc and GeoPlanner.cc" OFF)
@@ -121,6 +127,16 @@ if (BUILD_TESTS_MODE)
     enable_testing()
 else()
     message("--   [ ]: Build Unit and Integration Tests: Disabled")
+endif()
+
+## Build Tracy Profiler
+if (BUILD_TRACY_MODE)
+    message("--   [x]: Build Tracy Profiler: Enabled")
+    option(TRACY_ENABLE "Enable Tracy Profiler" ON)
+    option(TRACY_ON_DEMAND "For Long Lived Applications" ON)
+else()
+    message("--   [ ]: Build Tracy Profiler: Disabled")
+    option(TRACY_ENABLE "Enable Tracy Profiler" OFF)
 endif()
 
 ## Build Examples
@@ -216,6 +232,9 @@ include(GoogleTest)
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
+## Find Tracy
+add_subdirectory(external/tracy)
+
 ## Find Eigen3.
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
@@ -275,7 +294,7 @@ endif()
 ####################################################################################################################
 
 ## Search Project Directories for CPP Files
-file(GLOB_RECURSE SRC           CONFIGURE_DEPENDS  "src/*.cpp")
+file(GLOB_RECURSE SRC           CONFIGURE_DEPENDS  "src/*.cpp" "src/*.cu")
 file(GLOB_RECURSE Examples_SRC  CONFIGURE_DEPENDS  "examples/*/*.cpp")
 file(GLOB_RECURSE External_SRC  CONFIGURE_DEPENDS  "external/src/*.cpp")
 
@@ -289,7 +308,13 @@ endif()
 if (MSVC)
     target_compile_options(${EXE_NAME} PRIVATE /W4 /WX)
 else()
-    target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(${EXE_NAME} PRIVATE
+        -Wall
+        -Wextra
+        # Apply pedantic only to standard C and C++ files, ignoring CUDA (.cu)
+        $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
+        $<$<COMPILE_LANGUAGE:C>:-Wpedantic>
+    )
 endif()
 
 ## Link Libraries
@@ -312,6 +337,7 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${MPI_LIBRARIES}
                         ${PCL_LIBRARIES}
                         gcov
+                        Tracy::TracyClient
 )
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
 

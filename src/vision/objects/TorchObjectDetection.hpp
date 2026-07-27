@@ -47,6 +47,7 @@ namespace torchobject
                                                          const float fMinObjectConfidence = 0.40f,
                                                          const float fNMSThreshold        = 0.60f)
     {
+        ZoneScopedC(tracy::Color::Blue);
         // Check if the input frame is in RGB format.
         if (cvFrame.channels() != 3)
         {
@@ -101,6 +102,7 @@ namespace torchobject
      ******************************************************************************/
     inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<objectdetectutils::Object>& vDetectedTags)
     {
+        ZoneScopedC(tracy::Color::Blue);
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {

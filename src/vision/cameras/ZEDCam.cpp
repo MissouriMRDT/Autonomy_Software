@@ -154,8 +154,8 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
             // Now that camera is opened get camera name and construct path. Use the cached model
             // string directly: GetCameraModel() reads the status publisher, which the producer
             // thread has not published to yet, so it would return "NOT_OPENED" here.
-            std::string szSVOFilePath = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/" + logging::g_szProgramStartTimeString + "/" + m_szCameraModelCached + "_" +
-                                        std::to_string(this->GetCameraSerial());
+            std::string szSVOFilePath          = constants::LOGGING_OUTPUT_PATH_ABSOLUTE + "/" + logging::g_szProgramStartTimeString + "/" + m_szCameraModelCached + "_" +
+                                                 std::to_string(this->GetCameraSerial());
             m_slRecordingParams.video_filename = szSVOFilePath.c_str();
             // Enable recording.
             sl::ERROR_CODE slReturnCode = m_slCamera.enableRecording(m_slRecordingParams);
@@ -411,18 +411,16 @@ void ZEDCam::LogSnapshotPoolDiagnostics()
     // Sum misses across every channel so one number answers "is the pooling healthy?".
     const size_t siTotalMisses = m_pubFrameCPU.GetPoolMisses() + m_pubFrameGPU.GetPoolMisses() + m_pubDepthMeasureCPU.GetPoolMisses() +
                                  m_pubDepthMeasureGPU.GetPoolMisses() + m_pubDepthImageCPU.GetPoolMisses() + m_pubDepthImageGPU.GetPoolMisses() +
-                                 m_pubPointCloudCPU.GetPoolMisses() + m_pubPointCloudGPU.GetPoolMisses() + m_pubPose.GetPoolMisses() +
-                                 m_pubFloorPlane.GetPoolMisses() + m_pubSensors.GetPoolMisses() + m_pubObjects.GetPoolMisses() +
-                                 m_pubBatchedObjects.GetPoolMisses() + m_pubStatus.GetPoolMisses();
+                                 m_pubPointCloudCPU.GetPoolMisses() + m_pubPointCloudGPU.GetPoolMisses() + m_pubPose.GetPoolMisses() + m_pubFloorPlane.GetPoolMisses() +
+                                 m_pubSensors.GetPoolMisses() + m_pubObjects.GetPoolMisses() + m_pubBatchedObjects.GetPoolMisses() + m_pubStatus.GetPoolMisses();
 
     // A breached ceiling on any channel is a much stronger signal than a few misses.
     const bool bAnyCeilingBreached = m_pubFrameCPU.GetGrowthCeilingBreached() || m_pubFrameGPU.GetGrowthCeilingBreached() ||
                                      m_pubDepthMeasureCPU.GetGrowthCeilingBreached() || m_pubDepthMeasureGPU.GetGrowthCeilingBreached() ||
                                      m_pubDepthImageCPU.GetGrowthCeilingBreached() || m_pubDepthImageGPU.GetGrowthCeilingBreached() ||
                                      m_pubPointCloudCPU.GetGrowthCeilingBreached() || m_pubPointCloudGPU.GetGrowthCeilingBreached() ||
-                                     m_pubPose.GetGrowthCeilingBreached() || m_pubFloorPlane.GetGrowthCeilingBreached() ||
-                                     m_pubSensors.GetGrowthCeilingBreached() || m_pubObjects.GetGrowthCeilingBreached() ||
-                                     m_pubBatchedObjects.GetGrowthCeilingBreached() || m_pubStatus.GetGrowthCeilingBreached();
+                                     m_pubPose.GetGrowthCeilingBreached() || m_pubFloorPlane.GetGrowthCeilingBreached() || m_pubSensors.GetGrowthCeilingBreached() ||
+                                     m_pubObjects.GetGrowthCeilingBreached() || m_pubBatchedObjects.GetGrowthCeilingBreached() || m_pubStatus.GetGrowthCeilingBreached();
 
     // Escalate to an error if a pool has grown past its ceiling, otherwise log at debug level.
     if (bAnyCeilingBreached)
@@ -458,7 +456,9 @@ void ZEDCam::RetrieveAndPublishData()
 {
     // Whether the CPU or GPU channel for a given data type currently has demand.
     auto AnySub = [this](pubsub::Publisher<cv::Mat>& pubCPU, pubsub::Publisher<cv::cuda::GpuMat>& pubGPU)
-    { return (m_slMemoryType == sl::MEM::CPU) ? pubCPU.HasSubscribers() : pubGPU.HasSubscribers(); };
+    {
+        return (m_slMemoryType == sl::MEM::CPU) ? pubCPU.HasSubscribers() : pubGPU.HasSubscribers();
+    };
     // Deep copy the source sl::Mat into a pooled snapshot on the active memory channel and publish it.
     auto PublishMat = [this](pubsub::Publisher<cv::Mat>& pubCPU, pubsub::Publisher<cv::cuda::GpuMat>& pubGPU, sl::Mat& slSource)
     {
@@ -496,8 +496,11 @@ void ZEDCam::RetrieveAndPublishData()
         else
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve new frame image for stereo camera {} ({})! sl::ERROR_CODE is: {}", m_szCameraModelCached,
-                        m_unCameraSerialNumber, sl::toString(slReturnCode).get());
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Unable to retrieve new frame image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        m_szCameraModelCached,
+                        m_unCameraSerialNumber,
+                        sl::toString(slReturnCode).get());
         }
     }
 
@@ -514,8 +517,11 @@ void ZEDCam::RetrieveAndPublishData()
         else
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve new depth measure for stereo camera {} ({})! sl::ERROR_CODE is: {}", m_szCameraModelCached,
-                        m_unCameraSerialNumber, sl::toString(slReturnCode).get());
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Unable to retrieve new depth measure for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        m_szCameraModelCached,
+                        m_unCameraSerialNumber,
+                        sl::toString(slReturnCode).get());
         }
     }
 
@@ -532,8 +538,11 @@ void ZEDCam::RetrieveAndPublishData()
         else
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve new depth image for stereo camera {} ({})! sl::ERROR_CODE is: {}", m_szCameraModelCached,
-                        m_unCameraSerialNumber, sl::toString(slReturnCode).get());
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Unable to retrieve new depth image for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        m_szCameraModelCached,
+                        m_unCameraSerialNumber,
+                        sl::toString(slReturnCode).get());
         }
     }
 
@@ -550,8 +559,11 @@ void ZEDCam::RetrieveAndPublishData()
         else
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve new point cloud for stereo camera {} ({})! sl::ERROR_CODE is: {}", m_szCameraModelCached,
-                        m_unCameraSerialNumber, sl::toString(slReturnCode).get());
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Unable to retrieve new point cloud for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        m_szCameraModelCached,
+                        m_unCameraSerialNumber,
+                        sl::toString(slReturnCode).get());
         }
     }
 
@@ -603,8 +615,11 @@ void ZEDCam::RetrieveAndPublishData()
             else
             {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
-                            m_szCameraModelCached, m_unCameraSerialNumber, sl::toString(slPoseTrackReturnCode).get());
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Unable to retrieve new positional tracking pose for stereo camera {} ({})! sl::POSITIONAL_TRACKING_STATE is: {}",
+                            m_szCameraModelCached,
+                            m_unCameraSerialNumber,
+                            sl::toString(slPoseTrackReturnCode).get());
             }
         }
 
@@ -612,7 +627,10 @@ void ZEDCam::RetrieveAndPublishData()
         if (m_pubFloorPlane.HasSubscribers())
         {
             // Find the current floor plane relative to the camera pose.
-            slReturnCode = m_slCamera.findFloorPlane(m_slFloorPlane, m_slFloorTrackingTransform, m_slCameraPose.getTranslation().y, m_slCameraPose.getRotationMatrix(),
+            slReturnCode = m_slCamera.findFloorPlane(m_slFloorPlane,
+                                                     m_slFloorTrackingTransform,
+                                                     m_slCameraPose.getTranslation().y,
+                                                     m_slCameraPose.getRotationMatrix(),
                                                      m_fExpectedCameraHeightFromFloorTolerance);
             if (slReturnCode == sl::ERROR_CODE::SUCCESS)
             {
@@ -624,8 +642,11 @@ void ZEDCam::RetrieveAndPublishData()
             else
             {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve new floor plane for stereo camera {} ({})! sl::ERROR_CODE is: {}", m_szCameraModelCached,
-                            m_unCameraSerialNumber, sl::toString(slReturnCode).get());
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Unable to retrieve new floor plane for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                            m_szCameraModelCached,
+                            m_unCameraSerialNumber,
+                            sl::toString(slReturnCode).get());
             }
         }
     }
@@ -645,8 +666,11 @@ void ZEDCam::RetrieveAndPublishData()
         else
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve sensor data for stereo camera {} ({})! sl::ERROR_CODE is: {}", m_szCameraModelCached,
-                        m_unCameraSerialNumber, sl::toString(slReturnCode).get());
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "Unable to retrieve sensor data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                        m_szCameraModelCached,
+                        m_unCameraSerialNumber,
+                        sl::toString(slReturnCode).get());
         }
     }
 
@@ -691,8 +715,11 @@ void ZEDCam::RetrieveAndPublishData()
             else
             {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}", m_szCameraModelCached,
-                            m_unCameraSerialNumber, sl::toString(slReturnCode).get());
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Unable to retrieve new object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                            m_szCameraModelCached,
+                            m_unCameraSerialNumber,
+                            sl::toString(slReturnCode).get());
             }
         }
 
@@ -711,8 +738,11 @@ void ZEDCam::RetrieveAndPublishData()
             else
             {
                 // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger, "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}", m_szCameraModelCached,
-                            m_unCameraSerialNumber, sl::toString(slReturnCode).get());
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Unable to retrieve new batched object data for stereo camera {} ({})! sl::ERROR_CODE is: {}",
+                            m_szCameraModelCached,
+                            m_unCameraSerialNumber,
+                            sl::toString(slReturnCode).get());
             }
         }
     }

@@ -20,6 +20,7 @@
 /// \cond
 #include <sl/Camera.hpp>
 #include <sl/Fusion.hpp>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -138,12 +139,12 @@ class ZEDCamera : public Camera<cv::Mat>
         struct CameraStatus
         {
             public:
-                bool bCameraIsOpen                  = false;    // Whether the camera is currently open.
-                bool bPositionalTrackingEnabled     = false;    // Whether positional tracking is enabled and healthy.
-                bool bObjectDetectionEnabled        = false;    // Whether object detection is enabled.
+                bool bCameraIsOpen                             = false;                                     // Whether the camera is currently open.
+                bool bPositionalTrackingEnabled                = false;                                     // Whether positional tracking is enabled and healthy.
+                bool bObjectDetectionEnabled                   = false;                                     // Whether object detection is enabled.
                 sl::SPATIAL_MAPPING_STATE eSpatialMappingState = sl::SPATIAL_MAPPING_STATE::NOT_ENABLED;    // Current spatial mapping state.
-                sl::PositionalTrackingStatus stPositionalTrackingStatus;    // Full VIO positional tracking status.
-                std::string szCameraModel = "NOT_OPENED";    // Camera model string ("NOT_OPENED" while closed).
+                sl::PositionalTrackingStatus stPositionalTrackingStatus;                                    // Full VIO positional tracking status.
+                std::string szCameraModel = "NOT_OPENED";                                                   // Camera model string ("NOT_OPENED" while closed).
         };
 
         /////////////////////////////////////////

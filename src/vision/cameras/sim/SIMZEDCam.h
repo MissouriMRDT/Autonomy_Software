@@ -20,6 +20,7 @@
 #include <RoveComm/RoveComm.h>
 #include <RoveComm/RoveCommManifest.h>
 #include <opencv2/opencv.hpp>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -80,7 +81,7 @@ class SIMZEDCam : public ZEDCamera
         void SetCallbacks();
         void EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDepthMeasure);
         void CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud);
-        void PublishStatus();               // Build and publish the CameraStatus snapshot.
+        void PublishStatus();                   // Build and publish the CameraStatus snapshot.
         bool GetStreamsAreConnected() const;    // Single source of truth for "is this camera open".
         void ImplReconnectStreams();            // Rebuild the WebRTC stream objects. Safe on the producer thread.
 
@@ -103,51 +104,7 @@ class SIMZEDCam : public ZEDCamera
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2025-11-19
          ******************************************************************************/
-        const std::function<void(const rovecomm::RoveCommPacket<double>&, const sockaddr_in&)> ProcessIMUData =
-            [this](const rovecomm::RoveCommPacket<double>& stPacket, const sockaddr_in& stdAddr)
-        {
-            // Not using this.
-            (void) stdAddr;
-
-            // Acquire a write lock on the IMU data handoff mutex (this callback runs on a foreign
-            // RoveComm thread; the producer thread reads m_stIMUData under the same lock).
-            std::unique_lock<std::shared_mutex> lkSensorsProcessLock(m_muIMUDataMutex);
-            // Update IMU data.
-            m_stIMUData.imu.linear_acceleration.x = static_cast<float>(stPacket.vData[0]);
-            m_stIMUData.imu.linear_acceleration.y = static_cast<float>(stPacket.vData[1]);
-            m_stIMUData.imu.linear_acceleration.z = static_cast<float>(stPacket.vData[2]);
-            m_stIMUData.imu.angular_velocity.x    = static_cast<float>(stPacket.vData[3]);
-            m_stIMUData.imu.angular_velocity.y    = static_cast<float>(stPacket.vData[4]);
-            m_stIMUData.imu.angular_velocity.z    = static_cast<float>(stPacket.vData[5]);
-
-            // Manually calculate the Gyro pose using the Tait-Bryan angles (ZYX convention) and the quaternion representation.
-            // This is because the SIM does not provide orientation data from the IMU, only angular velocity.
-            double dQx    = stPacket.vData[6];
-            double dQy    = stPacket.vData[7];
-            double dQz    = stPacket.vData[8];
-            double dQw    = stPacket.vData[9];
-            double dRoll  = std::atan2(2.0 * (dQw * dQx + dQy * dQz), 1.0 - 2.0 * (dQx * dQx + dQy * dQy));
-            double dPitch = std::asin(2.0 * (dQw * dQy - dQz * dQx));
-            double dYaw   = std::atan2(2.0 * (dQw * dQz + dQx * dQy), 1.0 - 2.0 * (dQy * dQy + dQz * dQz));
-            // Pack the gyro values into a sl::Transform.
-            sl::float3 slEulerAngles(static_cast<float>(dRoll), static_cast<float>(dPitch), static_cast<float>(dYaw));
-            sl::Transform slIMUTransform;
-            slIMUTransform.setEulerAngles(slEulerAngles);
-            m_stIMUData.imu.pose = slIMUTransform;
-
-            // Unlock mutex.
-            lkSensorsProcessLock.unlock();
-
-            // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger,
-                      "Incoming IMU data processed from RoveComm for SIM ZED Camera: (AccelX {}, AccelY {}, AccelZ {}, GyroX {}, GyroY {}, GyroZ {})",
-                      stPacket.vData[0],
-                      stPacket.vData[1],
-                      stPacket.vData[2],
-                      stPacket.vData[3],
-                      stPacket.vData[4],
-                      stPacket.vData[5]);
-        };
+        void ProcessIMUData(const rovecomm::RoveCommPacket<double>& stPacket);
 
         /////////////////////////////////////////
         // Declare private member variables.
@@ -187,8 +144,8 @@ class SIMZEDCam : public ZEDCamera
         cv::Mat m_cvFrame;
         cv::Mat m_cvDepthImageBuffer;
         cv::Mat m_cvDepthImage;
-        cv::Mat m_cvDepthMeasure;    // Producer-computed from m_cvDepthImage.
-        cv::Mat m_cvPointCloud;      // Producer-computed from m_cvDepthMeasure.
+        cv::Mat m_cvDepthMeasure;                           // Producer-computed from m_cvDepthImage.
+        cv::Mat m_cvPointCloud;                             // Producer-computed from m_cvDepthMeasure.
 
         std::shared_mutex m_muWebRTCRGBImageCopyMutex;      // Guards m_cvFrame (RGB callback <-> producer).
         std::shared_mutex m_muWebRTCDepthImageCopyMutex;    // Guards m_cvDepthImage (depth callback <-> producer).

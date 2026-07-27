@@ -20,6 +20,7 @@
 #include <atomic>
 #include <mutex>
 #include <string>
+#include <tracy/Tracy.hpp>
 #include <vector>
 
 /// \endcond
@@ -105,17 +106,13 @@ class VisualizationHandler : public AutonomyThread<void>
         std::vector<char> OnRequestWaypoints(const std::string& szQuery);
         std::vector<char> OnRequestDetections(const std::string& szQuery);
         std::vector<char> OnRequestDetectionList(const std::string& szQuery);
-
-        // Local Asset API.
-        std::vector<char> OnRequestLibThree(const std::string& szQuery);
-        std::vector<char> OnRequestLibOrbit(const std::string& szQuery);
+        std::vector<char> OnRequestPointCloud(const std::string& szQuery);
 
         // Utilities.
         std::vector<char> LoadFileToBuffer(const std::string& szPath);
         std::string Base64Encode(const std::vector<char>& vData);
 
         // HTML Generators.
-        std::string GetEmbeddedHtml();
         std::string GenerateStaticHtml(const std::vector<LiDARHandler::PointRow>& vLidar);
 
         // Internals
@@ -147,5 +144,9 @@ class VisualizationHandler : public AutonomyThread<void>
         // Detections.
         std::vector<DisplayDetection> m_vDetections;
         std::mutex m_muDetectionMutex;
+        // Point Cloud
+        std::once_flag m_ocCameraSubscribeOnce;
+        pubsub::Subscription m_subCameraFrame;
+        pubsub::Subscription m_subCameraPointCloud;
 };
 #endif

@@ -16,6 +16,7 @@
 #include "../../vision/objects/ObjectDetector.h"
 
 /// \cond
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -44,6 +45,7 @@ namespace statemachine
      ******************************************************************************/
     inline void LoadDetectedObjects(std::vector<objectdetectutils::Object>& vDetectedObjects, const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors)
     {
+        ZoneScopedC(tracy::Color::PowderBlue);
         // Read the newest published objects from each detector.
         for (const std::shared_ptr<ObjectDetector>& pObjectDetector : vObjectDetectors)
         {
@@ -92,6 +94,7 @@ namespace statemachine
                                     objectdetectutils::Object& stObjectTarget,
                                     const geoops::WaypointType& eDesiredDetectionType = geoops::WaypointType::eUNKNOWN)
     {
+        ZoneScopedC(tracy::Color::PowderBlue);
         // Create instance variables.
         std::vector<objectdetectutils::Object> vDetectedObjects;
         objectdetectutils::Object stBestObject;

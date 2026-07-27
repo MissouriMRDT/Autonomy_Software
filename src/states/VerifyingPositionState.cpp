@@ -12,6 +12,11 @@
 #include "../AutonomyGlobals.h"
 #include "../AutonomyNetworking.h"
 
+/// \cond
+#include <tracy/Tracy.hpp>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -80,6 +85,7 @@ namespace statemachine
      ******************************************************************************/
     void VerifyingPositionState::Run()
     {
+        ZoneScopedC(tracy::Color::ForestGreen);
         LOG_DEBUG(logging::g_qSharedLogger, "VerifyingPositionState: Running state-specific behavior.");
 
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();

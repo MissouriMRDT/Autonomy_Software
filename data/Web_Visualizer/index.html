@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MRDT 3D Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #222;
+            font-family: sans-serif;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #0f0;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            pointer-events: none;
+            min-width: 250px;
+            z-index: 10;
+        }
+
+        #eta-box {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #0f0;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #marker-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .hud-marker {
+            position: absolute;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            white-space: nowrap;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.2s;
+        }
+
+        .hud-marker::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+        }
+
+        #legend-layer {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            pointer-events: none;
+            min-width: 150px;
+            z-index: 10;
+        }
+
+        .legend-section {
+            margin-bottom: 10px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .color-box {
+            width: 15px;
+            height: 15px;
+            border: 1px solid #aaa;
+        }
+
+        .circle-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+            pointer-events: auto;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        input[type=range] {
+            width: 100%;
+        }
+
+        .val-disp {
+            float: right;
+            color: #fff;
+        }
+
+        .btn-group {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .hud-btn {
+            padding: 10px 20px;
+            background: #444;
+            color: white;
+            border: 2px solid #666;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 999;
+        }
+
+        .hud-btn.active {
+            background: #00aa00;
+            border-color: #00ff00;
+        }
+
+        .key {
+            color: #fff;
+            font-weight: bold;
+            border: 1px solid #666;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background: #333;
+        }
+
+        h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+
+        #detection-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: auto;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
+            transition: width 0.2s;
+        }
+
+        #detection-panel h3 {
+            color: #0f0;
+            margin-top: 0;
+        }
+
+        .gallery-item {
+            cursor: pointer;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            border: 2px solid #666;
+            border-radius: 4px;
+            transition: border-color 0.2s;
+        }
+
+        .gallery-item img:hover {
+            border-color: #0f0;
+        }
+
+        #detection-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            align-items: center;
+            justify-content: center;
+        }
+
+        #detection-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border: 3px solid #0f0;
+        }
+
+        #modal-caption {
+            position: absolute;
+            bottom: 80px;
+            color: #0f0;
+            font-size: 18px;
+            text-align: center;
+            width: 100%;
+        }
+
+        #modal-open-btn {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 30px;
+            background: #444;
+            color: white;
+            border: 2px solid #0f0;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        #modal-open-btn:hover {
+            background: #00aa00;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: #0f0;
+        }
+
+        .modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            font-size: 60px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 20px;
+            user-select: none;
+            z-index: 1001;
+            transition: color 0.2s;
+        }
+
+        .modal-nav:hover {
+            color: #0f0;
+        }
+
+        .modal-nav.left {
+            left: 20px;
+        }
+
+        .modal-nav.right {
+            right: 20px;
+        }
+    </style>
+    <script type="importmap">
+    { 
+        "imports": { 
+            "three": "/lib/three.module.js", 
+            "three/addons/controls/OrbitControls.js": "/lib/OrbitControls.js" 
+        } 
+    }
+    </script>
+</head>
+
+<body>
+    <div id="ui-layer">
+        <h3 id="settings-toggle"
+            style="cursor: pointer; pointer-events: auto; margin: 0; border: none; padding: 0; user-select: none;">
+            Settings &#9654;</h3>
+        <div id="settings-content"
+            style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+            <div class="control-group">
+                <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="cb-ground" checked> Lock Rover to Terrain Height
+                </label>
+            </div>
+            <div class="control-group">
+                <label>Load Radius (m) <span id="val-rad" class="val-disp">50</span></label>
+                <input type="range" id="sl-rad" min="10" max="200" value="50" step="10">
+            </div>
+            <div class="control-group">
+                <label>Border Tol. (m) <span id="val-tol" class="val-disp">10</span></label>
+                <input type="range" id="sl-tol" min="5" max="50" value="10" step="1">
+            </div>
+            <div class="control-group">
+                <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
+                <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
+            </div>
+            <div id="status" style="margin-top:10px; color: #fff;">Status: Free Cam</div>
+            <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
+        </div>
+    </div>
+
+    <div id="eta-box">ETA: Calculating...</div>
+
+    <div id="legend-layer">
+        <div class="legend-section" id="det-legend">
+            <strong>Detections</strong>
+        </div>
+        <div class="legend-section" id="state-legend">
+            <strong>State Key</strong>
+        </div>
+    </div>
+
+    <div id="detection-panel">
+        <h3>Latest Detection</h3>
+        <div id="detection-gallery-items"></div>
+    </div>
+
+    <div id="detection-modal" onclick="closeDetectionModal()">
+        <span class="modal-close" onclick="closeDetectionModal()">&times;</span>
+        <div class="modal-nav left" onclick="prevDetection(event)">&#10094;</div>
+        <img id="modal-image" src="" alt="Detection" onclick="event.stopPropagation()">
+        <div class="modal-nav right" onclick="nextDetection(event)">&#10095;</div>
+        <div id="modal-caption"></div>
+        <button id="modal-open-btn" onclick="event.stopPropagation()">Open in New Tab</button>
+    </div>
+
+    <div id="marker-layer"></div>
+
+    <div class="btn-group">
+        <button id="snap-btn" class="hud-btn" onclick="snapToRover()">Snap (Space)</button>
+        <button id="follow-btn" class="hud-btn" onclick="toggleFollow()">Follow (F)</button>
+    </div>
+
+    <script type="module" src="/src/Visualizer.js"></script>
+</body>
+
+</html>

@@ -30,11 +30,12 @@ namespace constants
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS   = "127.0.0.1";    // The IP address to use for simulation mode.
-    const uint SIM_WEBSOCKET_PORT      = 8080;           // The port to use for the WebSocket in simulation mode.
-    const uint SIM_WEBRTC_QP           = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
-    const std::string SIM_MAINCAM_NAME = "ZEDFront";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
-    const std::string SIM_REARCAM_NAME = "ZEDRear";      // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
+    const std::string SIM_IP_ADDRESS    = "127.0.0.1";    // The IP address to use for simulation mode.
+    const uint SIM_WEBSOCKET_PORT       = 8080;           // The port to use for the WebSocket in simulation mode.
+    const uint SIM_WEBRTC_QP            = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
+    const std::string SIM_MAINCAM_NAME  = "ZEDFront";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
+    const std::string SIM_REARCAM_NAME  = "ZEDRear";      // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
+    const bool SIM_DEPTH_STREAM_USE_GPU = false;          // If the sim should use the GPU when calculating the point cloud from the depth stream.
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
@@ -328,9 +329,8 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const int VISUALIZER_WEBSERVER_PORT             = 3284;    // The port for the simple web server to use for serving the visualizer web UI.
-    const std::string VISUALIZER_THREEJS_PATH       = "../data/Web_Visualizer/assets/three.module.js";     // The path to the ThreeJS library.
-    const std::string VISUALIZER_ORBITCONTROLS_PATH = "../data/Web_Visualizer/assets/OrbitControls.js";    // The path to the OrbitControls library.
+    const int VISUALIZER_WEBSERVER_PORT        = 3284;                         // The port for the simple web server to use for serving the visualizer web UI.
+    const std::string VISUALIZER_RESOURCE_PATH = "../data/Web_Visualizer/";    // The path to the visualizer index HTML and JS files.
 
     ///////////////////////////////////////////////////////////////////////////
 

@@ -68,7 +68,7 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
     }
 
     // Acquire a write lock on the mutex to ensure thread safety.
-    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
+    std::unique_lock lkWriteLock(m_muQueryMutex);
 
     // Reset existing connection if already open (fixing the previous race condition)
     if (m_bIsDBOpen)
@@ -111,7 +111,7 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
  ******************************************************************************/
 bool LiDARHandler::CloseDB()
 {
-    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
+    std::unique_lock lkWriteLock(m_muQueryMutex);
 
     if (m_bIsDBOpen)
     {
@@ -135,7 +135,8 @@ bool LiDARHandler::CloseDB()
  ******************************************************************************/
 std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter& stPointFilter)
 {
-    std::shared_lock<std::shared_mutex> lkReadLock(m_muQueryMutex);
+    ZoneScopedC(tracy::Color::SlateGray1);
+    std::shared_lock lkReadLock(m_muQueryMutex);
     std::chrono::time_point<std::chrono::high_resolution_clock> tmStartTime = std::chrono::high_resolution_clock::now();
 
     if (!m_bIsDBOpen)
@@ -288,7 +289,7 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
  ******************************************************************************/
 bool LiDARHandler::IsDBOpen()
 {
-    std::shared_lock<std::shared_mutex> lkReadLock(m_muQueryMutex);
+    std::shared_lock lkReadLock(m_muQueryMutex);
     return m_bIsDBOpen;
 }
 
@@ -331,8 +332,10 @@ void LiDARHandler::AddRangeFilter(std::vector<std::string>& vClauses,
  ******************************************************************************/
 bool LiDARHandler::DeclareLiDARObstacle(const geoops::UTMCoordinate& stPoint, double dRadius)
 {
+    ZoneScopedC(tracy::Color::SlateGray1);
+
     // Acquire a write lock on the mutex to ensure thread safety.
-    std::unique_lock<std::shared_mutex> lkWriteLock(m_muQueryMutex);
+    std::unique_lock lkWriteLock(m_muQueryMutex);
 
     // Check if the database is open.
     if (!m_bIsDBOpen)

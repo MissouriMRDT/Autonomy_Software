@@ -52,7 +52,20 @@ DriveBoard::DriveBoard()
     // Set RoveComm callbacks.
     if (network::g_pRoveCommUDPNode)
     {
-        network::g_pRoveCommUDPNode->AddUDPCallback<float>(SetMaxSpeedCallback, manifest::Autonomy::COMMANDS.find("SETMAXSPEED")->second.DATA_ID);
+        network::g_pRoveCommUDPNode->On<manifest::Autonomy::Commands::SETMAXSPEED>(
+            [this](const auto& stPacket)
+            {
+                // Clamp the incoming multiplier to [0.0, 1.0].
+                float fClampedMultiplier = std::clamp(std::fabs(stPacket.vData[0]), 0.0f, 1.0f);
+                // Update member variable.
+                {
+                    std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+                    m_fDriveEffortMultiplier = fClampedMultiplier;
+                }
+
+                // Submit logger message.
+                LOG_NOTICE(logging::g_qSharedLogger, "Incoming SETMAXSPEED: {}", fClampedMultiplier);
+            });
     }
 }
 
@@ -215,21 +228,16 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
     m_stDrivePowers.dLeftDrivePower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
     m_stDrivePowers.dRightDrivePower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
 
-    // Construct a RoveComm packet with the drive data.
-    rovecomm::RoveCommPacket<float> stPacket;
-    stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
-    stPacket.unDataCount = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_COUNT;
-    stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
-    stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
-    stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
-
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
         // Check if we should send packets to the SIM or board.
-        const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
+        const manifest::AddressEntry& stIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS : manifest::Core::IP_ADDRESS;
         // Send packet.
-        network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+        network::g_pRoveCommUDPNode->Send<manifest::Core::Commands::DRIVELEFTRIGHT>(
+            {static_cast<float>(m_stDrivePowers.dLeftDrivePower), static_cast<float>(m_stDrivePowers.dRightDrivePower)},
+            stIPAddress,
+            constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
 
     // Submit logger message.
@@ -249,19 +257,15 @@ void DriveBoard::SendStop()
     m_stDrivePowers.dLeftDrivePower  = 0.0;
     m_stDrivePowers.dRightDrivePower = 0.0;
 
-    // Construct a RoveComm packet with the drive data.
-    rovecomm::RoveCommPacket<float> stPacket;
-    stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
-    stPacket.unDataCount = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_COUNT;
-    stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
-    stPacket.vData.emplace_back(m_stDrivePowers.dLeftDrivePower);
-    stPacket.vData.emplace_back(m_stDrivePowers.dRightDrivePower);
     // Check if we should send packets to the SIM or board.
-    const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::Core::IP_ADDRESS.IP_STR.c_str();
+    const manifest::AddressEntry& stIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS : manifest::Core::IP_ADDRESS;
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
-        network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+        network::g_pRoveCommUDPNode->Send<manifest::Core::Commands::DRIVELEFTRIGHT>(
+            {static_cast<float>(m_stDrivePowers.dLeftDrivePower), static_cast<float>(m_stDrivePowers.dRightDrivePower)},
+            stIPAddress,
+            constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Sent stop powers to drivetrain.");

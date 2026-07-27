@@ -16,6 +16,7 @@
 #include <opencv2/opencv.hpp>
 #include <rtc/rtc.hpp>
 #include <shared_mutex>
+#include <tracy/Tracy.hpp>
 
 extern "C"
 {
@@ -87,7 +88,7 @@ class WebRTC
         AVPacket* m_pPacket;
         SwsContext* m_pSWSContext;
         AVPixelFormat m_eOutputPixelFormat;
-        std::shared_mutex m_muDecoderMutex;
+        TracySharedLockable(std::shared_mutex, m_muDecoderMutex);
 
         // OpenCV Mat for storing the frame.
         cv::Mat m_cvFrame;

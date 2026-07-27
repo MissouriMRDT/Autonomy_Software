@@ -24,6 +24,7 @@
 #include <optional>
 #include <shared_mutex>
 #include <string>
+#include <tracy/Tracy.hpp>
 #include <vector>
 
 /// \endcond

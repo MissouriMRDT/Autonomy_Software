@@ -12,7 +12,9 @@
 #define SIMPLEWEBSERVER_H
 
 /// \cond
+#include "../../../external/threadpool/include/BS_thread_pool.hpp"
 #include <atomic>
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -55,24 +57,11 @@ class SimpleWebServer
         std::map<std::string, RequestCallback> m_mGetCallbacks;
         std::mutex m_muDataMutex;
 
-        /******************************************************************************
-         * @brief Represents a local path as an object.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2026-03-25
-         ******************************************************************************/
-        struct StaticDir
-        {
-            public:
-                std::string szLocalPath;
-        };
-
-        std::map<std::string, StaticDir> m_mStaticDirectories;
+        std::map<std::string, std::filesystem::path> m_mStaticDirectories;
 
         // Thread Management.
         std::thread m_thAcceptThread;
-        std::vector<std::thread> m_vWorkerThreads;
+        BS::thread_pool<> m_tpWorkerPool = BS::thread_pool<>(1);
         std::mutex m_muThreadMutex;
 
         ////////////////////////////////////
@@ -85,8 +74,8 @@ class SimpleWebServer
         void HandleClient(int nClientFD);
 
         // File Utilities.
-        std::vector<char> LoadFile(const std::string& szPath);
-        std::string GetMimeType(const std::string& szPath);
+        std::vector<char> LoadFile(const std::filesystem::path& szPath);
+        std::string GetMimeType(const std::filesystem::path& szPath);
 };
 
 #endif

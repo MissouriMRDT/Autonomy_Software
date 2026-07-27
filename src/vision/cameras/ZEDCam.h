@@ -15,6 +15,7 @@
 #include "../../util/threading/RetryTimer.hpp"
 
 /// \cond
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -167,9 +168,9 @@ class ZEDCam : public ZEDCamera
         sl::ERROR_CODE ImplRebootCamera();
 
         // Producer helpers.
-        void LogSnapshotPoolDiagnostics();      // Periodically log snapshot pool misses / ceiling breaches.
-        void RetrieveAndPublishData();          // Retrieve+publish every subscribed data type after a good grab.
-        void PublishStatus();                   // Build and publish the CameraStatus snapshot.
-        void PollPendingSpatialMap();           // Advance any in-flight async spatial-map extraction.
+        void LogSnapshotPoolDiagnostics();    // Periodically log snapshot pool misses / ceiling breaches.
+        void RetrieveAndPublishData();        // Retrieve+publish every subscribed data type after a good grab.
+        void PublishStatus();                 // Build and publish the CameraStatus snapshot.
+        void PollPendingSpatialMap();         // Advance any in-flight async spatial-map extraction.
 };
 #endif

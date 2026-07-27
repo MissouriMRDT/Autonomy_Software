@@ -453,6 +453,10 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                     {
                         return;
                     }
+                    ZoneScopedNC("WebRTC::onFrame", tracy::Color::Green);
+                    ZoneName(m_szStreamerID.c_str(), m_szStreamerID.length());
+                    ZoneValue(rtcFrameInfo.payloadType);
+                    ZoneValue(rtcFrameInfo.timestamp);
 
                     // Prepare buffer for H.264 bytes.
                     std::vector<uint8_t> vH264EncodedBytes;
@@ -497,7 +501,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                     vH264EncodedBytes.insert(vH264EncodedBytes.end(), AV_INPUT_BUFFER_PADDING_SIZE, 0);
 
                     // Decode.
-                    std::unique_lock<std::shared_mutex> lkDecoderLock(m_muDecoderMutex);
+                    std::unique_lock lkDecoderLock(m_muDecoderMutex);
                     bool bDecoded = this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
 
                     if (bDecoded && m_fnOnFrameReceivedCallback)
@@ -702,7 +706,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 bool WebRTC::InitializeH264Decoder()
 {
     // Configure logging level from FFMPEG library.
-    av_log_set_level(AV_LOG_DEBUG);
+    av_log_set_level(AV_LOG_QUIET);
 
     // Find the H264 decoder
     const AVCodec* avCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
@@ -724,7 +728,7 @@ bool WebRTC::InitializeH264Decoder()
     m_pAVCodecContext->rc_buffer_size  = 50 * 1024 * 1024;    // 50 MB buffer size.
     av_opt_set_int(m_pAVCodecContext, "refcounted_frames", 1, 0);
     av_opt_set_int(m_pAVCodecContext, "error_concealment", FF_EC_GUESS_MVS | FF_EC_DEBLOCK, 0);
-    av_opt_set_int(m_pAVCodecContext, "threads", 4, 0);
+    av_opt_set_int(m_pAVCodecContext, "threads", 1, 0);    // Single threaded is optimal for decoding H.264
 
     // Open the codec
     if (avcodec_open2(m_pAVCodecContext, avCodec, nullptr) < 0)
@@ -767,6 +771,8 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
     if (vH264EncodedBytes.empty())
         return false;
 
+    ZoneScopedC(tracy::Color::Green2);
+
     // Use the actual data size, excluding the padding we added in onFrame.
     size_t nDataSize = vH264EncodedBytes.size() - AV_INPUT_BUFFER_PADDING_SIZE;
 
@@ -792,6 +798,7 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
     // Receive decoded frames in a loop
     while (true)
     {
+        ZoneScopedNC("Decode Chunk", tracy::Color::Green3);
         nReturnCode = avcodec_receive_frame(m_pAVCodecContext, m_pFrame);
         if (nReturnCode == AVERROR(EAGAIN) || nReturnCode == AVERROR_EOF)
         {

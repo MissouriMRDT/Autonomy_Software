@@ -14,6 +14,11 @@
 #include "../AutonomyNetworking.h"
 #include "../util/states/TagDetectionChecker.hpp"
 
+/// \cond
+#include <tracy/Tracy.hpp>
+
+/// \endcond
+
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
  *
@@ -109,6 +114,8 @@ namespace statemachine
      ******************************************************************************/
     void ApproachingMarkerState::Run()
     {
+        ZoneScopedC(tracy::Color::Ivory1);
+
         /******************************************************************************
          * STATE LOGIC FLOW:
          * 1. Geofence Check: Verify the rover is within the goal waypoint's radius.
@@ -128,7 +135,7 @@ namespace statemachine
 
         // 1. Boundary Check: Verify rover radius from marker waypoint.
         geoops::GeoMeasurement stCurrentMeasurement = geoops::CalculateGeoMeasurement(m_stGoalWaypoint.GetGPSCoordinate(), stCurrentRoverPose.GetGPSCoordinate());
-        if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius)
+        if (stCurrentMeasurement.dDistanceMeters > m_stGoalWaypoint.dRadius + 5)
         {
             LOG_WARNING(logging::g_qSharedLogger,
                         "ApproachingMarkerState: Rover broke geofence! Radius threshold is {} m, current distance is {:.2f} m. Triggering MarkerUnseen.",
