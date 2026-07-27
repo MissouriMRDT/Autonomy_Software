@@ -13,12 +13,14 @@
 #define DRIVEBOARD_H
 
 #include "../algorithms/kinematics/DifferentialDrive.hpp"
+#include "../util/threading/Publisher.hpp"
 
 /// \cond
 #include "../AutonomyConstants.h"
 #include <RoveComm/RoveComm.h>
 #include <RoveComm/RoveCommManifest.h>
 #include <array>
+#include <mutex>
 #include <shared_mutex>
 
 /// \endcond
@@ -85,6 +87,12 @@ class DriveBoard
         const float m_fRoll_w   = constants::DRIVE_BOARD_ROLL_WEIGHT;
         const float m_fPitch_w  = constants::DRIVE_BOARD_PITCH_WEIGHT;
         const float m_fYaw_w    = constants::DRIVE_BOARD_YAW_WEIGHT;
+
+        // Persistent demand for the main camera's sensor data, taken on the first call to
+        // VariableDriveEffort(). The camera only retrieves and publishes sensor data while a
+        // Subscription is alive; this member holds ours for the lifetime of the DriveBoard.
+        std::once_flag m_ocSensorSubscribeOnce;
+        pubsub::Subscription m_subMainCamSensors;
 
         /////////////////////////////////////////
         // Declare private methods.

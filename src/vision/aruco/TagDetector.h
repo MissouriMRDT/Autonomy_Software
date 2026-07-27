@@ -14,13 +14,15 @@
 
 #include "../../interfaces/BasicCamera.hpp"
 #include "../../interfaces/ZEDCamera.hpp"
+#include "../../util/threading/Publisher.hpp"
 #include "../../util/vision/BoundingBoxTracking.h"
 #include "../../util/vision/TagDetectionUtilty.hpp"
 #include "../../util/vision/YOLOModel.hpp"
 
 /// \cond
 #include <future>
-#include <shared_mutex>
+#include <memory>
+#include <mutex>
 #include <vector>
 
 /// \endcond
@@ -32,12 +34,13 @@
  *
  * What are the threads doing?
  * Continuous Thread:
- *  In this thread we are constantly getting images and depth maps from the necessary
- *  cameras. We then detect the tags in the image and estimate their location with respect to
- *  the rover.
+ *  In this thread we read the newest published image and point cloud snapshots from the
+ *  camera, skipping the pass entirely if the camera has not published a new frame since
+ *  last time. We then detect the tags in the image, estimate their location with respect
+ *  to the rover, and publish the results for consumers to read on their own schedule.
  * Pooled Threads:
- *  Copy the vector of detected tags to all of the threads requesting it through the
- *  RequestDetectedArucoTags(...) function.
+ *  Not used. Result distribution is handled by the publish-latest mechanism, so no
+ *  per-consumer fan-out work remains.
  *
  * @author jspencerpittman (jspencerpittman@gmail.com), clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
@@ -71,9 +74,6 @@ class TagDetector : public AutonomyThread<void>
                     const int nNumDetectedTagsRetrievalThreads    = 5,
                     const bool bUsingGpuMats                      = false);
         ~TagDetector();
-        std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
-        std::future<bool> RequestLastGoodOverlayFrame(cv::Mat& cvFrame);
-        std::future<bool> RequestDetectedArucoTags(std::vector<tagdetectutils::ArucoTag>& vArucoTags);
         bool InitTorchDetection(const std::string& szModelPath,
                                 yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
 
@@ -96,6 +96,41 @@ class TagDetector : public AutonomyThread<void>
         std::string GetCameraName();
         cv::Size GetProcessFrameResolution() const;
 
+        /////////////////////////////////////////
+        // Publish-latest data channels out. Consumers Subscribe()/Get() the newest
+        // immutable snapshot without blocking this detector's loop.
+        /////////////////////////////////////////
+
+        /******************************************************************************
+         * @brief Accessor for the detection-overlay frame publisher.
+         * @return pubsub::Publisher<cv::Mat>& - The detection overlay channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::Mat>& GetDetectionOverlayPublisher() { return m_pubDetectionOverlay; }
+
+        /******************************************************************************
+         * @brief Accessor for the last-good detection-overlay frame publisher.
+         * @return pubsub::Publisher<cv::Mat>& - The last-good overlay channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::Mat>& GetLastGoodOverlayPublisher() { return m_pubLastGoodOverlay; }
+
+        /******************************************************************************
+         * @brief Accessor for the detected aruco tags publisher.
+         * @return pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>>& - The tags channel.
+         ******************************************************************************/
+        pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>>& GetDetectedTagsPublisher() { return m_pubDetectedTags; }
+
+        /******************************************************************************
+         * @brief Accessor for the number of detection passes skipped because the camera
+         *      had not published a new frame since the last pass. Used to verify that the
+         *      sequence-number short circuit is actually saving work.
+         *
+         * @return unsigned long long - The cumulative number of skipped detection passes.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-07-24
+         ******************************************************************************/
+        unsigned long long GetSkippedFrameCount() const { return m_ullSkippedFrameCount.load(std::memory_order_relaxed); }
+
     private:
         /////////////////////////////////////////
         // Declare private methods.
@@ -104,6 +139,8 @@ class TagDetector : public AutonomyThread<void>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
         void UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags);
+        void EnsureCameraSubscriptions();
+        bool LoadLatestCameraFrames();
 
         /////////////////////////////////////////
         // Declare private member variables.
@@ -123,6 +160,11 @@ class TagDetector : public AutonomyThread<void>
         bool m_bUsingZedCamera;
         bool m_bUsingGpuMats;
         bool m_bCameraIsOpened;
+
+        // Edge-triggered logging of the camera's readiness. This detector idles (rather than
+        // stopping itself) whenever its camera is not open, so without this it would log the same
+        // "waiting for camera" line every iteration at its full detector FPS.
+        bool m_bLastKnownCameraOpenState = true;
         bool m_bEnableTracking;
         int m_nNumDetectedTagsRetrievalThreads;
         std::string m_szCameraName;
@@ -139,21 +181,33 @@ class TagDetector : public AutonomyThread<void>
         // Create frames for storing images and point clouds.
 
         cv::Mat m_cvFrame;
-        cv::cuda::GpuMat m_cvGPUFrame;
         cv::Mat m_cvArucoProcFrame;
         cv::Mat m_cvLastGoodDetectionOverlayFrame;
         cv::Mat m_cvPointCloud;
-        cv::cuda::GpuMat m_cvGPUPointCloud;
 
-        // Queues and mutexes for scheduling and copying data to other threads.
+        // Demand for the camera data this detector consumes. Held for this detector's whole
+        // lifetime so the camera retrieves and publishes only what is actually being used.
 
-        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qDetectionOverlayFramesCopySchedule;
-        std::queue<containers::FrameFetchContainer<cv::Mat>> m_qLastGoodDetectionOverlayFramesCopySchedule;
-        std::queue<containers::DataFetchContainer<std::vector<tagdetectutils::ArucoTag>>> m_qDetectedArucoTagCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::shared_mutex m_muDetectionOverlayCopyMutex;
-        std::shared_mutex m_muLastGoodDetectionOverlayCopyMutex;
-        std::shared_mutex m_muArucoDataCopyMutex;
+        std::once_flag m_ocCameraSubscribeOnce;
+        pubsub::Subscription m_subCameraFrame;
+        pubsub::Subscription m_subCameraPointCloud;
+
+        // Sequence number of the last camera frame this detector actually ran detection on. Used
+        // to skip an entire detection pass when the camera has not published a new frame yet.
+
+        unsigned long long m_ullLastProcessedFrameSequence = 0;
+        std::atomic<unsigned long long> m_ullSkippedFrameCount{0};
+
+        // Publish-latest data channels out (see accessors above). Each is given an explicit
+        // preallocation and growth ceiling so steady state allocates nothing and a consumer that
+        // leaks snapshots trips the ceiling and is logged as an error.
+        // The two overlay channels are demand gated (a full-frame clone each), while the detected
+        // tag channel publishes unconditionally: the tags are already computed by the detection
+        // pass, so publishing them costs only a small vector copy and every consumer of this
+        // detector wants them.
+        pubsub::Publisher<cv::Mat> m_pubDetectionOverlay{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<cv::Mat> m_pubLastGoodOverlay{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>> m_pubDetectedTags{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
 };
 
 #endif

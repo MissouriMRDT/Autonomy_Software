@@ -41,6 +41,9 @@ StateMachineHandler::StateMachineHandler()
 
     // Initialize member variables.
     m_pMainCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    // Register demand for the main camera's sensor data so the camera keeps retrieving and
+    // publishing it for the heading-realignment logic below.
+    m_subMainCamSensors = m_pMainCam->GetSensorsPublisher().Subscribe();
     m_pRearCam           = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eRearCam);
     m_dZEDHeadingOffset  = 0.0;
     m_dLastRawZEDHeading = 0.0;
@@ -387,14 +390,13 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
         double dVelocity   = this->SmartRetrieveVelocity();
         double dAngularVel = this->SmartRetrieveAngularVelocity();
 
-        // Request the current heading from the ZED camera.
-        sl::SensorsData slCurrentCameraSensorData;
-        std::future<bool> fuResultStatus = m_pMainCam->RequestSensorsCopy(slCurrentCameraSensorData);
-        // Wait for future to be fulfilled.
-        if (fuResultStatus.get())
+        // Load the newest published sensor data from the ZED camera once into a local. Lock free
+        // and non-blocking; null until the camera has published its first sensor snapshot.
+        pubsub::Publisher<sl::SensorsData>::SharedSnapshot pSensorSnapshot = m_pMainCam->GetSensorsPublisher().Get();
+        if (pSensorSnapshot != nullptr)
         {
             // Get Degrees heading from ZED IMU data.
-            double dCurrentZEDHeading = slCurrentCameraSensorData.imu.pose.getEulerAngles(false).y;
+            double dCurrentZEDHeading = pSensorSnapshot->tData.imu.pose.getEulerAngles(false).y;
             // Realign offset.
             // If driving forward fast enough (> Xm/s) and NOT turning. (angular vel near 0)
             if ((m_pCurrentState != nullptr && m_pCurrentState->GetState() == statemachine::States::eIdle) ||

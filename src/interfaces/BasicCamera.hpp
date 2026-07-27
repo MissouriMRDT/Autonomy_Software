@@ -11,6 +11,7 @@
 #ifndef BASICCAMERA_HPP
 #define BASICCAMERA_HPP
 
+#include "../util/threading/Publisher.hpp"
 #include "Camera.hpp"
 
 /// \cond
@@ -112,10 +113,10 @@ class BasicCamera : public Camera<cv::Mat>
 
         /******************************************************************************
          * @brief The code inside this private method runs in a separate thread, but still
-         *      has access to this*. This method continuously get new frames from the OpenCV
-         *      VideoCapture object and stores it in a member variable. Then a thread pool is
-         *      started and joined once per iteration to mass copy the frames and/or measure
-         *      to any other thread waiting in the queues.
+         *      has access to this*. This method continuously gets new frames from the OpenCV
+         *      VideoCapture object and publishes a deep-copied snapshot of each one, but only
+         *      while at least one consumer is subscribed. Consumers read the newest snapshot on
+         *      their own schedule, so this loop never waits on them.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-12-22
@@ -123,28 +124,13 @@ class BasicCamera : public Camera<cv::Mat>
         virtual void ThreadedContinuousCode() {}
 
         /******************************************************************************
-         * @brief This method holds the code that is ran in the thread pool started by
-         *      the ThreadedLinearCode() method. It copies the data from the different
-         *      data objects to references of the same type stored in a vector queued up by the
-         *      Grab methods.
+         * @brief Not used. Frame distribution is handled by the publish-latest mechanism
+         *      in ThreadedContinuousCode(); no per-consumer fan-out work remains.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-12-22
          ******************************************************************************/
         virtual void PooledLinearCode() {}
-
-        /******************************************************************************
-         * @brief Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
-         *      Remember, this code will be ran in whatever, class/thread calls it.
-         *
-         * @param cvFrame - A reference to the cv::Mat to store the frame in.
-         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
-         *                          Value will be true if frame was successfully retrieved.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-22
-         ******************************************************************************/
-        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
 
         /******************************************************************************
          * @brief Accessor for the cameras path or video index.
@@ -156,11 +142,39 @@ class BasicCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual std::string GetCameraLocation() const { return ""; }
 
+        /******************************************************************************
+         * @brief Accessor for this camera's publish-latest frame channel.
+         *
+         *      Consumers Subscribe() to express demand (the producer only reads and
+         *      publishes frames while at least one subscriber is alive) and Get() the
+         *      newest immutable frame snapshot with a lock-free, non-blocking read.
+         *      Both the real BasicCam and the simulated SIMBasicCam publish through
+         *      this same channel, so consumers stay drop-in interchangeable.
+         *
+         * @return pubsub::Publisher<cv::Mat>& - The frame publisher.
+         *
+         * @note Load a snapshot once into a local and work from that local; calling
+         *      Get() repeatedly returns whatever is newest each time. To modify a
+         *      snapshot, clone it on your own thread first - published snapshots are
+         *      immutable and shared.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-07-24
+         ******************************************************************************/
+        pubsub::Publisher<cv::Mat>& GetFramePublisher() { return m_pubFrame; }
+
     protected:
         // Declare protected methods and member variables.
         int m_nCameraIndex;
         std::string m_szCameraPath;
         bool m_bCameraIsConnectedOnVideoIndex;
+
+        // Publish-latest channel for the camera's BGRA frame. Producers copy each new
+        // frame into a pooled snapshot and publish it; consumers read the newest
+        // snapshot without blocking the producer. Replaces the old frame request queue.
+        // The explicit preallocation and growth ceiling keep steady state allocation free
+        // and surface a snapshot-leaking consumer as a logged error rather than an OOM.
+        pubsub::Publisher<cv::Mat> m_pubFrame{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
 
     private:
         // Declare private methods and member variables.

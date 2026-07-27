@@ -47,7 +47,7 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
             m_vGPUFrames.resize(m_nTotalVideoFeeds);
-            m_vFrameFutures.resize(m_nTotalVideoFeeds);
+            m_vFrameSubscriptions.resize(m_nTotalVideoFeeds);
             break;
 
         // RecordingHandler was initialized to record feeds from the TagDetectionHandler.
@@ -59,7 +59,7 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
-            m_vFrameFutures.resize(m_nTotalVideoFeeds);
+            m_vFrameSubscriptions.resize(m_nTotalVideoFeeds);
             break;
 
         // RecordingHandler was initialized to record feeds from the TagDetectionHandler.
@@ -71,7 +71,7 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
-            m_vFrameFutures.resize(m_nTotalVideoFeeds);
+            m_vFrameSubscriptions.resize(m_nTotalVideoFeeds);
             break;
 
         default:
@@ -184,6 +184,14 @@ void RecordingHandler::UpdateRecordableCameras()
         {
             // Set recording toggle.
             m_vRecordingToggles[nCamera - 1] = true;
+            // Register demand for this camera's frames if we have not already. The camera only
+            // retrieves and publishes frames while a Subscription is alive, so this is what makes
+            // the feed available to us at all.
+            if (!m_vFrameSubscriptions[nCamera - 1].IsActive())
+            {
+                // Take a persistent subscription for this feed.
+                m_vFrameSubscriptions[nCamera - 1] = pBasicCamera->GetFramePublisher().Subscribe();
+            }
             // Setup VideoWriter if needed.
             if (!m_vCameraWriters[nCamera - 1].isOpened())
             {
@@ -231,6 +239,8 @@ void RecordingHandler::UpdateRecordableCameras()
         {
             // Set recording toggle.
             m_vRecordingToggles[nCamera - 1] = false;
+            // Drop our demand so the camera stops doing work nobody is recording.
+            m_vFrameSubscriptions[nCamera - 1].Release();
         }
     }
 
@@ -249,6 +259,15 @@ void RecordingHandler::UpdateRecordableCameras()
         {
             // Set recording toggle.
             m_vRecordingToggles[nCamera + nIndexOffset] = true;
+            // Register demand for this camera's frames if we have not already, on whichever memory
+            // channel the camera is configured for. The camera only retrieves and publishes frames
+            // while a Subscription is alive, so this is what makes the feed available to us.
+            if (!m_vFrameSubscriptions[nCamera + nIndexOffset].IsActive())
+            {
+                // Take a persistent subscription on the matching memory channel.
+                m_vFrameSubscriptions[nCamera + nIndexOffset] =
+                    pZEDCamera->GetUsingGPUMem() ? pZEDCamera->GetFrameGPUPublisher().Subscribe() : pZEDCamera->GetFrameCPUPublisher().Subscribe();
+            }
             // Setup VideoWriter if needed.
             if (!m_vCameraWriters[nCamera + nIndexOffset].isOpened())
             {
@@ -298,13 +317,18 @@ void RecordingHandler::UpdateRecordableCameras()
         {
             // Set recording toggle.
             m_vRecordingToggles[nCamera + nIndexOffset] = false;
+            // Drop our demand so the camera stops doing work nobody is recording.
+            m_vFrameSubscriptions[nCamera + nIndexOffset].Release();
         }
     }
 }
 
 /******************************************************************************
- * @brief This method is used internally by the RecordingHandler to request and write
- *      frames to from the cameras stored in the member variable vectors.
+ * @brief This method is used internally by the RecordingHandler to read and write the
+ *      newest published frame from each camera stored in the member variable vectors.
+ *
+ *      Each read is a lock-free load of the camera's newest immutable snapshot, so this
+ *      never blocks on a camera's loop and no camera does any per-recorder copy work.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -312,117 +336,106 @@ void RecordingHandler::UpdateRecordableCameras()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteCameraFrames()
 {
-    // Loop through total number of cameras and request frames.
+    // Loop through total number of cameras, read the newest frame, and write it.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
         // Check if recording for the camera at this index is enabled.
-        if (m_vRecordingToggles[nIter])
+        if (!m_vRecordingToggles[nIter])
         {
-            // Check if the camera at the current index is a BasicCam or ZEDCam.
-            if (m_vBasicCameras[nIter] != nullptr)
+            // Nothing to record for this feed.
+            continue;
+        }
+
+        // Check if the camera at the current index is a BasicCam or ZEDCam.
+        if (m_vBasicCameras[nIter] != nullptr)
+        {
+            // Load the newest published frame snapshot once into a local.
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = m_vBasicCameras[nIter]->GetFramePublisher().Get();
+            // Nothing has been published yet.
+            if (pSnapshot == nullptr)
             {
-                // Request frame.
-                m_vFrameFutures[nIter] = m_vBasicCameras[nIter]->RequestFrameCopy(m_vFrames[nIter]);
+                // Skip this feed for this iteration.
+                continue;
             }
-            else if (m_vZEDCameras[nIter] != nullptr)
+            // Deep copy the immutable snapshot into our working frame before converting it.
+            pSnapshot->tData.copyTo(m_vFrames[nIter]);
+        }
+        else if (m_vZEDCameras[nIter] != nullptr)
+        {
+            // Check if the camera is setup to use CPU or GPU mats.
+            if (m_vZEDCameras[nIter]->GetUsingGPUMem())
             {
-                // Check if the camera is setup to use CPU or GPU mats.
-                if (m_vZEDCameras[nIter]->GetUsingGPUMem())
+                // Load the newest published GPU frame snapshot once into a local.
+                pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pSnapshot = m_vZEDCameras[nIter]->GetFrameGPUPublisher().Get();
+                // Nothing has been published yet.
+                if (pSnapshot == nullptr)
                 {
-                    // Grab frames from camera.
-                    m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vGPUFrames[nIter]);
+                    // Skip this feed for this iteration.
+                    continue;
                 }
-                else
+                // Download from GPU memory. Done here, on this thread, off the camera's critical path.
+                pSnapshot->tData.download(m_vFrames[nIter]);
+            }
+            else
+            {
+                // Load the newest published CPU frame snapshot once into a local.
+                pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = m_vZEDCameras[nIter]->GetFrameCPUPublisher().Get();
+                // Nothing has been published yet.
+                if (pSnapshot == nullptr)
                 {
-                    // Grab frames from camera.
-                    m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vFrames[nIter]);
+                    // Skip this feed for this iteration.
+                    continue;
                 }
+                // Deep copy the immutable snapshot into our working frame before converting it.
+                pSnapshot->tData.copyTo(m_vFrames[nIter]);
             }
         }
-    }
+        else
+        {
+            // No camera stored at this index.
+            continue;
+        }
 
-    // Loop through cameras and wait for frame requests to be fulfilled.
-    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+        // Normalize the frame to 3 channel BGR and write it out.
+        this->WriteFrameToVideo(nIter);
+    }
+}
+
+/******************************************************************************
+ * @brief Convert the working frame at the given feed index to the 3 channel BGR format
+ *      the VideoWriter requires, and write it out. Shared by the camera, tag detector,
+ *      and object detector recording paths.
+ *
+ * @param nFeedIndex - The index of the video feed whose working frame should be written.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-26
+ ******************************************************************************/
+void RecordingHandler::WriteFrameToVideo(const int nFeedIndex)
+{
+    // Nothing to write for an empty frame.
+    if (m_vFrames[nFeedIndex].empty())
     {
-        // Check if recording for the camera at this index is enabled.
-        if (m_vRecordingToggles[nIter])
-        {
-            // Check if the camera at the current index is a BasicCam or ZEDCam.
-            if (m_vBasicCameras[nIter] != nullptr)
-            {
-                // Wait for future to be fulfilled.
-                if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
-                {
-                    // Check if this is a grayscale or color image.
-                    if (m_vFrames[nIter].channels() == 1)
-                    {
-                        // Convert frame from 1 channel grayscale to 3 channel BGR.
-                        cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
-                    }
-                    // Check if this has an alpha channel.
-                    else if (m_vFrames[nIter].channels() == 4)
-                    {
-                        // Convert from from 4 channels to 3 channels.
-                        cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
-                    }
-
-                    // Write frame to OpenCV video writer.
-                    m_vCameraWriters[nIter].write(m_vFrames[nIter]);
-                }
-            }
-            else if (m_vZEDCameras[nIter] != nullptr)
-            {
-                // Check if the camera is setup to use CPU or GPU mats.
-                if (m_vZEDCameras[nIter]->GetUsingGPUMem())
-                {
-                    // Wait for future to be fulfilled.
-                    if (m_vFrameFutures[nIter].get() && !m_vGPUFrames[nIter].empty())
-                    {
-                        // Download GPU mat frame to normal mat.
-                        m_vGPUFrames[nIter].download(m_vFrames[nIter]);
-
-                        // Check if this is a grayscale or color image.
-                        if (m_vFrames[nIter].channels() == 1)
-                        {
-                            // Convert frame from 1 channel grayscale to 3 channel BGR.
-                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
-                        }
-                        // Check if this has an alpha channel.
-                        else if (m_vFrames[nIter].channels() == 4)
-                        {
-                            // Convert from from 4 channels to 3 channels.
-                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
-                        }
-
-                        // Write frame to OpenCV video writer.
-                        m_vCameraWriters[nIter].write(m_vFrames[nIter]);
-                    }
-                }
-                else
-                {
-                    // Wait for future to be fulfilled.
-                    if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
-                    {
-                        // Check if this is a grayscale or color image.
-                        if (m_vFrames[nIter].channels() == 1)
-                        {
-                            // Convert frame from 1 channel grayscale to 3 channel BGR.
-                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
-                        }
-                        // Check if this has an alpha channel.
-                        else if (m_vFrames[nIter].channels() == 4)
-                        {
-                            // Convert from from 4 channels to 3 channels.
-                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
-                        }
-
-                        // Write frame to OpenCV video writer.
-                        m_vCameraWriters[nIter].write(m_vFrames[nIter]);
-                    }
-                }
-            }
-        }
+        // Skip this write.
+        return;
     }
+
+    // Check if this is a grayscale or color image.
+    if (m_vFrames[nFeedIndex].channels() == 1)
+    {
+        // Convert frame from 1 channel grayscale to 3 channel BGR.
+        cv::cvtColor(m_vFrames[nFeedIndex], m_vFrames[nFeedIndex], cv::COLOR_GRAY2BGR);
+    }
+    // Check if this has an alpha channel.
+    else if (m_vFrames[nFeedIndex].channels() == 4)
+    {
+        // Convert from from 4 channels to 3 channels.
+        cv::cvtColor(m_vFrames[nFeedIndex], m_vFrames[nFeedIndex], cv::COLOR_BGRA2BGR);
+    }
+
+    // Write frame to OpenCV video writer.
+    m_vCameraWriters[nFeedIndex].write(m_vFrames[nFeedIndex]);
 }
 
 /******************************************************************************
@@ -448,6 +461,13 @@ void RecordingHandler::UpdateRecordableTagDetectors()
         {
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = true;
+            // Register demand for this detector's overlay frames if we have not already. The
+            // detector only clones and publishes overlays while a Subscription is alive.
+            if (!m_vFrameSubscriptions[nDetector - 1].IsActive())
+            {
+                // Take a persistent subscription for this feed.
+                m_vFrameSubscriptions[nDetector - 1] = pTagDetector->GetDetectionOverlayPublisher().Subscribe();
+            }
             // Setup VideoWriter if needed.
             if (!m_vCameraWriters[nDetector - 1].isOpened())
             {
@@ -495,13 +515,17 @@ void RecordingHandler::UpdateRecordableTagDetectors()
         {
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = false;
+            // Drop our demand so the detector stops cloning overlays nobody is recording.
+            m_vFrameSubscriptions[nDetector - 1].Release();
         }
     }
 }
 
 /******************************************************************************
- * @brief This method is used internally by the RecordingHandler to request and write
- *      frames to from the TagDetectors stored in the member variable vectors.
+ * @brief This method is used internally by the RecordingHandler to read and write the
+ *      newest published detection-overlay frame from each TagDetector stored in the
+ *      member variable vectors. Each read is a lock-free load of the detector's newest
+ *      immutable snapshot and never blocks on the detector's loop.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -509,43 +533,29 @@ void RecordingHandler::UpdateRecordableTagDetectors()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteTagDetectorFrames()
 {
-    // Loop through total number of cameras and request frames.
+    // Loop through total number of detectors, read the newest overlay frame, and write it.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
-        // Check if recording for the camera at this index is enabled and tag detector at index is not null.
-        if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
+        // Check if recording for the detector at this index is enabled and the detector exists.
+        if (!m_vRecordingToggles[nIter] || m_vTagDetectors[nIter] == nullptr)
         {
-            // Request frame.
-            m_vFrameFutures[nIter] = m_vTagDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
+            // Nothing to record for this feed.
+            continue;
         }
-    }
 
-    // Loop through cameras and wait for frame requests to be fulfilled.
-    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
-    {
-        // Check if recording for the camera at this index is enabled and tag detector is not null.
-        if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
+        // Load the newest published overlay snapshot once into a local.
+        pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = m_vTagDetectors[nIter]->GetDetectionOverlayPublisher().Get();
+        // Nothing has been published yet.
+        if (pSnapshot == nullptr)
         {
-            // Wait for future to be fulfilled.
-            if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
-            {
-                // Check if this is a grayscale or color image.
-                if (m_vFrames[nIter].channels() == 1)
-                {
-                    // Convert frame from 1 channel grayscale to 3 channel BGR.
-                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
-                }
-                // Check if this has an alpha channel.
-                else if (m_vFrames[nIter].channels() == 4)
-                {
-                    // Convert from from 4 channels to 3 channels.
-                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
-                }
-
-                // Write frame to OpenCV video writer.
-                m_vCameraWriters[nIter].write(m_vFrames[nIter]);
-            }
+            // Skip this feed for this iteration.
+            continue;
         }
+        // Deep copy the immutable snapshot into our working frame before converting it.
+        pSnapshot->tData.copyTo(m_vFrames[nIter]);
+
+        // Normalize the frame to 3 channel BGR and write it out.
+        this->WriteFrameToVideo(nIter);
     }
 }
 
@@ -575,6 +585,13 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
         {
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = true;
+            // Register demand for this detector's overlay frames if we have not already. The
+            // detector only clones and publishes overlays while a Subscription is alive.
+            if (!m_vFrameSubscriptions[nDetector - 1].IsActive())
+            {
+                // Take a persistent subscription for this feed.
+                m_vFrameSubscriptions[nDetector - 1] = pObjectDetector->GetDetectionOverlayPublisher().Subscribe();
+            }
             // Setup VideoWriter if needed.
             if (!m_vCameraWriters[nDetector - 1].isOpened())
             {
@@ -622,13 +639,17 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
         {
             // Set recording toggle.
             m_vRecordingToggles[nDetector - 1] = false;
+            // Drop our demand so the detector stops cloning overlays nobody is recording.
+            m_vFrameSubscriptions[nDetector - 1].Release();
         }
     }
 }
 
 /******************************************************************************
- * @brief This method is used internally by the RecordingHandler to request and write
- *      frames to from the ObjectDetectors stored in the member variable vectors.
+ * @brief This method is used internally by the RecordingHandler to read and write the
+ *      newest published detection-overlay frame from each ObjectDetector stored in the
+ *      member variable vectors. Each read is a lock-free load of the detector's newest
+ *      immutable snapshot and never blocks on the detector's loop.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -636,43 +657,29 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteObjectDetectorFrames()
 {
-    // Loop through total number of cameras and request frames.
+    // Loop through total number of detectors, read the newest overlay frame, and write it.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
-        // Check if recording for the camera at this index is enabled and tag detector at index is not null.
-        if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
+        // Check if recording for the detector at this index is enabled and the detector exists.
+        if (!m_vRecordingToggles[nIter] || m_vObjectDetectors[nIter] == nullptr)
         {
-            // Request frame.
-            m_vFrameFutures[nIter] = m_vObjectDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
+            // Nothing to record for this feed.
+            continue;
         }
-    }
 
-    // Loop through cameras and wait for frame requests to be fulfilled.
-    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
-    {
-        // Check if recording for the camera at this index is enabled and tag detector is not null.
-        if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
+        // Load the newest published overlay snapshot once into a local.
+        pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = m_vObjectDetectors[nIter]->GetDetectionOverlayPublisher().Get();
+        // Nothing has been published yet.
+        if (pSnapshot == nullptr)
         {
-            // Wait for future to be fulfilled.
-            if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
-            {
-                // Check if this is a grayscale or color image.
-                if (m_vFrames[nIter].channels() == 1)
-                {
-                    // Convert frame from 1 channel grayscale to 3 channel BGR.
-                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
-                }
-                // Check if this has an alpha channel.
-                else if (m_vFrames[nIter].channels() == 4)
-                {
-                    // Convert from from 4 channels to 3 channels.
-                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
-                }
-
-                // Write frame to OpenCV video writer.
-                m_vCameraWriters[nIter].write(m_vFrames[nIter]);
-            }
+            // Skip this feed for this iteration.
+            continue;
         }
+        // Deep copy the immutable snapshot into our working frame before converting it.
+        pSnapshot->tData.copyTo(m_vFrames[nIter]);
+
+        // Normalize the frame to 3 channel BGR and write it out.
+        this->WriteFrameToVideo(nIter);
     }
 }
 

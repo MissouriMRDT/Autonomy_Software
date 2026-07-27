@@ -31,54 +31,46 @@ namespace statemachine
     /******************************************************************************
      * @brief Aggregates all detected tags from each provided tag detector for both OpenCV and YOLO detection.
      *
+     *      Each detector's tags are read as a single lock-free load of its newest immutable
+     *      snapshot, so this never blocks on a detector's loop. Detectors publish their detected
+     *      tags unconditionally (the tags are already computed by the detection pass), so no
+     *      Subscription is required to read this channel.
+     *
      * @param vDetectedArucoTags - Reference vector that will hold all of the aggregated detected Aruco tags.
-     * @param vTagDetectors - Vector of pointers to tag detectors that will be used to request their detected tags.
+     * @param vTagDetectors - Vector of pointers to tag detectors that will be read from.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-04-04
      ******************************************************************************/
     inline void LoadDetectedTags(std::vector<tagdetectutils::ArucoTag>& vDetectedArucoTags, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors)
     {
-        // Number of tag detectors.
-        size_t siNumTagDetectors = vTagDetectors.size();
-
-        // Initialize vectors to store detected tags temporarily.
-        std::vector<std::vector<tagdetectutils::ArucoTag>> vDetectedArucoTagBuffers(siNumTagDetectors);
-
-        // Initialize vectors to store detected tags futures.
-        std::vector<std::future<bool>> vDetectedArucoTagsFuture;
-
-        // Track exactly which cameras successfully spawned a future to prevent vector crashes.
-        std::vector<bool> vSpawnedFuture(siNumTagDetectors, false);
-
-        // Request tags from each detector.
-        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
+        // Read the newest published tags from each detector.
+        for (const std::shared_ptr<TagDetector>& pTagDetector : vTagDetectors)
         {
-            // Check if this tag detector is ready.
-            if (vTagDetectors[siIdx]->GetIsReady())
+            // Skip detectors that are not up and running.
+            if (pTagDetector == nullptr || !pTagDetector->GetIsReady())
             {
-                // Request detected Aruco tags from detector.
-                vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
-                vSpawnedFuture[siIdx] = true;
+                // Nothing to aggregate from this detector.
+                continue;
             }
-        }
 
-        // Ensure all requests have been fulfilled.
-        int nFutureIdx = 0;
-        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
-        {
-            // Only check the buffer if the detector was ready and actually spawned a future
-            if (vSpawnedFuture[siIdx])
+            // Load the newest snapshot once into a local so it cannot change while we read it.
+            pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>>::SharedSnapshot pSnapshot = pTagDetector->GetDetectedTagsPublisher().Get();
+            // Nothing has been published yet.
+            if (pSnapshot == nullptr)
             {
-                // Wait for the correct future to finish
-                vDetectedArucoTagsFuture[nFutureIdx].get();
-                nFutureIdx++;
+                // Skip this detector for now.
+                continue;
+            }
 
-                // Loop through the detected tags using the correct buffer index (siIdx)
-                for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
-                {
-                    vDetectedArucoTags.emplace_back(tTag);
-                }
+            // Loop through this detector's tags and aggregate them.
+            for (const tagdetectutils::ArucoTag& stTag : pSnapshot->tData)
+            {
+                // Copy the tag out, then give the caller its own bounding box instance so nothing
+                // downstream can mutate the shared, immutable snapshot.
+                tagdetectutils::ArucoTag stTagCopy = stTag;
+                stTagCopy.pBoundingBox             = std::make_shared<cv::Rect2d>(*stTag.pBoundingBox);
+                vDetectedArucoTags.emplace_back(stTagCopy);
             }
         }
     }

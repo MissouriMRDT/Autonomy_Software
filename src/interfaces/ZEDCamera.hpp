@@ -13,6 +13,8 @@
 
 #include "../AutonomyLogging.h"
 #include "../util/GeospatialOperations.hpp"
+#include "../util/threading/CommandQueue.hpp"
+#include "../util/threading/Publisher.hpp"
 #include "Camera.hpp"
 
 /// \cond
@@ -124,6 +126,26 @@ class ZEDCamera : public Camera<cv::Mat>
                 }
         };
 
+        /******************************************************************************
+         * @brief A lightweight snapshot of the camera's frequently-polled status. It is
+         *      built and published once per producer iteration (on the owning thread,
+         *      where all SDK access is legal) so status accessors become lock-free reads
+         *      instead of foreign-thread SDK calls.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-07-24
+         ******************************************************************************/
+        struct CameraStatus
+        {
+            public:
+                bool bCameraIsOpen                  = false;    // Whether the camera is currently open.
+                bool bPositionalTrackingEnabled     = false;    // Whether positional tracking is enabled and healthy.
+                bool bObjectDetectionEnabled        = false;    // Whether object detection is enabled.
+                sl::SPATIAL_MAPPING_STATE eSpatialMappingState = sl::SPATIAL_MAPPING_STATE::NOT_ENABLED;    // Current spatial mapping state.
+                sl::PositionalTrackingStatus stPositionalTrackingStatus;    // Full VIO positional tracking status.
+                std::string szCameraModel = "NOT_OPENED";    // Camera model string ("NOT_OPENED" while closed).
+        };
+
         /////////////////////////////////////////
         // Declare public methods and member variables.
         /////////////////////////////////////////
@@ -170,6 +192,18 @@ class ZEDCamera : public Camera<cv::Mat>
             (void) bMemTypeGPU;
             (void) bUseHalfDepthPrecision;
             m_unCameraSerialNumber = unCameraSerialNumber;
+
+            // Teach the command queue how to tell whether this camera's thread is still able to
+            // drain it. Without this, a command posted after the camera thread has stopped (for
+            // example when the camera was never present and ThreadedContinuousCode() self-stopped)
+            // would sit in the queue forever and block its caller forever.
+            m_cmdQueue.SetDrainerLivenessCheck(
+                [this]()
+                {
+                    // Only a starting or running thread will reach DrainAll() again.
+                    const AutonomyThreadState eThreadState = this->GetThreadState();
+                    return eThreadState == AutonomyThreadState::eStarting || eThreadState == AutonomyThreadState::eRunning;
+                });
         }
 
         /******************************************************************************
@@ -181,226 +215,10 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual ~ZEDCamera() = default;
 
-        /******************************************************************************
-         * Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
-         *      Remember, this code will be ran in whatever, class/thread calls it.
-         *
-         * @param cvFrame - A reference to the cv::Mat to store the frame in.
-         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
-         *                          Value will be true if frame was successfully retrieved.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-22
-         ******************************************************************************/
-        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override = 0;
-
-        /******************************************************************************
-         * @brief Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
-         *
-         * @param cvGPUFrame - A reference to the cv::cuda::GpuMat to store the frame in.
-         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-22
-         ******************************************************************************/
-        virtual std::future<bool> RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame)
-        {
-            // Create instance variables.
-            (void) cvGPUFrame;
-            std::promise<bool> pmPromise;
-            std::future<bool> fuFuture = pmPromise.get_future();
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestFrameCopy(cv::cuda::GpuMat& cvGPUFrame) not implemented. If SIM_MODE use cv::Mat version instead.");
-
-            return fuFuture;
-        }
-
-        /******************************************************************************
-         * @brief Puts a frame pointer into a queue so a copy of a depth frame from the camera can be written to it.
-         *
-         * @param cvDepth - A reference to the cv::Mat to store the depth frame in.
-         * @param bRetrieveMeasure - Whether or not to retrieve the depth measure or just the image.
-         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-22
-         ******************************************************************************/
-        virtual std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true) = 0;
-
-        /******************************************************************************
-         * @brief Puts a frame pointer into a queue so a copy of a depth frame from the camera can be written to it.
-         *
-         * @param cvGPUDepth - A reference to the cv::cuda::GpuMat to store the depth frame in.
-         * @param bRetrieveMeasure - Whether or not to retrieve the depth measure or just the image.
-         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-22
-         ******************************************************************************/
-        virtual std::future<bool> RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true)
-        {
-            // Initialize instance variables.
-            (void) cvGPUDepth;
-            (void) bRetrieveMeasure;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger,
-                      "ZEDCamera::RequestDepthCopy(cv::cuda::GpuMat& cvGPUDepth, const bool bRetrieveMeasure = true) not implemented. If SIM_MODE use cv::Mat version "
-                      "instead.");
-
-            return pmPromise.get_future();
-        }
-
-        /******************************************************************************
-         * @brief Puts a frame pointer into a queue so a copy of a point cloud from the camera can be written to it.
-         *
-         * @param cvPointCloud - A reference to the cv::Mat to store the point cloud in.
-         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-22
-         ******************************************************************************/
-        virtual std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud) = 0;
-
-        /******************************************************************************
-         * @brief Puts a frame pointer into a queue so a copy of a point cloud from the camera can be written to it.
-         *
-         * @param cvGPUPointCloud - A reference to the cv::cuda::GpuMat to store the point cloud in.
-         * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud)
-        {
-            // Initialize instance variables.
-            (void) cvGPUPointCloud;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger,
-                      "ZEDCamera::RequestPointCloudCopy(cv::cuda::GpuMat& cvGPUPointCloud) not implemented. If SIM_MODE use cv::Mat version instead.");
-
-            return pmPromise.get_future();
-        }
-
-        /******************************************************************************
-         * @brief Puts a Pose pointer into a queue so a copy of a Pose from the camera can be written to it.
-         *
-         * @param stPose - A reference to the Pose to store the Pose in.
-         * @return std::future<bool> - A future that should be waited on before the passed in Pose is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestPositionalPoseCopy(Pose& stPose) = 0;
-
-        /******************************************************************************
-         * @brief Puts a FloorPlane pointer into a queue so a copy of a FloorPlane from the camera can be written to it.
-         *
-         * @param slFloorPlane - A reference to the sl::Plane to store the FloorPlane in.
-         * @return std::future<bool> - A future that should be waited on before the passed in FloorPlane is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestFloorPlaneCopy(sl::Plane& slFloorPlane)
-        {
-            // Initialize instance variables.
-            (void) slFloorPlane;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestFloorPlaneCopy(sl::Plane& slFloorPlane) not implemented.");
-
-            return pmPromise.get_future();
-        }
-
-        /******************************************************************************
-         * @brief Puts a SensorsData pointer into a queue so a copy of a SensorsData from the camera can be written to it.
-         *
-         * @param slSensorsData - A reference to the sl::SensorsData to store the SensorsData in.
-         * @return std::future<bool> - A future that should be waited on before the passed in SensorsData is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2025-08-26
-         ******************************************************************************/
-        virtual std::future<bool> RequestSensorsCopy(sl::SensorsData& slSensorsData)
-        {
-            // Initialize instance variables.
-            (void) slSensorsData;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestSensorsCopy(sl::SensorsData& slSensorsData) not implemented.");
-
-            return pmPromise.get_future();
-        }
-
-        /******************************************************************************
-         * @brief Puts a vector of ObjectData pointers into a queue so a copy of a vector of ObjectData from the camera can be written to it.
-         *
-         * @param vObjectData - A reference to the vector of sl::ObjectData to store the ObjectData in.
-         * @return std::future<bool> - A future that should be waited on before the passed in ObjectData is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData)
-        {
-            // Initialize instance variables.
-            (void) vObjectData;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestObjectsCopy(std::vector<sl::ObjectData>& vObjectData) not implemented.");
-
-            return pmPromise.get_future();
-        }
-
-        /******************************************************************************
-         * @brief Puts a vector of ObjectsBatch pointers into a queue so a copy of a vector of ObjectsBatch from the camera can be written to it.
-         *
-         * @param vBatchedObjectData - A reference to the vector of sl::ObjectsBatch to store the ObjectsBatch in.
-         * @return std::future<bool> - A future that should be waited on before the passed in ObjectsBatch is used.
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-12-25
-         ******************************************************************************/
-        virtual std::future<bool> RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData)
-        {
-            // Initialize instance variables.
-            (void) vBatchedObjectData;
-            std::promise<bool> pmPromise;
-
-            // Immediately set the promise to false.
-            pmPromise.set_value(false);
-
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "ZEDCamera::RequestBatchedObjectsCopy(std::vector<sl::ObjectsBatch>& vBatchedObjectData) not implemented.");
-
-            return pmPromise.get_future();
-        }
+        // NOTE: All data delivery (frames, depth, point clouds, pose, floor plane, sensors and
+        // detected objects) is handled by this class's publish-latest channels. Consumers hold a
+        // Subscription to express demand and Get() the newest immutable snapshot, so there are no
+        // per-consumer request methods on this interface. See the publisher accessors below.
 
         /******************************************************************************
          * @brief Resets the positional tracking of the camera.
@@ -619,7 +437,7 @@ class ZEDCamera : public Camera<cv::Mat>
         virtual sl::SPATIAL_MAPPING_STATE GetSpatialMappingState() { return sl::SPATIAL_MAPPING_STATE::NOT_ENABLED; }
 
         /******************************************************************************
-         * @brief Puts a Mesh pointer into a queue so a copy of a spatial mapping mesh from the camera can be written to it.
+         * @brief Copies the newest published spatial mapping mesh snapshot into the given destination.
          *
          * @param fuMeshFuture - A future that should be waited on before the passed in Mesh is used.
          * @return sl::SPATIAL_MAPPING_STATE - The spatial mapping state.
@@ -649,12 +467,216 @@ class ZEDCamera : public Camera<cv::Mat>
          ******************************************************************************/
         virtual bool GetObjectDetectionEnabled() { return false; }
 
-    protected:
         /////////////////////////////////////////
-        // Declare class constants.
+        // Publish-latest data channels. Consumers Subscribe() to express demand and
+        // Get() the newest immutable snapshot without blocking the producer. Both the
+        // real ZEDCam and the simulated SIMZEDCam publish through these same channels,
+        // so consumers stay drop-in interchangeable. A camera in CPU memory mode
+        // publishes the CPU channels; a camera in GPU mode publishes the GPU channels.
         /////////////////////////////////////////
 
-        const std::memory_order ATOMIC_MEMORY_ORDER_METHOD = std::memory_order_relaxed;
+        /******************************************************************************
+         * @brief Accessor for the BGRA frame publisher (CPU memory).
+         * @return pubsub::Publisher<cv::Mat>& - The CPU frame channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::Mat>& GetFrameCPUPublisher() { return m_pubFrameCPU; }
+
+        /******************************************************************************
+         * @brief Accessor for the BGRA frame publisher (GPU memory).
+         * @return pubsub::Publisher<cv::cuda::GpuMat>& - The GPU frame channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::cuda::GpuMat>& GetFrameGPUPublisher() { return m_pubFrameGPU; }
+
+        /******************************************************************************
+         * @brief Accessor for the depth measure publisher (CPU memory).
+         * @return pubsub::Publisher<cv::Mat>& - The CPU depth measure channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::Mat>& GetDepthMeasureCPUPublisher() { return m_pubDepthMeasureCPU; }
+
+        /******************************************************************************
+         * @brief Accessor for the depth measure publisher (GPU memory).
+         * @return pubsub::Publisher<cv::cuda::GpuMat>& - The GPU depth measure channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::cuda::GpuMat>& GetDepthMeasureGPUPublisher() { return m_pubDepthMeasureGPU; }
+
+        /******************************************************************************
+         * @brief Accessor for the depth image (grayscale) publisher (CPU memory).
+         * @return pubsub::Publisher<cv::Mat>& - The CPU depth image channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::Mat>& GetDepthImageCPUPublisher() { return m_pubDepthImageCPU; }
+
+        /******************************************************************************
+         * @brief Accessor for the depth image (grayscale) publisher (GPU memory).
+         * @return pubsub::Publisher<cv::cuda::GpuMat>& - The GPU depth image channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::cuda::GpuMat>& GetDepthImageGPUPublisher() { return m_pubDepthImageGPU; }
+
+        /******************************************************************************
+         * @brief Accessor for the point cloud publisher (CPU memory).
+         * @return pubsub::Publisher<cv::Mat>& - The CPU point cloud channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::Mat>& GetPointCloudCPUPublisher() { return m_pubPointCloudCPU; }
+
+        /******************************************************************************
+         * @brief Accessor for the point cloud publisher (GPU memory).
+         * @return pubsub::Publisher<cv::cuda::GpuMat>& - The GPU point cloud channel.
+         ******************************************************************************/
+        pubsub::Publisher<cv::cuda::GpuMat>& GetPointCloudGPUPublisher() { return m_pubPointCloudGPU; }
+
+        /******************************************************************************
+         * @brief Accessor for the realigned positional pose publisher.
+         * @return pubsub::Publisher<Pose>& - The pose channel.
+         ******************************************************************************/
+        pubsub::Publisher<Pose>& GetPosePublisher() { return m_pubPose; }
+
+        /******************************************************************************
+         * @brief Accessor for the floor plane publisher.
+         * @return pubsub::Publisher<sl::Plane>& - The floor plane channel.
+         ******************************************************************************/
+        pubsub::Publisher<sl::Plane>& GetFloorPlanePublisher() { return m_pubFloorPlane; }
+
+        /******************************************************************************
+         * @brief Accessor for the sensors data publisher.
+         * @return pubsub::Publisher<sl::SensorsData>& - The sensors channel.
+         ******************************************************************************/
+        pubsub::Publisher<sl::SensorsData>& GetSensorsPublisher() { return m_pubSensors; }
+
+        /******************************************************************************
+         * @brief Accessor for the detected objects publisher.
+         * @return pubsub::Publisher<std::vector<sl::ObjectData>>& - The objects channel.
+         ******************************************************************************/
+        pubsub::Publisher<std::vector<sl::ObjectData>>& GetObjectsPublisher() { return m_pubObjects; }
+
+        /******************************************************************************
+         * @brief Accessor for the batched detected objects publisher.
+         * @return pubsub::Publisher<std::vector<sl::ObjectsBatch>>& - The batched objects channel.
+         ******************************************************************************/
+        pubsub::Publisher<std::vector<sl::ObjectsBatch>>& GetBatchedObjectsPublisher() { return m_pubBatchedObjects; }
+
+        /******************************************************************************
+         * @brief Accessor for the camera status publisher (lock-free status reads).
+         * @return pubsub::Publisher<CameraStatus>& - The status channel.
+         ******************************************************************************/
+        pubsub::Publisher<CameraStatus>& GetStatusPublisher() { return m_pubStatus; }
+
+    protected:
+        /////////////////////////////////////////
+        // Declare protected methods.
+        /////////////////////////////////////////
+
+        /******************************************************************************
+         * @brief Check whether an SDK command may safely be executed inline, on the calling
+         *      thread, instead of being posted to the producer thread.
+         *
+         *      This is true exactly when no producer thread exists: either it has never been
+         *      started (the camera is still being constructed/configured) or it has been
+         *      joined by Stop(). In both cases nothing will ever drain the command queue, so
+         *      posting would cancel the command and silently discard the caller's intent -
+         *      and because no producer thread is running, the caller is the only thread that
+         *      can reach the SDK, so running inline preserves single-threaded access.
+         *
+         * @return true - No producer thread exists; run the command inline.
+         * @return false - The producer thread is starting or running; post the command to it.
+         *
+         * @note This assumes configuration calls are not made concurrently with Start(). A
+         *      camera must be fully configured before Start(), or after Stop() has joined.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-07-26
+         ******************************************************************************/
+        bool CanRunCommandInline() const
+        {
+            // A shut down queue means the object is being destroyed; do not run anything new.
+            if (m_cmdQueue.IsShutdown())
+            {
+                // Let the normal (cancelling) path handle it.
+                return false;
+            }
+
+            // Only a fully stopped thread guarantees there is no concurrent SDK access.
+            return this->GetThreadState() == AutonomyThreadState::eStopped;
+        }
+
+        /******************************************************************************
+         * @brief Run a value-returning command on the camera's owning thread and wait for
+         *      its result. If the owning thread has stopped (or stops while we wait) the
+         *      command can never run, so the caller is released with the supplied fallback
+         *      instead of being blocked forever.
+         *
+         * @tparam R - The return type of the command.
+         * @param fnCommand - The command to run on the owning thread.
+         * @param tFallbackOnCancel - The value to return if the command could not be run.
+         * @param szCommandName - Human readable command name, used only for logging.
+         * @return R - The command's result, or tFallbackOnCancel if it was cancelled.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-07-24
+         ******************************************************************************/
+        template<typename R>
+        R RunOnOwningThread(std::function<R()> fnCommand, const R& tFallbackOnCancel, const std::string& szCommandName)
+        {
+            // If no producer thread exists there is nothing to drain the queue, so a posted command
+            // would be cancelled and the caller silently handed the fallback. Run it inline instead:
+            // with the producer thread stopped (or never started) this thread is the only one that
+            // can touch the SDK, so the single-threaded-access invariant still holds.
+            if (this->CanRunCommandInline())
+            {
+                // Execute directly on the caller's thread.
+                return fnCommand();
+            }
+
+            try
+            {
+                // Post the command and wait for the owning thread to run it.
+                return m_cmdQueue.PostAndWait<R>(std::move(fnCommand)).get();
+            }
+            catch (const std::exception& stdError)
+            {
+                // The camera thread is not running, so this command will never execute.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Camera command '{}' was not executed because the camera thread is not running: {}",
+                            szCommandName,
+                            stdError.what());
+                // Release the caller with the fallback rather than leaving it blocked.
+                return tFallbackOnCancel;
+            }
+        }
+
+        /******************************************************************************
+         * @brief Run a void command on the camera's owning thread and wait for it to
+         *      finish. Behaves like RunOnOwningThread() but has no result to fall back to.
+         *
+         * @param fnCommand - The command to run on the owning thread.
+         * @param szCommandName - Human readable command name, used only for logging.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-07-24
+         ******************************************************************************/
+        void RunOnOwningThreadVoid(std::function<void()> fnCommand, const std::string& szCommandName)
+        {
+            // See RunOnOwningThread(): with no producer thread to drain the queue, run inline so the
+            // command actually takes effect instead of being cancelled.
+            if (this->CanRunCommandInline())
+            {
+                // Execute directly on the caller's thread.
+                fnCommand();
+                return;
+            }
+
+            try
+            {
+                // Post the command and wait for the owning thread to run it.
+                m_cmdQueue.PostAndWait<void>(std::move(fnCommand)).get();
+            }
+            catch (const std::exception& stdError)
+            {
+                // The camera thread is not running, so this command will never execute.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Camera command '{}' was not executed because the camera thread is not running: {}",
+                            szCommandName,
+                            stdError.what());
+            }
+        }
 
         /////////////////////////////////////////
         // Declare protected member variables.
@@ -662,6 +684,29 @@ class ZEDCamera : public Camera<cv::Mat>
 
         // ZED Camera specific.
         unsigned int m_unCameraSerialNumber;
+
+        // Control channel in: foreign threads Post() SDK-mutating commands here and the
+        // owning producer thread DrainAll()s them on itself, so all SDK access is single
+        // threaded by construction.
+        CommandQueue m_cmdQueue;
+
+        // Publish-latest data channels out (see accessors above). Every channel is given an
+        // explicit preallocation and growth ceiling so steady state allocates nothing and a
+        // consumer that leaks snapshots trips the ceiling and is logged as an error.
+        pubsub::Publisher<cv::Mat> m_pubFrameCPU{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<cv::cuda::GpuMat> m_pubFrameGPU{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<cv::Mat> m_pubDepthMeasureCPU{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<cv::cuda::GpuMat> m_pubDepthMeasureGPU{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<cv::Mat> m_pubDepthImageCPU{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<cv::cuda::GpuMat> m_pubDepthImageGPU{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<cv::Mat> m_pubPointCloudCPU{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<cv::cuda::GpuMat> m_pubPointCloudGPU{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<Pose> m_pubPose{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<sl::Plane> m_pubFloorPlane{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<sl::SensorsData> m_pubSensors{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<std::vector<sl::ObjectData>> m_pubObjects{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<std::vector<sl::ObjectsBatch>> m_pubBatchedObjects{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+        pubsub::Publisher<CameraStatus> m_pubStatus{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
 
     private:
         /////////////////////////////////////////

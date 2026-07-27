@@ -15,6 +15,7 @@
 #include "./util/vision/BoundingBoxTracking.h"
 
 /// \cond
+#include <chrono>
 #include <opencv2/opencv.hpp>
 #include <quill/core/LogLevel.h>
 #include <sl/Camera.hpp>
@@ -141,6 +142,12 @@ namespace constants
     extern const float ZED_DEFAULT_MAXIMUM_DISTANCE;
     extern const float ZED_DEFAULT_FLOOR_PLANE_ERROR;
     extern const int ZED_DEPTH_STABILIZATION;
+    extern const unsigned long long ZED_POOL_DIAGNOSTICS_INTERVAL;
+    extern const size_t PUBLISHER_POOL_PREALLOC;
+    extern const size_t PUBLISHER_POOL_GROWTH_CEILING;
+    extern const std::chrono::milliseconds CAMERA_RECONNECT_RETRY_INTERVAL;
+    extern const std::chrono::milliseconds SIM_STREAM_RECONNECT_RETRY_INTERVAL;
+    extern const std::chrono::milliseconds SIM_STREAM_CLOSE_TIMEOUT;
     // ZedCam SVO Recording Config.
     extern const sl::SVO_COMPRESSION_MODE ZED_SVO_COMPRESSION;
     extern const int ZED_SVO_BITRATE;

@@ -13,8 +13,11 @@
 
 #include "../../interfaces/AutonomyThread.hpp"
 #include "../../interfaces/BasicCamera.hpp"
+#include "../../util/threading/RetryTimer.hpp"
 
 /// \cond
+#include <atomic>
+#include <mutex>
 #include <opencv2/opencv.hpp>
 
 /// \endcond
@@ -55,7 +58,6 @@ class BasicCam : public BasicCamera
                  const bool bEnableRecordingFlag,
                  const int nNumFrameRetrievalThreads = 10);
         ~BasicCam();
-        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
 
         /////////////////////////////////////////
         // Getters.
@@ -70,10 +72,20 @@ class BasicCam : public BasicCamera
         /////////////////////////////////////////
         // Basic Camera specific.
         cv::VideoCapture m_cvCamera;
-        bool m_bCameraReopenAlreadyChecked;
+        // Reconnect pacing and edge-triggered open/closed logging. The producer thread never
+        // stops itself for a missing camera; it idles, retries on this monotonic timer, and logs
+        // only when the open state actually changes so an idling thread cannot flood the log.
+        threadutils::RetryTimer m_tmReconnectTimer{constants::CAMERA_RECONNECT_RETRY_INTERVAL};
+        bool m_bLastKnownOpenState = true;
 
-        // Mats for storing frames.
+        // Producer-thread-local scratch frame. Only ThreadedContinuousCode() touches it;
+        // the deep copy into the pooled snapshot is what other threads see.
         cv::Mat m_cvFrame;
+
+        // Lock-free published camera-open status. Written only on the owning thread (which
+        // is the only thread allowed to touch the VideoCapture) and read by GetCameraIsOpen()
+        // from any thread, so no foreign thread ever calls into VideoCapture.
+        std::atomic<bool> m_abCameraOpen{false};
 
         /////////////////////////////////////////
         // Declare private methods.

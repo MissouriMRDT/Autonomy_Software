@@ -281,20 +281,23 @@ float DriveBoard::VariableDriveEffort()
 {
     // Get pointer to camera.
     std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-    // Declare data structures to store data in.
-    sl::SensorsData slSensorData;
+    // Register demand for the camera's sensor data exactly once. The camera only retrieves and
+    // publishes sensor data while a Subscription is alive, and this member holds ours for the
+    // lifetime of the DriveBoard.
+    std::call_once(m_ocSensorSubscribeOnce, [this, &ExampleZEDCam1]() { m_subMainCamSensors = ExampleZEDCam1->GetSensorsPublisher().Subscribe(); });
 
-    // Put in a request to have our empty sensors data variable filled with the most recent data from the camera.
-    std::future<bool> fuCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensorData);
-    float fMultiplier              = 1;
+    // Default multiplier used when no sensor data is available yet.
+    float fMultiplier = 1;
 
-    // Now we are ready to use the sensors data, let's make sure we have it or wait until we do.
-    if (fuCopyStatus.get())
+    // Load the newest published sensor snapshot once into a local. Lock free and non-blocking;
+    // null until the camera has published its first sensor snapshot.
+    pubsub::Publisher<sl::SensorsData>::SharedSnapshot pSensorSnapshot = ExampleZEDCam1->GetSensorsPublisher().Get();
+    if (pSensorSnapshot != nullptr)
     {
         // Declare roll, pitch, yaw from sensor data
-        float fRoll  = fabs(slSensorData.imu.pose.getEulerAngles(false).z);
-        float fPitch = fabs(slSensorData.imu.pose.getEulerAngles(false).x);
-        float fYaw   = slSensorData.imu.pose.getEulerAngles(false).y;
+        float fRoll  = fabs(pSensorSnapshot->tData.imu.pose.getEulerAngles(false).z);
+        float fPitch = fabs(pSensorSnapshot->tData.imu.pose.getEulerAngles(false).x);
+        float fYaw   = pSensorSnapshot->tData.imu.pose.getEulerAngles(false).y;
 
         // Calculate the risk factor to be applied to the linear polarization equation
         float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);

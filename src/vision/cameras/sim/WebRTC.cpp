@@ -134,10 +134,28 @@ void WebRTC::CloseConnection()
         m_pWebSocket->close();
     }
 
-    // Wait for all connections to close.
+    // Wait for all connections to close, but never indefinitely. A peer that negotiated only
+    // partially (for example a signalling server that accepted the websocket but never completed
+    // the WebRTC handshake) can leave a track or data channel that never reports isClosed(), and
+    // an unbounded wait here hangs process shutdown forever. Bound it with a deadline instead: the
+    // loop still exits immediately in the normal case, and a stuck peer costs one bounded delay
+    // and a warning rather than a hung program.
+    const std::chrono::steady_clock::time_point tmCloseDeadline = std::chrono::steady_clock::now() + constants::SIM_STREAM_CLOSE_TIMEOUT;
     while ((m_pVideoTrack1 && !m_pVideoTrack1->isClosed()) || (m_pDataChannel && !m_pDataChannel->isClosed()) || (m_pWebSocket && !m_pWebSocket->isClosed()))
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // Give up waiting once the deadline passes so shutdown always completes.
+        if (std::chrono::steady_clock::now() >= tmCloseDeadline)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger,
+                        "WebRTC camera {} did not report all connections closed within {} ms. Continuing shutdown anyway.",
+                        m_szStreamerID,
+                        constants::SIM_STREAM_CLOSE_TIMEOUT.count());
+            break;
+        }
+
+        // Poll again shortly.
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} Connections closed.", m_szStreamerID);
 }

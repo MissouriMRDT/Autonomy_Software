@@ -129,11 +129,160 @@ ObjectDetector::~ObjectDetector()
 }
 
 /******************************************************************************
+ * @brief Register this detector's demand for the camera data it consumes. Runs
+ *      exactly once, on the first loop iteration. Holding these subscriptions for
+ *      the detector's lifetime is what tells the camera to keep retrieving and
+ *      publishing these data types; a type nobody subscribes to is never retrieved.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-24
+ ******************************************************************************/
+void ObjectDetector::EnsureCameraSubscriptions()
+{
+    // Subscribe exactly once, no matter how many times the loop runs.
+    std::call_once(m_ocCameraSubscribeOnce,
+                   [this]()
+                   {
+                       // Check whether we are consuming from a ZED camera or a basic camera.
+                       if (m_bUsingZedCamera)
+                       {
+                           // Dynamic cast so we can reach the ZED specific publishers.
+                           std::shared_ptr<ZEDCamera> pZEDCamera = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera);
+                           // Subscribe to whichever memory channel this detector was configured for.
+                           if (m_bUsingGpuMats)
+                           {
+                               // Express demand on the GPU channels.
+                               m_subCameraFrame      = pZEDCamera->GetFrameGPUPublisher().Subscribe();
+                               m_subCameraPointCloud = pZEDCamera->GetPointCloudGPUPublisher().Subscribe();
+                           }
+                           else
+                           {
+                               // Express demand on the CPU channels.
+                               m_subCameraFrame      = pZEDCamera->GetFrameCPUPublisher().Subscribe();
+                               m_subCameraPointCloud = pZEDCamera->GetPointCloudCPUPublisher().Subscribe();
+                           }
+                       }
+                       else
+                       {
+                           // Basic cameras publish a single BGRA frame channel and no point cloud.
+                           m_subCameraFrame = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetFramePublisher().Subscribe();
+                       }
+                   });
+}
+
+/******************************************************************************
+ * @brief Load the newest published camera snapshots into this detector's working
+ *      frames. Each snapshot is loaded once into a local, so the data cannot change
+ *      underneath us while we read it. If the camera has not published a new frame
+ *      since the last detection pass, nothing is copied and false is returned so the
+ *      caller can skip an entire redundant pass.
+ *
+ * @return true - New frame data was loaded and detection should run.
+ * @return false - Nothing new to process; skip this detection pass.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-24
+ ******************************************************************************/
+bool ObjectDetector::LoadLatestCameraFrames()
+{
+    // The sequence number of the frame snapshot we are about to process.
+    unsigned long long ullFrameSequence = 0;
+
+    // Check whether we are consuming from a ZED camera or a basic camera.
+    if (m_bUsingZedCamera)
+    {
+        // Dynamic cast so we can reach the ZED specific publishers.
+        std::shared_ptr<ZEDCamera> pZEDCamera = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera);
+
+        // Check if the ZED camera is returning cv::cuda::GpuMat or cv::Mat.
+        if (m_bUsingGpuMats)
+        {
+            // Load both GPU snapshots once into locals.
+            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pFrameSnapshot = pZEDCamera->GetFrameGPUPublisher().Get();
+            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pCloudSnapshot = pZEDCamera->GetPointCloudGPUPublisher().Get();
+            // Nothing has been published yet.
+            if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or frame from ZEDCam!");
+                return false;
+            }
+            // Skip the pass entirely if the camera has not published a new frame.
+            ullFrameSequence = pFrameSnapshot->ullSequence;
+            if (ullFrameSequence == m_ullLastProcessedFrameSequence)
+            {
+                // Count the skip so the short circuit can be verified, then bail out.
+                m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+            // Download mats from GPU memory. Done here, on this thread, off the camera's critical path.
+            pFrameSnapshot->tData.download(m_cvFrame);
+            pCloudSnapshot->tData.download(m_cvPointCloud);
+            // Drop alpha channel.
+            cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+        }
+        else
+        {
+            // Load both CPU snapshots once into locals.
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pFrameSnapshot = pZEDCamera->GetFrameCPUPublisher().Get();
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pCloudSnapshot = pZEDCamera->GetPointCloudCPUPublisher().Get();
+            // Nothing has been published yet.
+            if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or regular frame from ZEDCam!");
+                return false;
+            }
+            // Skip the pass entirely if the camera has not published a new frame.
+            ullFrameSequence = pFrameSnapshot->ullSequence;
+            if (ullFrameSequence == m_ullLastProcessedFrameSequence)
+            {
+                // Count the skip so the short circuit can be verified, then bail out.
+                m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+            // Copy the immutable snapshots into our working frames.
+            pFrameSnapshot->tData.copyTo(m_cvFrame);
+            pCloudSnapshot->tData.copyTo(m_cvPointCloud);
+        }
+    }
+    else
+    {
+        // Load the basic camera's frame snapshot once into a local.
+        pubsub::Publisher<cv::Mat>::SharedSnapshot pFrameSnapshot = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetFramePublisher().Get();
+        // Nothing has been published yet.
+        if (pFrameSnapshot == nullptr)
+        {
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
+            return false;
+        }
+        // Skip the pass entirely if the camera has not published a new frame.
+        ullFrameSequence = pFrameSnapshot->ullSequence;
+        if (ullFrameSequence == m_ullLastProcessedFrameSequence)
+        {
+            // Count the skip so the short circuit can be verified, then bail out.
+            m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
+            return false;
+        }
+        // Copy the immutable snapshot into our working frame.
+        pFrameSnapshot->tData.copyTo(m_cvFrame);
+    }
+
+    // Remember which frame we processed so the next pass can detect a repeat.
+    m_ullLastProcessedFrameSequence = ullFrameSequence;
+
+    // New data was loaded; detection should run.
+    return true;
+}
+
+/******************************************************************************
  * @brief This method will run continuously in a separate thread. New frames from
  *      the given camera are grabbed and the objects for the camera image are detected
- *      using the PyTorch interpreter. The detected objects are then filtered and stored.
- *      Then any requests for the current objects are fulfilled via a call and join of the
- *      thread pooled code.
+ *      using the PyTorch interpreter. The detected objects are then filtered and stored,
+ *      then published for consumers to read on their own schedule.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -150,23 +299,37 @@ void ObjectDetector::ThreadedContinuousCode()
             // Set camera opened toggle.
             m_bCameraIsOpened = false;
 
-            // If camera's not open on first iteration of thread, it's probably not present, so stop.
-            if (this->GetThreadState() == AutonomyThreadState::eStarting)
+            // This thread NEVER stops itself because its camera is not ready. It idles until the
+            // camera reports open, so startup ordering does not matter and a camera that connects
+            // late (or reconnects after a dropout) is picked up automatically. Only RequestStop()
+            // from the owner ends this thread.
+            if (m_bLastKnownCameraOpenState)
             {
-                // Shutdown threads for this ZEDCam.
-                this->RequestStop();
+                // Remember the new state so we log the transition exactly once.
+                m_bLastKnownCameraOpenState = false;
 
                 // Submit logger message.
-                LOG_CRITICAL(logging::g_qSharedLogger,
-                             "ObjectDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted! "
-                             "This object detector will now stop.",
-                             std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraSerial());
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "ObjectDetector for ZED camera with serial number {} is waiting for its camera to open. Detection is paused until it does.",
+                            std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraSerial());
             }
         }
         else
         {
             // Set camera opened toggle.
             m_bCameraIsOpened = true;
+
+            // Log the not-ready -> ready transition exactly once.
+            if (!m_bLastKnownCameraOpenState)
+            {
+                // Remember the new state so the recovery is reported a single time.
+                m_bLastKnownCameraOpenState = true;
+
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger,
+                         "ObjectDetector for ZED camera with serial number {} now has an open camera. Resuming detection.",
+                         std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraSerial());
+            }
         }
     }
     else
@@ -177,113 +340,59 @@ void ObjectDetector::ThreadedContinuousCode()
             // Set camera opened toggle.
             m_bCameraIsOpened = false;
 
-            // If camera's not open on first iteration of thread, it's probably not present, so stop.
-            if (this->GetThreadState() == AutonomyThreadState::eStarting)
+            // This thread NEVER stops itself because its camera is not ready. It idles until the
+            // camera reports open, so startup ordering does not matter and a camera that connects
+            // late (or reconnects after a dropout) is picked up automatically. Only RequestStop()
+            // from the owner ends this thread.
+            if (m_bLastKnownCameraOpenState)
             {
-                // Shutdown threads for this BasicCam.
-                this->RequestStop();
+                // Remember the new state so we log the transition exactly once.
+                m_bLastKnownCameraOpenState = false;
 
                 // Submit logger message.
-                LOG_CRITICAL(logging::g_qSharedLogger,
-                             "ObjectDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
-                             std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraLocation());
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "ObjectDetector for BasicCam at {} is waiting for its camera to open. Detection is paused until it does.",
+                            std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraLocation());
             }
         }
         else
         {
             // Set camera opened toggle.
             m_bCameraIsOpened = true;
+
+            // Log the not-ready -> ready transition exactly once.
+            if (!m_bLastKnownCameraOpenState)
+            {
+                // Remember the new state so the recovery is reported a single time.
+                m_bLastKnownCameraOpenState = true;
+
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger,
+                         "ObjectDetector for BasicCam at {} now has an open camera. Resuming detection.",
+                         std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraLocation());
+            }
         }
     }
 
     // Check if camera is opened.
     if (m_bCameraIsOpened)
     {
-        // Create future for indicating when the frame has been copied.
-        std::future<bool> fuPointCloudCopyStatus;
-        std::future<bool> fuRegularFrameCopyStatus;
-        bool bRequestingPointCloud = false;
+        // Register demand for the camera data we consume (once, on the first iteration).
+        this->EnsureCameraSubscriptions();
 
-        // Check if the camera is setup to use CPU or GPU mats.
-        if (m_bUsingZedCamera)
+        // Load the newest published camera snapshots. This is a lock-free read that never blocks
+        // on the camera's loop. Returns false when there is nothing new to process, in which case
+        // we skip this entire detection pass rather than redoing work on an identical frame.
+        if (!this->LoadLatestCameraFrames())
         {
-            bRequestingPointCloud = true;
-            // Check if the ZED camera is returning cv::cuda::GpuMat or cv:Mat.
-            if (m_bUsingGpuMats)
-            {
-                // Grabs point cloud from ZEDCam. Dynamic casts Camera to ZEDCamera* so we can use ZEDCam methods.
-                fuPointCloudCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvGPUPointCloud);
-                // Get the regular RGB image from the camera.
-                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvGPUFrame);
-            }
-            else
-            {
-                // Grabs point cloud from ZEDCam.
-                fuPointCloudCopyStatus   = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestPointCloudCopy(m_cvPointCloud);
-                fuRegularFrameCopyStatus = std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-            }
-        }
-        else
-        {
-            // Grab frames from camera.
-            fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
-        }
-
-        // Safe polling wrapper to prevent deadlocks.
-        bool bCloudReady = !bRequestingPointCloud;    // True by default if we don't need a point cloud
-        bool bFrameReady = false;
-
-        // Keep polling as long as the thread hasn't been asked to stop.
-        while (this->GetThreadState() == AutonomyThreadState::eRunning)
-        {
-            if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
-                bCloudReady = true;
-
-            if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
-                bFrameReady = true;
-
-            if (bCloudReady && bFrameReady)
-                break;
+            // Nothing new from the camera; skip this pass.
+            return;
         }
 
         // If the thread is shutting down, break out of the loop gracefully
         if (this->GetThreadState() != AutonomyThreadState::eRunning)
         {
             return;
-        }
-
-        // Process the retrieved frames
-        if (m_bUsingZedCamera)
-        {
-            if (m_bUsingGpuMats)
-            {
-                if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
-                {
-                    // Download mat from GPU memory.
-                    m_cvGPUPointCloud.download(m_cvPointCloud);
-                    m_cvGPUFrame.download(m_cvFrame);
-                    // Drop alpha channel.
-                    cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
-                }
-                else
-                {
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or frame from ZEDCam!");
-                }
-            }
-            else
-            {
-                if (!fuPointCloudCopyStatus.get())
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
-                if (!fuRegularFrameCopyStatus.get())
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
-            }
-        }
-        else
-        {
-            if (!fuRegularFrameCopyStatus.get())
-            {
-                LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
-            }
         }
 
         /////////////////////////////////////////
@@ -308,12 +417,18 @@ void ObjectDetector::ThreadedContinuousCode()
         // Check if torch detection if turned on.
         if (m_bTorchEnabled)
         {
-            // Detect objects in the image.
-            std::vector<objectdetectutils::Object> vNewTorchObjects =
-                torchobject::Detect(m_cvTorchProcFrame, *m_pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+            // Atomically load the model shared_ptr into a local so a concurrent InitTorchDetection()
+            // swap can't invalidate it mid-inference (the local keeps the old model alive).
+            std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> pTorchDetector = std::atomic_load_explicit(&m_pTorchDetector, std::memory_order_acquire);
+            if (pTorchDetector != nullptr)
+            {
+                // Detect objects in the image.
+                std::vector<objectdetectutils::Object> vNewTorchObjects =
+                    torchobject::Detect(m_cvTorchProcFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
 
-            // Add Torch objects to the list of newly detected objects.
-            m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
+                // Add Torch objects to the list of newly detected objects.
+                m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
+            }
         }
 
         // Set the FOV of the camera in the object structs for this detector's camera.
@@ -338,186 +453,52 @@ void ObjectDetector::ThreadedContinuousCode()
             m_cvLastGoodOverlayFrame = m_cvDetectionOverlayFrame.clone();
         }
         /////////////////////////////////////////////////////////////////////////////////////
-    }
 
-    // Acquire a shared_lock on the detected objects copy queue.
-    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Check if the detected object copy queue is empty.
-    if (!m_qDetectionOverlayFramesCopySchedule.empty() || !m_qLastGoodDetectionOverlayFramesCopySchedule.empty() || !m_qDetectedObjectCopySchedule.empty())
-    {
-        size_t siQueueLength = m_qDetectionOverlayFramesCopySchedule.size() + m_qLastGoodDetectionOverlayFramesCopySchedule.size() + m_qDetectedObjectCopySchedule.size();
-        // Start the thread pool to store multiple copies of the detected objects to the requesting threads
-        this->RunDetachedPool(siQueueLength, m_nNumDetectedObjectsRetrievalThreads);
-        // Wait for thread pool to finish.
-        this->JoinPool();
-        // Release lock on frame copy queue.
-        lkSchedulers.unlock();
-    }
-}
-
-/******************************************************************************
- * @brief This method will run in a thread pool. It will be called by the main thread
- *      and will run the code within the PooledLinearCode() method. This is meant to be
- *      used as an internal utility of the child class to further improve parallelization.
- *
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-05-05
- ******************************************************************************/
-void ObjectDetector::PooledLinearCode()
-{
-    /////////////////////////////
-    //  Detection Overlay Frame queue.
-    /////////////////////////////
-    // Acquire sole writing access to the detectedObjectCopySchedule.
-    std::unique_lock<std::shared_mutex> lkObjectOverlayFrameQueue(m_muDetectionOverlayCopyMutex);
-    // Check if there are unfulfilled requests.
-    if (!m_qDetectionOverlayFramesCopySchedule.empty())
-    {
-        // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectionOverlayFramesCopySchedule.front();
-        // Pop out of queue.
-        m_qDetectionOverlayFramesCopySchedule.pop();
-        // Release lock.
-        lkObjectOverlayFrameQueue.unlock();
-
-        // Check which frame we should copy.
-        switch (stContainer.eFrameType)
+        // Publish the freshly computed outputs to any subscribed consumers (deep copy once each).
+        // Detection overlay frame.
+        if (m_pubDetectionOverlay.HasSubscribers())
         {
-            case PIXEL_FORMATS::eObjectDetection: *stContainer.pFrame = m_cvDetectionOverlayFrame.clone(); break;
-            default: *stContainer.pFrame = m_cvDetectionOverlayFrame.clone(); break;
+            // Deep copy the overlay into a pooled snapshot and publish.
+            std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDetectionOverlay.Acquire();
+            m_cvDetectionOverlayFrame.copyTo(pSlot->tData);
+            m_pubDetectionOverlay.Publish(std::move(pSlot));
         }
-
-        // Signal future that the frame has been successfully retrieved.
-        stContainer.pCopiedFrameStatus->set_value(true);
-    }
-
-    /////////////////////////////
-    //  Last GoodDetection Overlay Frame queue.
-    /////////////////////////////
-    // Acquire sole writing access to the detectedObjectCopySchedule.
-    std::unique_lock<std::shared_mutex> lkLastGoodObjectOverlayFrameQueue(m_muLastGoodDetectionOverlayCopyMutex);
-    // Check if there are unfulfilled requests.
-    if (!m_qLastGoodDetectionOverlayFramesCopySchedule.empty())
-    {
-        // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qLastGoodDetectionOverlayFramesCopySchedule.front();
-        // Pop out of queue.
-        m_qLastGoodDetectionOverlayFramesCopySchedule.pop();
-        // Release lock.
-        lkLastGoodObjectOverlayFrameQueue.unlock();
-
-        // Check which frame we should copy.
-        switch (stContainer.eFrameType)
+        // Last good detection overlay frame.
+        if (m_pubLastGoodOverlay.HasSubscribers())
         {
-            case PIXEL_FORMATS::eObjectDetection: *stContainer.pFrame = m_cvLastGoodOverlayFrame.clone(); break;
-            default: *stContainer.pFrame = m_cvLastGoodOverlayFrame.clone(); break;
+            // Deep copy the last-good overlay into a pooled snapshot and publish.
+            std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubLastGoodOverlay.Acquire();
+            m_cvLastGoodOverlayFrame.copyTo(pSlot->tData);
+            m_pubLastGoodOverlay.Publish(std::move(pSlot));
         }
-
-        // Signal future that the frame has been successfully retrieved.
-        stContainer.pCopiedFrameStatus->set_value(true);
-    }
-
-    /////////////////////////////
-    //  Object queue.
-    /////////////////////////////
-    // Acquire sole writing access to the detectedObjectCopySchedule.
-    std::unique_lock<std::shared_mutex> lkObjectQueue(m_muArucoDataCopyMutex);
-    // Check if there are unfulfilled requests.
-    if (!m_qDetectedObjectCopySchedule.empty())
-    {
-        // Get frame container out of queue.
-        containers::DataFetchContainer<std::vector<objectdetectutils::Object>> stContainer = m_qDetectedObjectCopySchedule.front();
-        // Pop out of queue.
-        m_qDetectedObjectCopySchedule.pop();
-        // Release lock.
-        lkObjectQueue.unlock();
-
-        // Copy the detected objects to the target location
-        *stContainer.pData = m_vDetectedObjects;
-
-        // Signal future that the frame has been successfully retrieved.
-        stContainer.pCopiedDataStatus->set_value(true);
+        // Detected objects. Published unconditionally rather than gated on demand: the objects are
+        // already computed by the pass above, so publishing costs only a small vector copy, and
+        // consumers reached through free functions (statemachine::LoadDetectedObjects) have nowhere
+        // natural to hold a Subscription.
+        {
+            // Copy the objects, then deep-copy each shared bounding box so the published snapshot is
+            // truly immutable (the tracker also holds and mutates those bounding boxes).
+            std::shared_ptr<pubsub::Snapshot<std::vector<objectdetectutils::Object>>> pSlot = m_pubDetectedObjects.Acquire();
+            pSlot->tData                                                                    = m_vDetectedObjects;
+            for (objectdetectutils::Object& stObject : pSlot->tData)
+            {
+                // Give this snapshot its own bounding box instance.
+                stObject.pBoundingBox = std::make_shared<cv::Rect2d>(*stObject.pBoundingBox);
+            }
+            m_pubDetectedObjects.Publish(std::move(pSlot));
+        }
     }
 }
 
 /******************************************************************************
- * @brief Request a copy of the frame containing the detected objects from all
- *      detection methods drawn onto the frame.
- *
- * @param cvFrame - The cv::Mat frame to copy the detection overlay image to.
- * @return std::future<bool> - The future that will be set to true when the frame is copied.
+ * @brief Not used. Detected objects and overlay frames are handed to consumers by the
+ *      publish-latest mechanism in ThreadedContinuousCode(); no per-consumer fan-out
+ *      work remains.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-05-05
+ * @date 2026-07-24
  ******************************************************************************/
-std::future<bool> ObjectDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
-{
-    // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eObjectDetection);
-
-    // Acquire lock on pool copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qDetectionOverlayFramesCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrameStatus->get_future();
-}
-
-/******************************************************************************
- * @brief Request a copy of the frame containing the last known good detected objects from all
- *      detection methods drawn onto the frame.
- *
- * @param cvFrame - The cv::Mat frame to copy the detection overlay image to.
- * @return std::future<bool> - The future that will be set to true when the frame is copied.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-05-05
- ******************************************************************************/
-std::future<bool> ObjectDetector::RequestLastGoodDetectionOverlayFrame(cv::Mat& cvFrame)
-{
-    // Assemble the DataFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eObjectDetection);
-
-    // Acquire lock on pool copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qLastGoodDetectionOverlayFramesCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrameStatus->get_future();
-}
-
-/******************************************************************************
- * @brief Request a copy of the most update to date vector of the detected objects
- *    from all detection methods.
- *
- * @param vObjects - The vector of detected objects to copy the detected objects to.
- * @return std::future<bool> - The future that will be set to true when the objects are copied.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-05-05
- ******************************************************************************/
-std::future<bool> ObjectDetector::RequestDetectedObjects(std::vector<objectdetectutils::Object>& vObjects)
-{
-    // Assemble the DataFetchContainer.
-    containers::DataFetchContainer<std::vector<objectdetectutils::Object>> stContainer(vObjects);
-
-    // Acquire lock on pool copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qDetectedObjectCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedDataStatus->get_future();
-}
+void ObjectDetector::PooledLinearCode() {}
 
 /******************************************************************************
  * @brief Initialize the PyTorch interpreter for object detection.
@@ -533,11 +514,13 @@ std::future<bool> ObjectDetector::RequestDetectedObjects(std::vector<objectdetec
 bool ObjectDetector::InitTorchDetection(const std::string& szModelPath, yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice)
 {
     // Initialize a new YOLOModel object.
-    m_pTorchDetector = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice);
+    std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> pNewDetector = std::make_shared<yolomodel::pytorch::PyTorchInterpreter>(szModelPath, eDevice);
 
     // Check if device/model was opened without issue.
-    if (m_pTorchDetector->IsReadyForInference())
+    if (pNewDetector->IsReadyForInference())
     {
+        // Atomically publish the ready model so the producer thread sees it without a race.
+        std::atomic_store_explicit(&m_pTorchDetector, pNewDetector, std::memory_order_release);
         // Update member variable.
         m_bTorchInitialized = true;
         // Return status.

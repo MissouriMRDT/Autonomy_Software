@@ -82,10 +82,17 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     }
 
     // Assign member variables.
-    m_szCameraPath              = szWebsocketAddress;
-    m_szFullStreamName          = szFullStreamName;
-    m_nNumFrameRetrievalThreads = nNumFrameRetrievalThreads;
-    m_bQueueTogglesAlreadyReset = false;
+    m_szCameraPath                     = szWebsocketAddress;
+    m_szFullStreamName                 = szFullStreamName;
+    m_nNumFrameRetrievalThreads        = nNumFrameRetrievalThreads;
+    m_bCameraPositionalTrackingEnabled = false;
+    // Initialize pose offsets to zero (previously left uninitialized).
+    m_dPoseOffsetX  = 0.0;
+    m_dPoseOffsetY  = 0.0;
+    m_dPoseOffsetZ  = 0.0;
+    m_dPoseOffsetXO = 0.0;
+    m_dPoseOffsetYO = 0.0;
+    m_dPoseOffsetZO = 0.0;
 
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
     m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
@@ -121,6 +128,12 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+
+    // Publish an initial status snapshot. The producer thread is not running yet, so this is the
+    // only thread touching the streams and the call is safe here. Without it every status accessor
+    // (notably GetCameraModel(), which other components read while being constructed) would see a
+    // null snapshot and report defaults until the producer's first iteration.
+    this->PublishStatus();
 }
 
 /******************************************************************************
@@ -132,19 +145,20 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
  ******************************************************************************/
 SIMZEDCam::~SIMZEDCam()
 {
-    // Close the WebRTC connections.
-    if (m_pRGBStream)
-    {
-        m_pRGBStream->CloseConnection();
-    }
-    if (m_pDepthImageStream)
-    {
-        m_pDepthImageStream->CloseConnection();
-    }
-
-    // Stop threaded code.
+    // Stop threaded code FIRST. The producer thread owns the stream objects: its reconnect path
+    // (ImplReconnectStreams) closes, destroys and rebuilds them. Touching those pointers from this
+    // thread before the producer is joined races that rebuild and can hang inside CloseConnection().
+    // Once Join() returns, this thread is the only one left that can reach the streams.
     this->RequestStop();
     this->Join();
+
+    // Do NOT close the streams explicitly here. ~WebRTC already closes its own connections, and
+    // calling CloseConnection() first makes every stream pay the close-wait twice. The unique_ptr
+    // members are destroyed after this body runs, which is still safely after Join().
+
+    // Shut down the command queue so any command posted after the producer thread stopped is
+    // cancelled (its future resolves with an error) rather than left stranded.
+    m_cmdQueue.Shutdown();
 }
 
 /******************************************************************************
@@ -283,10 +297,10 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
 
 /******************************************************************************
  * @brief The code inside this private method runs in a separate thread, but still
- *      has access to this*. This method continuously get new frames from the OpenCV
- *      VideoCapture object and stores it in a member variable. Then a thread pool is
- *      started and joined once per iteration to mass copy the frames and/or measure
- *      to any other thread waiting in the queues.
+ *      has access to this*. This method continuously gets new frames from the simulator
+ *      stream and publishes a deep-copied snapshot of each one, but only while at least one
+ *      consumer is subscribed. Consumers read the newest snapshot on their own schedule, so
+ *      this loop never waits on them.
  *
  *
  *
@@ -295,141 +309,133 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
  ******************************************************************************/
 void SIMZEDCam::ThreadedContinuousCode()
 {
-    // Acquire a lock on the rover pose mutex.
-    std::unique_lock<std::shared_mutex> lkRoverPoseLock(m_muCurrentRoverPoseMutex);
-    // Check if the NavBoard pointer is valid.
+    // 1. Control channel in. SetPositionalPose/ResetPositionalTracking run here, on this thread.
+    m_cmdQueue.DrainAll();
+
+    // 2. Handle disconnected streams. This thread NEVER stops itself when the simulator is
+    //    unreachable: it idles, retries the connection on a monotonic timer, and publishes NO
+    //    imagery. Publishing while disconnected would emit the constructor's all-black scratch
+    //    Mats at full rate with an advancing sequence number, which consumers cannot distinguish
+    //    from real frames and which defeats their "skip if unchanged" short circuit.
+    if (!this->GetStreamsAreConnected())
+    {
+        // Log the connected -> disconnected transition exactly once instead of every iteration.
+        if (m_bLastKnownOpenState)
+        {
+            // Remember the new state so we do not log again until it changes back.
+            m_bLastKnownOpenState = false;
+            // Submit logger message.
+            LOG_CRITICAL(logging::g_qSharedLogger,
+                         "SIM camera {} streams are not connected (is the simulator running at {}?). Retrying every {} ms; this thread will keep running.",
+                         m_szFullStreamName,
+                         m_szCameraPath,
+                         constants::SIM_STREAM_RECONNECT_RETRY_INTERVAL.count());
+        }
+
+        // Rate limit reconnect attempts on a monotonic deadline. WebRTC does not retry on its
+        // own (ConnectToSignallingServer is called once at construction and onClosed only logs),
+        // so rebuilding the stream objects here is what recovers a simulator that starts late.
+        if (m_tmReconnectTimer.Ready())
+        {
+            // Rebuild both stream objects and reattach their frame callbacks.
+            this->ImplReconnectStreams();
+        }
+
+        // Publish the updated (disconnected) status and produce no data this iteration.
+        this->PublishStatus();
+        return;
+    }
+
+    // Log the disconnected -> connected transition exactly once.
+    if (!m_bLastKnownOpenState)
+    {
+        // Remember the new state so the recovery is reported a single time.
+        m_bLastKnownOpenState = true;
+        // Submit logger message.
+        LOG_INFO(logging::g_qSharedLogger, "SIM camera {} streams have connected and are producing frames.", m_szFullStreamName);
+    }
+
+    // 3. Poll the NavBoard for the current rover pose. m_stCurrentRoverPose is owning-thread-local.
     if (globals::g_pNavigationBoard != nullptr)
     {
         // Get the current rover pose from the NavBoard.
         m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
     }
-    // Release lock.
-    lkRoverPoseLock.unlock();
 
-    // Check if the depth image WebRTC connection is open.
-    if (m_pDepthImageStream != nullptr && m_pDepthImageStream->GetIsConnected())
+    // 4. RGB frame out. The RGB callback writes m_cvFrame on a foreign thread, so read under the lock.
+    if (m_pubFrameCPU.HasSubscribers())
     {
-        // Acquire a lock on the WebRTC mutex.
-        std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
-        // Estimate the depth measure from the depth image.
-        this->EstimateDepthMeasure(m_cvDepthImage, m_cvDepthMeasure);
-        // Check if the depth image is empty.
-        if (m_cvDepthImage.empty())
+        // Acquire a read lock so the WebRTC callback does not write m_cvFrame mid-copy.
+        std::shared_lock<std::shared_mutex> lkRGB(m_muWebRTCRGBImageCopyMutex);
+        if (!m_cvFrame.empty())
         {
-            // Release lock.
-            lkWebRTC2.unlock();
-            return;
+            // Deep copy the frame into a pooled snapshot and publish.
+            std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubFrameCPU.Acquire();
+            m_cvFrame.copyTo(pSlot->tData);
+            lkRGB.unlock();
+            m_pubFrameCPU.Publish(std::move(pSlot));
         }
-        // Release lock.
-        lkWebRTC2.unlock();
-
-        // Calculate the point cloud from the estimated depth measure.
-        this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
     }
 
-    // Acquire a shared_lock on the frame copy queue.
-    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Check if the frame copy queue is empty.
-    if (!m_qFrameCopySchedule.empty() || !m_qPoseCopySchedule.empty() || !m_qSensorsCopySchedule.empty())
+    // 5. Depth image and the products derived from it (measure, point cloud).
+    const bool bDepthImageWanted   = m_pubDepthImageCPU.HasSubscribers();
+    const bool bDepthMeasureWanted = m_pubDepthMeasureCPU.HasSubscribers();
+    const bool bPointCloudWanted   = m_pubPointCloudCPU.HasSubscribers();
+    if (bDepthImageWanted || bDepthMeasureWanted || bPointCloudWanted)
     {
-        // Add the length of all queues together to determine the number of tasks to create.
-        size_t siTotalQueueLength = m_qFrameCopySchedule.size() + m_qPoseCopySchedule.size() + m_qSensorsCopySchedule.size();
-
-        // Acquire shared lock on the WebRTC mutex, so that the WebRTC connection doesn't try to write to the Mats while they are being copied in the thread pool.
-        std::shared_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
-        std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
-
-        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-        this->RunDetachedPool(siTotalQueueLength, m_nNumFrameRetrievalThreads);
-
-        // Get current time.
-        std::chrono::_V2::system_clock::duration tmCurrentTime = std::chrono::high_resolution_clock::now().time_since_epoch();
-        // Only reset once every couple seconds.
-        if (std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime).count() % 31 == 0 && !m_bQueueTogglesAlreadyReset)
+        // Under the depth lock, publish the depth image and compute the depth measure (both need m_cvDepthImage).
+        bool bHaveDepth = false;
         {
-            // Reset queue counters.
-            m_bPosesQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-            m_bSensorsQueued.store(false, ATOMIC_MEMORY_ORDER_METHOD);
-
-            // Set reset toggle.
-            m_bQueueTogglesAlreadyReset = true;
-        }
-        // Crucial for toggle action. If time is not evenly devisable and toggles have previously been set, reset queue reset boolean.
-        else if (m_bQueueTogglesAlreadyReset)
-        {
-            // Reset reset toggle.
-            m_bQueueTogglesAlreadyReset = false;
+            // Acquire a read lock so the WebRTC callback does not write m_cvDepthImage mid-read.
+            std::shared_lock<std::shared_mutex> lkDepth(m_muWebRTCDepthImageCopyMutex);
+            if (!m_cvDepthImage.empty())
+            {
+                // Mark that we have a valid depth image this iteration.
+                bHaveDepth = true;
+                // Publish the depth image.
+                if (bDepthImageWanted)
+                {
+                    // Deep copy the depth image into a pooled snapshot and publish.
+                    std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDepthImageCPU.Acquire();
+                    m_cvDepthImage.copyTo(pSlot->tData);
+                    m_pubDepthImageCPU.Publish(std::move(pSlot));
+                }
+                // Compute the depth measure (needed by both the measure and point-cloud publishers).
+                if (bDepthMeasureWanted || bPointCloudWanted)
+                {
+                    // Estimate the depth measure from the depth image into the producer-local Mat.
+                    this->EstimateDepthMeasure(m_cvDepthImage, m_cvDepthMeasure);
+                }
+            }
         }
 
-        // Wait for thread pool to finish.
-        this->JoinPool();
-
-        // Release lock on WebRTC mutex.
-        lkWebRTC.unlock();
-        lkWebRTC2.unlock();
+        // Depth measure and point cloud are producer-local, so publish them outside the depth lock.
+        if (bHaveDepth)
+        {
+            // Publish the depth measure.
+            if (bDepthMeasureWanted)
+            {
+                // Deep copy the depth measure into a pooled snapshot and publish.
+                std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDepthMeasureCPU.Acquire();
+                m_cvDepthMeasure.copyTo(pSlot->tData);
+                m_pubDepthMeasureCPU.Publish(std::move(pSlot));
+            }
+            // Compute and publish the point cloud.
+            if (bPointCloudWanted)
+            {
+                // Calculate the point cloud from the estimated depth measure.
+                this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
+                // Deep copy the point cloud into a pooled snapshot and publish.
+                std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubPointCloudCPU.Acquire();
+                m_cvPointCloud.copyTo(pSlot->tData);
+                m_pubPointCloudCPU.Publish(std::move(pSlot));
+            }
+        }
     }
 
-    // Release lock on frame copy queue.
-    lkSchedulers.unlock();
-}
-
-/******************************************************************************
- * @brief This method holds the code that is ran in the thread pool started by
- *      the ThreadedLinearCode() method. It copies the data from the different
- *      data objects to references of the same type stored in a vector queued up by the
- *      Grab methods.
- *
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-09-30
- ******************************************************************************/
-void SIMZEDCam::PooledLinearCode()
-{
-    /////////////////////////////
-    //  Frame queue.
-    /////////////////////////////
-
-    // Acquire mutex for getting frames out of the queue.
-    std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
-    // Check if the queue is empty.
-    if (!m_qFrameCopySchedule.empty())
+    // 6. Pose out (only while positional tracking is enabled).
+    if (m_bCameraPositionalTrackingEnabled.load(std::memory_order_acquire) && m_pubPose.HasSubscribers())
     {
-        // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qFrameCopySchedule.front();
-        // Pop out of queue.
-        m_qFrameCopySchedule.pop();
-        // Release lock.
-        lkFrameQueue.unlock();
-
-        // Determine which frame should be copied.
-        switch (stContainer.eFrameType)
-        {
-            case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = m_cvFrame.clone(); break;
-            case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = m_cvDepthImage.clone(); break;
-            case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = m_cvDepthMeasure.clone(); break;
-            case PIXEL_FORMATS::eXYZ: *(stContainer.pFrame) = m_cvPointCloud.clone(); break;
-            default: *(stContainer.pFrame) = m_cvFrame.clone(); break;
-        }
-
-        // Signal future that the frame has been successfully retrieved.
-        stContainer.pCopiedFrameStatus->set_value(true);
-    }
-
-    /////////////////////////////
-    //  Pose queue.
-    /////////////////////////////
-    // Acquire mutex for getting data out of the pose queue.
-    std::unique_lock<std::shared_mutex> lkPoseQueue(m_muPoseCopyMutex);
-    // Check if the queue is empty.
-    if (!m_qPoseCopySchedule.empty())
-    {
-        // Get pose container out of queue.
-        containers::DataFetchContainer<Pose> stContainer = m_qPoseCopySchedule.front();
-        // Pop out of queue.
-        m_qPoseCopySchedule.pop();
-        // Release lock.
-        lkPoseQueue.unlock();
-
         // Get angle realignments.
         double dNewYO = numops::InputAngleModulus<double>(m_stCurrentRoverPose.GetCompassHeading() + m_dPoseOffsetYO, 0.0, 360.0);
         // Repack values into pose.
@@ -439,239 +445,75 @@ void SIMZEDCam::PooledLinearCode()
                     m_dPoseOffsetXO,
                     dNewYO,
                     m_dPoseOffsetZO);
-
-        // ISSUE NOTE: Might be in the future if we ever change our coordinate system on the ZED. This can be used to fix the directions of the Pose's coordinate system.
-        // // Check ZED coordinate system.
-        // switch (m_slCameraParams.coordinate_system)
-        // {
-        //     case sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP:
-        //     {
-        //         // Realign based in the signedness of this coordinate system. Z is backwards.
-        //         stPose.stTranslation.dZ *= -1;
-        //         break;
-        //     }
-        //     default:
-        //     {
-        //         // No need to flip signs for other coordinate systems.
-        //         break;
-        //     }
-        // }
-
-        // Copy pose.
-        *(stContainer.pData) = stPose;
-
-        // Signal future that the data has been successfully retrieved.
-        stContainer.pCopiedDataStatus->set_value(true);
+        // Acquire a pooled slot, store the pose, and publish.
+        std::shared_ptr<pubsub::Snapshot<Pose>> pSlot = m_pubPose.Acquire();
+        pSlot->tData                                  = stPose;
+        m_pubPose.Publish(std::move(pSlot));
     }
-    else
+
+    // 7. Sensors (IMU) out. The IMU callback writes m_stIMUData on a foreign thread; read under the lock.
+    if (m_pubSensors.HasSubscribers())
     {
-        // Release lock.
-        lkPoseQueue.unlock();
+        // Acquire a read lock so the RoveComm IMU callback does not write m_stIMUData mid-copy.
+        std::shared_lock<std::shared_mutex> lkIMU(m_muIMUDataMutex);
+        // Deep copy the sensor data into a pooled snapshot and publish.
+        std::shared_ptr<pubsub::Snapshot<sl::SensorsData>> pSlot = m_pubSensors.Acquire();
+        pSlot->tData                                             = m_stIMUData;
+        lkIMU.unlock();
+        m_pubSensors.Publish(std::move(pSlot));
     }
 
-    /////////////////////////////
-    //  Sensors queue.
-    /////////////////////////////
-    // Acquire mutex for getting data out of the sensors queue.
-    std::unique_lock<std::shared_mutex> lkSensorsQueue(m_muSensorsCopyMutex);
-    // Check if the queue is empty.
-    if (!m_qSensorsCopySchedule.empty())
-    {
-        // Get pose container out of queue.
-        containers::DataFetchContainer<sl::SensorsData> stContainer = m_qSensorsCopySchedule.front();
-        // Pop out of queue.
-        m_qSensorsCopySchedule.pop();
-        // Release lock.
-        lkSensorsQueue.unlock();
-
-        // Copy pose.
-        *(stContainer.pData) = m_stIMUData;
-
-        // Signal future that the data has been successfully retrieved.
-        stContainer.pCopiedDataStatus->set_value(true);
-    }
-    else
-    {
-        // Release lock.
-        lkSensorsQueue.unlock();
-    }
+    // 8. Status out.
+    this->PublishStatus();
 }
 
 /******************************************************************************
- * @brief Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
- *      Remember, this code will be ran in whatever, class/thread calls it.
+ * @brief Check whether both simulator video streams are currently connected. This is
+ *      the single source of truth for "is this camera open", used by both the producer
+ *      loop's gate and the published CameraStatus.
  *
- * @param cvFrame - A reference to the cv::Mat to store the frame in.
- * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was successfully retrieved.
+ * @return true - Both streams are constructed and connected.
+ * @return false - At least one stream is missing or disconnected.
  *
- * @author ClayJay3 (claytonraycowen@gmail.com)
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-26
+ ******************************************************************************/
+bool SIMZEDCam::GetStreamsAreConnected() const
+{
+    // Both streams must be constructed and their signalling websockets open.
+    return (m_pRGBStream != nullptr && m_pRGBStream->GetIsConnected()) && (m_pDepthImageStream != nullptr && m_pDepthImageStream->GetIsConnected());
+}
+
+/******************************************************************************
+ * @brief Build and publish the SIM camera status snapshot so the status
+ *      accessors are lock-free reads.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-24
+ ******************************************************************************/
+void SIMZEDCam::PublishStatus()
+{
+    // Build the status from the current connection state (queried on the owning thread).
+    CameraStatus stStatus;
+    stStatus.bCameraIsOpen = this->GetStreamsAreConnected();
+    stStatus.bPositionalTrackingEnabled = m_bCameraPositionalTrackingEnabled.load(std::memory_order_acquire) && stStatus.bCameraIsOpen;
+    stStatus.szCameraModel              = "SIMZED2i";
+
+    // Publish the status snapshot.
+    std::shared_ptr<pubsub::Snapshot<CameraStatus>> pSlot = m_pubStatus.Acquire();
+    pSlot->tData                                          = stStatus;
+    m_pubStatus.Publish(std::move(pSlot));
+}
+
+/******************************************************************************
+ * @brief Not used. Frame distribution is handled by the publish-latest mechanism
+ *      in ThreadedContinuousCode(); no per-consumer fan-out work remains.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-09-30
  ******************************************************************************/
-std::future<bool> SIMZEDCam::RequestFrameCopy(cv::Mat& cvFrame)
-{
-    // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
-
-    // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qFrameCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrameStatus->get_future();
-}
-
-/******************************************************************************
- * @brief Requests a depth measure or image from the camera.
- *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
- *      This image has the same shape as a grayscale image, but the values represent the depth in
- *      MILLIMETERS. The ZEDSDK will always return this measure in MILLIMETERS.
- *
- * @param cvDepth - A reference to the cv::Mat to copy the depth frame to.
- * @param bRetrieveMeasure - False to get depth IMAGE instead of MEASURE. Do not use the 8-bit grayscale depth image
- *                  purposes other than displaying depth.
- * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was successfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-26
- ******************************************************************************/
-std::future<bool> SIMZEDCam::RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure)
-{
-    // Create instance variables.
-    PIXEL_FORMATS eFrameType;
-
-    // Check if the container should be set to retrieve an image or a measure.
-    bRetrieveMeasure ? eFrameType = PIXEL_FORMATS::eDepthMeasure : eFrameType = PIXEL_FORMATS::eDepthImage;
-    // Assemble container.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvDepth, eFrameType);
-
-    // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qFrameCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkSchedulers.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrameStatus->get_future();
-}
-
-/******************************************************************************
- * @brief Requests a point cloud image from the camera. This image has the same resolution as a normal
- *      image but with three XYZ values replacing the old color values in the 3rd dimension.
- *      The units and sign of the XYZ values are determined by ZED_MEASURE_UNITS and ZED_COORD_SYSTEM
- *      constants set in AutonomyConstants.h.
- *
- *      Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
- *
- * @param cvPointCloud - A reference to the cv::Mat to copy the point cloud frame to.
- * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was successfully retrieved.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-08-26
- ******************************************************************************/
-std::future<bool> SIMZEDCam::RequestPointCloudCopy(cv::Mat& cvPointCloud)
-{
-    // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvPointCloud, PIXEL_FORMATS::eXYZ);
-
-    // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qFrameCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkSchedulers.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrameStatus->get_future();
-}
-
-/******************************************************************************
- * @brief Puts a sl::GeoPose pointer into a queue so a copy of a GeoPose from the camera can be written to it.
- *
- * @param stPose - A reference to the sl::GeoPose to store the GeoPose in.
- * @return std::future<bool> - A future that should be waited on before the passed in GeoPose is used.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-12-26
- ******************************************************************************/
-std::future<bool> SIMZEDCam::RequestPositionalPoseCopy(ZEDCamera::Pose& stPose)
-{
-    // Check if positional tracking is enabled.
-    if (m_bCameraPositionalTrackingEnabled)
-    {
-        // Assemble the data container.
-        containers::DataFetchContainer<Pose> stContainer(stPose);
-
-        // Acquire lock on pose copy queue.
-        std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-        // Append pose fetch container to the schedule queue.
-        m_qPoseCopySchedule.push(stContainer);
-        // Release lock on the pose schedule queue.
-        lkSchedulers.unlock();
-
-        // Check if pose queue toggle has already been set.
-        if (!m_bPosesQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-        {
-            // Signify that the pose queue is not empty.
-            m_bPosesQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
-        }
-
-        // Return the future from the promise stored in the container.
-        return stContainer.pCopiedDataStatus->get_future();
-    }
-    else
-    {
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "Attempted to get ZED positional pose but positional tracking is not enabled or is still initializing!");
-
-        // Create dummy promise to return the future.
-        std::promise<bool> pmDummyPromise;
-        std::future<bool> fuDummyFuture = pmDummyPromise.get_future();
-        // Set future value.
-        pmDummyPromise.set_value(false);
-
-        // Return unsuccessful.
-        return fuDummyFuture;
-    }
-}
-
-/******************************************************************************
- * @brief Requests a copy of the sensors data from the camera.
- *
- * @param slSensorsData - A reference to the sl::SensorsData to store the sensors data in.
- * @return std::future<bool> - A future that should be waited on before the passed in sensors data is used.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2025-08-26
- ******************************************************************************/
-std::future<bool> SIMZEDCam::RequestSensorsCopy(sl::SensorsData& slSensorsData)
-{
-    // Assemble the DataFetchContainer.
-    containers::DataFetchContainer<sl::SensorsData> stContainer(slSensorsData);
-
-    // Acquire lock on data copy queue.
-    std::unique_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Append data fetch container to the schedule queue.
-    m_qSensorsCopySchedule.push(stContainer);
-    // Release lock on the data schedule queue.
-    lkSchedulers.unlock();
-
-    // Check if pose queue toggle has already been set.
-    if (!m_bSensorsQueued.load(ATOMIC_MEMORY_ORDER_METHOD))
-    {
-        // Signify that the pose queue is not empty.
-        m_bSensorsQueued.store(true, ATOMIC_MEMORY_ORDER_METHOD);
-    }
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedDataStatus->get_future();
-}
+void SIMZEDCam::PooledLinearCode() {}
 
 /******************************************************************************
  * @brief This method is used to reset the positional tracking of the camera.
@@ -684,6 +526,20 @@ std::future<bool> SIMZEDCam::RequestSensorsCopy(sl::SensorsData& slSensorsData)
  * @date 2024-12-26
  ******************************************************************************/
 sl::ERROR_CODE SIMZEDCam::ResetPositionalTracking()
+{
+    // Post to the owning thread and block for the result; the offsets are read by the producer.
+    return this->RunOnOwningThread<sl::ERROR_CODE>([this]() { return this->ImplResetPositionalTracking(); }, sl::ERROR_CODE::FAILURE, "ResetPositionalTracking");
+}
+
+/******************************************************************************
+ * @brief Owning-thread implementation of ResetPositionalTracking().
+ *
+ * @return sl::ERROR_CODE - Always SUCCESS for the simulated camera.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-24
+ ******************************************************************************/
+sl::ERROR_CODE SIMZEDCam::ImplResetPositionalTracking()
 {
     // Reset offsets back to zero.
     m_dPoseOffsetX  = 0.0;
@@ -715,6 +571,44 @@ sl::ERROR_CODE SIMZEDCam::RebootCamera()
     // Join the camera thread.
     this->Join();
 
+    // Tear down and rebuild the streams now that no producer thread is touching them.
+    this->ImplReconnectStreams();
+
+    // Restart the camera thread.
+    this->Start();
+
+    return sl::ERROR_CODE::SUCCESS;
+}
+
+/******************************************************************************
+ * @brief Tear down and rebuild the WebRTC stream objects. Runs on whichever thread owns
+ *      the streams at the time: the producer thread (from the reconnect path in
+ *      ThreadedContinuousCode) or a foreign thread that has already stopped and joined
+ *      the producer (RebootCamera).
+ *
+ * @note Do NOT call RebootCamera() from the producer thread. It calls RequestStop() and
+ *      Join() on itself, and Join() waits on the very thread pool the caller is running
+ *      in, which self-deadlocks (or throws, since the pool is built with
+ *      BS_THREAD_POOL_ENABLE_WAIT_DEADLOCK_CHECK). The producer loop calls this helper
+ *      instead, which never touches thread lifecycle.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-26
+ ******************************************************************************/
+void SIMZEDCam::ImplReconnectStreams()
+{
+    // Close the existing connections so their callbacks stop firing before we destroy them.
+    if (m_pRGBStream != nullptr)
+    {
+        // Shut down the RGB connection.
+        m_pRGBStream->CloseConnection();
+    }
+    if (m_pDepthImageStream != nullptr)
+    {
+        // Shut down the depth connection.
+        m_pDepthImageStream->CloseConnection();
+    }
+
     // Destroy the camera stream objects.
     m_pRGBStream.reset();
     m_pDepthImageStream.reset();
@@ -722,13 +616,8 @@ sl::ERROR_CODE SIMZEDCam::RebootCamera()
     m_pRGBStream        = std::make_unique<WebRTC>(m_szCameraPath, m_szFullStreamName + "RGB");
     m_pDepthImageStream = std::make_unique<WebRTC>(m_szCameraPath, m_szFullStreamName + "DepthImage");
 
-    // Set the frame callbacks.
+    // Set the frame callbacks on the new stream objects.
     this->SetCallbacks();
-
-    // Restart the camera thread.
-    this->Start();
-
-    return sl::ERROR_CODE::SUCCESS;
 }
 
 /******************************************************************************
@@ -782,9 +671,19 @@ void SIMZEDCam::DisablePositionalTracking()
  ******************************************************************************/
 void SIMZEDCam::SetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO)
 {
-    // Acquire lock on the current rover pose mutex.
-    std::unique_lock<std::shared_mutex> lkPose(m_muCurrentRoverPoseMutex);
+    // Post to the owning thread and block until done. This reads m_stCurrentRoverPose, which the
+    // producer thread polls, so it must run on the owning thread to avoid racing it.
+    this->RunOnOwningThreadVoid([this, dX, dY, dZ, dXO, dYO, dZO]() { this->ImplSetPositionalPose(dX, dY, dZ, dXO, dYO, dZO); }, "SetPositionalPose");
+}
 
+/******************************************************************************
+ * @brief Owning-thread implementation of SetPositionalPose().
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-24
+ ******************************************************************************/
+void SIMZEDCam::ImplSetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO)
+{
     // Update offset member variables.
     m_dPoseOffsetX  = dX - m_stCurrentRoverPose.GetUTMCoordinate().dEasting;
     m_dPoseOffsetY  = dY - m_stCurrentRoverPose.GetUTMCoordinate().dAltitude;
@@ -805,7 +704,9 @@ void SIMZEDCam::SetPositionalPose(const double dX, const double dY, const double
  ******************************************************************************/
 bool SIMZEDCam::GetCameraIsOpen()
 {
-    return m_pRGBStream->GetIsConnected() && m_pDepthImageStream->GetIsConnected() && this->GetThreadState() == AutonomyThreadState::eRunning;
+    // Lock-free read of the newest published status snapshot.
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    return pStatus != nullptr && pStatus->tData.bCameraIsOpen && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 
 /******************************************************************************
@@ -848,5 +749,7 @@ std::string SIMZEDCam::GetCameraModel()
  ******************************************************************************/
 bool SIMZEDCam::GetPositionalTrackingEnabled()
 {
-    return m_bCameraPositionalTrackingEnabled && this->GetCameraIsOpen();
+    // Lock-free read of the newest published status snapshot.
+    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
+    return pStatus != nullptr && pStatus->tData.bPositionalTrackingEnabled && this->GetThreadState() == AutonomyThreadState::eRunning;
 }

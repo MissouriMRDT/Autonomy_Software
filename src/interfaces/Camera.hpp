@@ -245,13 +245,10 @@ class Camera : public AutonomyThread<void>
         Pose m_stCameraPoseOffset;
         std::atomic_bool m_bEnableRecordingFlag;
 
-        // Queues and mutexes for scheduling and copying camera frames and data to other threads.
-        std::queue<containers::FrameFetchContainer<T>> m_qFrameCopySchedule;
-        std::shared_mutex m_muPoolScheduleMutex;
-        std::shared_mutex m_muFrameCopyMutex;
-
-        // Declare interface class pure virtual functions. (These must be overriden by inheritor.)
-        virtual std::future<bool> RequestFrameCopy(T& tFrame) = 0;    // This is where the code to retrieve an image from the camera is put.
+        // NOTE: Frame delivery is handled entirely by each concrete camera's publish-latest
+        // channel (see BasicCamera::GetFramePublisher / ZEDCamera::GetFrameCPUPublisher, etc.).
+        // Consumers Subscribe() to express demand and Get() the newest immutable snapshot, so
+        // this interface declares no frame-request method at all.
 
     private:
         // Declare private methods and member variables.

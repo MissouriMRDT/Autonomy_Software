@@ -31,56 +31,46 @@ namespace statemachine
     /******************************************************************************
      * @brief Aggregates all detected objects from each provided object detector.
      *
+     *      Each detector's objects are read as a single lock-free load of its newest immutable
+     *      snapshot, so this never blocks on a detector's loop. Detectors publish their detected
+     *      objects unconditionally (the objects are already computed by the detection pass), so no
+     *      Subscription is required to read this channel.
+     *
      * @param vDetectedObjects - Reference vector that will hold all of the aggregated detected objects.
-     * @param vObjectDetectors - Vector of pointers to object detectors that will be used to request their detected objects.
+     * @param vObjectDetectors - Vector of pointers to object detectors that will be read from.
      *
      * @author Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
      * @date 2025-05-08
      ******************************************************************************/
     inline void LoadDetectedObjects(std::vector<objectdetectutils::Object>& vDetectedObjects, const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors)
     {
-        // Number of object detectors.
-        size_t siNumObjectDetectors = vObjectDetectors.size();
-
-        // Initialize vectors to store detected objects temporarily.
-        std::vector<std::vector<objectdetectutils::Object>> vDetectedObjectBuffers(siNumObjectDetectors);
-
-        // Initialize vectors to store detected objects futures.
-        std::vector<std::future<bool>> vDetectedObjectsFuture;
-
-        // Track exactly which cameras successfully spawned a future to prevent vector crashes.
-        std::vector<bool> vSpawnedFuture(siNumObjectDetectors, false);
-
-        // Request objects from each detector.
-        for (size_t siIdx = 0; siIdx < siNumObjectDetectors; ++siIdx)
+        // Read the newest published objects from each detector.
+        for (const std::shared_ptr<ObjectDetector>& pObjectDetector : vObjectDetectors)
         {
-            // Check if this object detector is ready.
-            if (vObjectDetectors[siIdx]->GetIsReady())
+            // Skip detectors that are not up and running.
+            if (pObjectDetector == nullptr || !pObjectDetector->GetIsReady())
             {
-                // Request detected objects from detector.
-                vDetectedObjectsFuture.emplace_back(vObjectDetectors[siIdx]->RequestDetectedObjects(vDetectedObjectBuffers[siIdx]));
-                vSpawnedFuture[siIdx] = true;
+                // Nothing to aggregate from this detector.
+                continue;
             }
-        }
 
-        // Ensure all requests have been fulfilled.
-        // Then transfer objects from the buffer to vDetectedObjects for the user to access.
-        int nFutureIdx = 0;
-        // Iterate through the total number of detectors to match the buffer and spawned tracking sizes.
-        for (size_t siIdx = 0; siIdx < siNumObjectDetectors; ++siIdx)
-        {
-            // Only check the buffer if the detector was ready and actually spawned a future
-            if (vSpawnedFuture[siIdx])
+            // Load the newest snapshot once into a local so it cannot change while we read it.
+            pubsub::Publisher<std::vector<objectdetectutils::Object>>::SharedSnapshot pSnapshot = pObjectDetector->GetDetectedObjectsPublisher().Get();
+            // Nothing has been published yet.
+            if (pSnapshot == nullptr)
             {
-                // Wait for the correct future to finish
-                vDetectedObjectsFuture[nFutureIdx].get();
-                nFutureIdx++;
+                // Skip this detector for now.
+                continue;
+            }
 
-                // Loop through the detected objects and add them to the vDetectedObjects vector.
-                for (const objectdetectutils::Object& tObject : vDetectedObjectBuffers[siIdx])
-                {
-                    vDetectedObjects.emplace_back(tObject);
-                }
+            // Loop through this detector's objects and aggregate them.
+            for (const objectdetectutils::Object& stObject : pSnapshot->tData)
+            {
+                // Copy the object out, then give the caller its own bounding box instance so nothing
+                // downstream can mutate the shared, immutable snapshot.
+                objectdetectutils::Object stObjectCopy = stObject;
+                stObjectCopy.pBoundingBox              = std::make_shared<cv::Rect2d>(*stObject.pBoundingBox);
+                vDetectedObjects.emplace_back(stObjectCopy);
             }
         }
     }

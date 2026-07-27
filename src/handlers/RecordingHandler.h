@@ -12,6 +12,7 @@
 #define RECORDING_HANDLER_H
 
 #include "../interfaces/BasicCamera.hpp"
+#include "../util/threading/Publisher.hpp"
 #include "../vision/aruco/TagDetector.h"
 #include "../vision/cameras/ZEDCam.h"
 #include "../vision/objects/ObjectDetector.h"
@@ -79,6 +80,7 @@ class RecordingHandler : public AutonomyThread<void>
         void RequestAndWriteTagDetectorFrames();
         void UpdateRecordableObjectDetectors();
         void RequestAndWriteObjectDetectorFrames();
+        void WriteFrameToVideo(const int nFeedIndex);
 
         /////////////////////////////////////////
         // Declare private class member variables.
@@ -94,6 +96,11 @@ class RecordingHandler : public AutonomyThread<void>
         std::vector<bool> m_vRecordingToggles;
         std::vector<cv::Mat> m_vFrames;
         std::vector<cv::cuda::GpuMat> m_vGPUFrames;
-        std::vector<std::future<bool>> m_vFrameFutures;
+
+        // Demand handles for the publish-latest channels this handler records from. A camera or
+        // detector only produces a data type while at least one Subscription for it is alive, so
+        // these are taken when a feed's recording is enabled and released when it is disabled.
+        // This replaces the old per-iteration request/future fan-out entirely.
+        std::vector<pubsub::Subscription> m_vFrameSubscriptions;
 };
 #endif

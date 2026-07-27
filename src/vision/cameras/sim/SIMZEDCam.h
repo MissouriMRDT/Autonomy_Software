@@ -13,6 +13,7 @@
 
 #include "../../../interfaces/AutonomyThread.hpp"
 #include "../../../interfaces/ZEDCamera.hpp"
+#include "../../../util/threading/RetryTimer.hpp"
 #include "WebRTC.h"
 
 /// \cond
@@ -49,11 +50,6 @@ class SIMZEDCam : public ZEDCamera
                   const int nNumFrameRetrievalThreads     = 10,
                   const unsigned int unCameraSerialNumber = 0);
         ~SIMZEDCam();
-        std::future<bool> RequestFrameCopy(cv::Mat& cvFrame) override;
-        std::future<bool> RequestDepthCopy(cv::Mat& cvDepth, const bool bRetrieveMeasure = true);
-        std::future<bool> RequestPointCloudCopy(cv::Mat& cvPointCloud);
-        std::future<bool> RequestPositionalPoseCopy(Pose& stPose) override;
-        std::future<bool> RequestSensorsCopy(sl::SensorsData& slSensorsData) override;
         sl::ERROR_CODE ResetPositionalTracking() override;
         sl::ERROR_CODE RebootCamera() override;
 
@@ -84,6 +80,20 @@ class SIMZEDCam : public ZEDCamera
         void SetCallbacks();
         void EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDepthMeasure);
         void CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud);
+        void PublishStatus();               // Build and publish the CameraStatus snapshot.
+        bool GetStreamsAreConnected() const;    // Single source of truth for "is this camera open".
+        void ImplReconnectStreams();            // Rebuild the WebRTC stream objects. Safe on the producer thread.
+
+        // Reconnect pacing and edge-triggered connected/disconnected logging. The producer thread
+        // never stops itself when the simulator is unreachable; it idles, retries on this
+        // monotonic timer, and logs only when the connection state actually changes.
+        threadutils::RetryTimer m_tmReconnectTimer{constants::SIM_STREAM_RECONNECT_RETRY_INTERVAL};
+        bool m_bLastKnownOpenState = true;
+
+        // Owning-thread implementations of the foreign-thread control methods, run when the
+        // producer drains the command queue.
+        sl::ERROR_CODE ImplResetPositionalTracking();
+        void ImplSetPositionalPose(const double dX, const double dY, const double dZ, const double dXO, const double dYO, const double dZO);
 
         /******************************************************************************
          * @brief Callback function to process incoming IMU data from RoveComm for the SIM ZED Camera.
@@ -99,8 +109,9 @@ class SIMZEDCam : public ZEDCamera
             // Not using this.
             (void) stdAddr;
 
-            // Acquire a write lock on the sensors mutex.
-            std::unique_lock<std::shared_mutex> lkSensorsProcessLock(m_muSensorsCopyMutex);
+            // Acquire a write lock on the IMU data handoff mutex (this callback runs on a foreign
+            // RoveComm thread; the producer thread reads m_stIMUData under the same lock).
+            std::unique_lock<std::shared_mutex> lkSensorsProcessLock(m_muIMUDataMutex);
             // Update IMU data.
             m_stIMUData.imu.linear_acceleration.x = static_cast<float>(stPacket.vData[0]);
             m_stIMUData.imu.linear_acceleration.y = static_cast<float>(stPacket.vData[1]);
@@ -165,35 +176,22 @@ class SIMZEDCam : public ZEDCamera
         double m_dPoseOffsetYO;
         double m_dPoseOffsetZO;
 
-        // Data from NavBoard.
+        // Data from NavBoard. Polled and read only on the owning producer thread (and by the
+        // posted SetPositionalPose command, which also runs there), so no mutex is needed.
 
         geoops::RoverPose m_stCurrentRoverPose;
-        std::shared_mutex m_muCurrentRoverPoseMutex;
 
-        // Mats for storing frames.
+        // Buffers the WebRTC callbacks write into (on foreign decoder threads) and the producer
+        // reads from. The two WebRTC mutexes guard that async, library-driven handoff and must stay.
 
         cv::Mat m_cvFrame;
         cv::Mat m_cvDepthImageBuffer;
         cv::Mat m_cvDepthImage;
-        cv::Mat m_cvDepthMeasure;
-        cv::Mat m_cvPointCloud;
+        cv::Mat m_cvDepthMeasure;    // Producer-computed from m_cvDepthImage.
+        cv::Mat m_cvPointCloud;      // Producer-computed from m_cvDepthMeasure.
 
-        std::queue<containers::DataFetchContainer<Pose>> m_qPoseCopySchedule;
-        std::queue<containers::DataFetchContainer<sl::SensorsData>> m_qSensorsCopySchedule;
-
-        // Mutexes for copying frames from the WebRTC connection to the OpenCV Mats.
-
-        std::shared_mutex m_muWebRTCRGBImageCopyMutex;
-        std::shared_mutex m_muWebRTCDepthImageCopyMutex;
-
-        // Mutexes for copying frames from the ZEDSDK to the OpenCV Mats in PoolLinearCode.
-        std::shared_mutex m_muPoseCopyMutex;
-        std::shared_mutex m_muSensorsCopyMutex;
-
-        // Atomic flags for checking if data is queued.
-
-        bool m_bQueueTogglesAlreadyReset;
-        std::atomic<bool> m_bPosesQueued;
-        std::atomic<bool> m_bSensorsQueued;
+        std::shared_mutex m_muWebRTCRGBImageCopyMutex;      // Guards m_cvFrame (RGB callback <-> producer).
+        std::shared_mutex m_muWebRTCDepthImageCopyMutex;    // Guards m_cvDepthImage (depth callback <-> producer).
+        std::shared_mutex m_muIMUDataMutex;                 // Guards m_stIMUData (RoveComm IMU callback <-> producer).
 };
 #endif

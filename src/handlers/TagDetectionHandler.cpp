@@ -172,36 +172,46 @@ std::shared_ptr<TagDetector> TagDetectionHandler::GetTagDetector(TagDetectors eD
 }
 
 /******************************************************************************
- * @brief Requests a snapshot of the current tag detection overlay. Blocks execution until the frame is ready.
+ * @brief Returns a snapshot of the current tag detection overlay. Does not block: it
+ *      copies whatever the detector published most recently.
  *
- * @param eDetector - The detector to request the frame from.
- * @return cv::Mat - The frame with detection overlays.
+ * @param eDetector - The detector to read the frame from.
+ * @return cv::Mat - The frame with detection overlays, or an empty cv::Mat if the
+ *                  detector is invalid, not ready, or has not published a frame yet.
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2026-01-04
  ******************************************************************************/
-cv::Mat TagDetectionHandler::RequestDetectionOverlayFrame(TagDetectors eDetector)
+cv::Mat TagDetectionHandler::GetDetectionOverlayFrame(TagDetectors eDetector)
 {
+    // Create an empty frame to store the result.
     cv::Mat cvFrame;
+    // Get the requested detector.
     std::shared_ptr<TagDetector> pDetector = this->GetTagDetector(eDetector);
 
-    if (pDetector && pDetector->GetIsReady())
+    // Check if the detector is valid and running.
+    if (pDetector == nullptr || !pDetector->GetIsReady())
     {
-        std::future<bool> fuFrame = pDetector->RequestDetectionOverlayFrame(cvFrame);
-
-        if (fuFrame.wait_for(std::chrono::seconds(1)) == std::future_status::ready)
-        {
-            fuFrame.get();
-        }
-        else
-        {
-            LOG_WARNING(logging::g_qSharedLogger, "TagDetectionHandler: Timed out waiting for overlay snapshot.");
-        }
-    }
-    else
-    {
+        // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "TagDetectionHandler: Requested snapshot from invalid or unready detector.");
+        // Return the empty frame; the state machine handles that case.
+        return cvFrame;
     }
 
+    // Load the newest published overlay snapshot once into a local. This handler holds a
+    // Subscription for the detector's lifetime, so the detector is publishing this channel.
+    pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = pDetector->GetDetectionOverlayPublisher().Get();
+    if (pSnapshot == nullptr)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "TagDetectionHandler: No detection overlay has been published yet.");
+        // Return the empty frame.
+        return cvFrame;
+    }
+
+    // Deep copy the immutable snapshot so the caller owns its frame.
+    pSnapshot->tData.copyTo(cvFrame);
+
+    // Return the frame.
     return cvFrame;
 }

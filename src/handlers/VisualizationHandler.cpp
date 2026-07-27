@@ -69,6 +69,13 @@ VisualizationHandler::VisualizationHandler(int nPort)
  ******************************************************************************/
 VisualizationHandler::~VisualizationHandler()
 {
+    // Stop and join this handler's thread BEFORE tearing down anything it uses. Without this the
+    // base AutonomyThread destructor is the first thing that waits on the thread, and by then the
+    // derived part of this object is already destroyed while ThreadedContinuousCode() (a derived
+    // virtual) may still be executing. Every other AutonomyThread child in the codebase does this.
+    this->RequestStop();
+    this->Join();
+
     // Stop Web Server.
     m_pWebServer.reset();
 }

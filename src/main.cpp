@@ -257,6 +257,11 @@ int main()
         std::shared_ptr<ObjectDetector> pRearObjectDetector = globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam);
         IPS IterPerSecond                                   = IPS();
 
+        // Register demand for the main camera's sensor data for the lifetime of the main loop, so
+        // the 's' console command below always has a snapshot to read. The camera only retrieves
+        // and publishes sensor data while a Subscription is alive.
+        pubsub::Subscription subMainCamSensors = pMainCam->GetSensorsPublisher().Subscribe();
+
         // Create a vector of ints to store the FPS values for each thread.
         std::vector<uint32_t> vThreadFPSValues;
 
@@ -343,13 +348,15 @@ int main()
                     }
                     else if (chTerminalInput == 's' || chTerminalInput == 'S')
                     {
-                        // Get the sensor data from the navigation board.
-                        sl::SensorsData slSensorData;
-                        std::future<bool> fuResult = pMainCam->RequestSensorsCopy(slSensorData);
+                        // Load the newest published sensor snapshot once into a local. Lock free and
+                        // non-blocking; null until the camera has published its first snapshot.
+                        pubsub::Publisher<sl::SensorsData>::SharedSnapshot pSensorSnapshot = pMainCam->GetSensorsPublisher().Get();
 
-                        // Wait for the data to be copied.
-                        if (fuResult.get())
+                        // Only print if the camera has actually published sensor data.
+                        if (pSensorSnapshot != nullptr)
                         {
+                            // Work from the immutable snapshot's data.
+                            const sl::SensorsData& slSensorData = pSensorSnapshot->tData;
                             // Assemble a string to print containing data about the sensor data.
                             std::string szSensorDataInfo = "\n--------[ Sensor Data Info ]--------\n";
                             szSensorDataInfo += "IMU Accel X: " + std::to_string(slSensorData.imu.linear_acceleration.x) + "\n";

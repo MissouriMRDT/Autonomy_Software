@@ -90,6 +90,14 @@ void ObjectDetectionHandler::StartAllDetectors()
 
     // Start ZED rearcam detector.
     m_pObjectDetectorRearCam->Start();
+
+    // Register this handler's demand for every detector's overlay channels. Detectors only clone
+    // and publish overlay frames while a Subscription is alive, so holding these for the lifetime
+    // of the detectors is what keeps GetDetectionOverlayFrame() supplied with frames.
+    m_subMainCamOverlay         = m_pObjectDetectorMainCam->GetDetectionOverlayPublisher().Subscribe();
+    m_subMainCamLastGoodOverlay = m_pObjectDetectorMainCam->GetLastGoodOverlayPublisher().Subscribe();
+    m_subRearCamOverlay         = m_pObjectDetectorRearCam->GetDetectionOverlayPublisher().Subscribe();
+    m_subRearCamLastGoodOverlay = m_pObjectDetectorRearCam->GetLastGoodOverlayPublisher().Subscribe();
 }
 
 /******************************************************************************
@@ -114,6 +122,12 @@ void ObjectDetectionHandler::StartRecording()
  ******************************************************************************/
 void ObjectDetectionHandler::StopAllDetectors()
 {
+    // Drop our overlay demand first so the detectors stop cloning frames nobody will read.
+    m_subMainCamOverlay.Release();
+    m_subMainCamLastGoodOverlay.Release();
+    m_subRearCamOverlay.Release();
+    m_subRearCamLastGoodOverlay.Release();
+
     // Stop recording handler.
     m_pRecordingHandler->RequestStop();
     m_pRecordingHandler->Join();
@@ -162,44 +176,46 @@ std::shared_ptr<ObjectDetector> ObjectDetectionHandler::GetObjectDetector(Object
 }
 
 /******************************************************************************
- * @brief Requests a snapshot of the current detection overlay. Blocks execution until the frame is ready.
+ * @brief Returns a snapshot of the current detection overlay. Does not block: it copies
+ *      whatever the detector published most recently.
  *
- * @param eDetector - The detector to request the frame from.
- * @return cv::Mat - The frame with detection overlays.
+ * @param eDetector - The detector to read the frame from.
+ * @return cv::Mat - The frame with detection overlays, or an empty cv::Mat if the
+ *                  detector is invalid, not ready, or has not published a frame yet.
  *
  * @author Targed (ltklionel@gmail.com)
  * @date 2026-01-01
  ******************************************************************************/
-cv::Mat ObjectDetectionHandler::RequestDetectionOverlayFrame(ObjectDetectors eDetector)
+cv::Mat ObjectDetectionHandler::GetDetectionOverlayFrame(ObjectDetectors eDetector)
 {
-    // Create an empty frame to store the result
+    // Create an empty frame to store the result.
     cv::Mat cvFrame;
-
-    // Get the specific detector (e.g., Head Main Cam)
+    // Get the specific detector (e.g., Head Main Cam).
     std::shared_ptr<ObjectDetector> pDetector = this->GetObjectDetector(eDetector);
 
-    // Check if the detector is valid and running
-    if (pDetector && pDetector->GetIsReady())
+    // Check if the detector is valid and running.
+    if (pDetector == nullptr || !pDetector->GetIsReady())
     {
-        // Request the frame. This returns a "future" (a promise that data will come later)
-        std::future<bool> fuFrame = pDetector->RequestDetectionOverlayFrame(cvFrame);
-
-        // Wait for the detector thread to fulfill the promise
-        if (fuFrame.wait_for(std::chrono::seconds(1)) == std::future_status::ready)
-        {
-            // Retrieve the result (this ensures any exceptions are handled, though rare here)
-            fuFrame.get();
-        }
-        else
-        {
-            LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: Timed out waiting for overlay snapshot.");
-        }
-    }
-    else
-    {
+        // Submit logger message.
         LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: Requested snapshot from invalid or unready detector.");
+        // Return the empty frame; the state machine handles that case.
+        return cvFrame;
     }
 
-    // Return the frame (it will be empty if anything failed, which the State Machine handles)
+    // Load the newest published overlay snapshot once into a local. This handler holds a
+    // Subscription for the detector's lifetime, so the detector is publishing this channel.
+    pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = pDetector->GetDetectionOverlayPublisher().Get();
+    if (pSnapshot == nullptr)
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: No detection overlay has been published yet.");
+        // Return the empty frame.
+        return cvFrame;
+    }
+
+    // Deep copy the immutable snapshot so the caller owns its frame.
+    pSnapshot->tData.copyTo(cvFrame);
+
+    // Return the frame.
     return cvFrame;
 }

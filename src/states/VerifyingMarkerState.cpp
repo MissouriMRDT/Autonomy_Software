@@ -194,10 +194,20 @@ namespace statemachine
                 {
                     if (pTagDetector->GetThreadUUID() == m_stBestArucoTag.szDetectorUUID || pTagDetector->GetThreadUUID() == m_stBestTorchTag.szDetectorUUID)
                     {
-                        std::future<bool> fuFrame = pTagDetector->RequestLastGoodOverlayFrame(cvSnapshot);
-                        if (!fuFrame.get())
+                        // Load the detector's newest last-good overlay snapshot once into a local.
+                        // The TagDetectionHandler holds a Subscription to this channel for the
+                        // detector's lifetime, so it is being published. This read is lock free and
+                        // never blocks on the detector's loop.
+                        pubsub::Publisher<cv::Mat>::SharedSnapshot pSnapshot = pTagDetector->GetLastGoodOverlayPublisher().Get();
+                        if (pSnapshot != nullptr)
                         {
-                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: Failed to request detection overlay frame.");
+                            // Deep copy the immutable snapshot so we own the frame we are about to save.
+                            pSnapshot->tData.copyTo(cvSnapshot);
+                        }
+                        else
+                        {
+                            // Submit logger message.
+                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingMarkerState: No detection overlay frame has been published yet.");
                         }
                         break;
                     }

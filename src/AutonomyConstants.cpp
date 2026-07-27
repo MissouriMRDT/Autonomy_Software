@@ -134,6 +134,25 @@ namespace constants
     const float ZED_DEFAULT_MAXIMUM_DISTANCE     = 40.0;     // Maximum distance in ZED_MEASURE_UNITS to report from depth measurement.
     const float ZED_DEFAULT_FLOOR_PLANE_ERROR    = 0.5;      // The maximum distance that an estimated floor plane can be from the height of the camera from the ground.
     const int ZED_DEPTH_STABILIZATION            = 100;    // This parameter controls a stabilization filter that reduces oscillations in depth map. In the range [0-100]
+    const unsigned long long ZED_POOL_DIAGNOSTICS_INTERVAL = 600;    // Producer iterations between snapshot pool health logs. 600 is ~10s at 60 FPS.
+    // A snapshot is live only while a consumer is mid-read, so the count in flight is
+    // (1 being filled + 1 published + readers overlapping at that instant). Six preallocated slots
+    // cover every current consumer topology without allocating in steady state.
+    const size_t PUBLISHER_POOL_PREALLOC        = 6;
+    // Soft cap on total slots per channel. The pool still grows past this (the producer never
+    // blocks) but the breach is flagged and logged as an error, so a consumer that leaks or
+    // indefinitely holds snapshots surfaces immediately instead of quietly growing toward an OOM.
+    const size_t PUBLISHER_POOL_GROWTH_CEILING  = 24;
+    // How often a disconnected camera retries opening its hardware. The producer thread stays
+    // alive and idle between attempts, so startup order and hot-plugging both work.
+    const std::chrono::milliseconds CAMERA_RECONNECT_RETRY_INTERVAL     = std::chrono::milliseconds(5000);
+    // How often a simulation camera retries connecting its WebRTC streams. Shorter than the
+    // hardware interval because reconnecting a local websocket is cheap.
+    const std::chrono::milliseconds SIM_STREAM_RECONNECT_RETRY_INTERVAL = std::chrono::milliseconds(2000);
+    // Upper bound on how long closing a simulation camera's WebRTC connections may block during
+    // shutdown. A half-negotiated peer can leave a track that never reports closed, so this
+    // guarantees shutdown finishes instead of hanging on it.
+    const std::chrono::milliseconds SIM_STREAM_CLOSE_TIMEOUT            = std::chrono::milliseconds(1000);
     // ZedCam SVO Recording Config.
     const sl::SVO_COMPRESSION_MODE ZED_SVO_COMPRESSION = sl::SVO_COMPRESSION_MODE::H265;    // SVO file compression. H264/H265 minimally affect performance, but need GPU.
     const int ZED_SVO_BITRATE                          = 1000;                              // The video bitrate in kbits/s. 0 or [1000-60000]

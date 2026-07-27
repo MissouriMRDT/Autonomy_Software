@@ -53,6 +53,11 @@ class StateMachineHandler : private AutonomyThread<void>
         std::shared_mutex m_muEventMutex;
         std::atomic_bool m_bSwitchingStates;
         std::shared_ptr<ZEDCamera> m_pMainCam;
+
+        // Persistent demand for the main camera's sensor data. The camera only calls into the SDK
+        // for sensor data while a Subscription is alive, so this handler holds one for its
+        // lifetime and then reads the newest snapshot with a lock-free, non-blocking Get().
+        pubsub::Subscription m_subMainCamSensors;
         std::shared_ptr<ZEDCamera> m_pRearCam;
         geoops::GPSCoordinate m_stCurrentGPSLocation;
         double m_dZEDHeadingOffset;    // This is the offset that is applied to the ZED's heading to align it with the actual heading of the rover.

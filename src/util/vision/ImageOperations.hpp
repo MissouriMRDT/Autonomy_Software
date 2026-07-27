@@ -12,6 +12,8 @@
 #ifndef IMAGE_OPERATIONS_HPP
 #define IMAGE_OPERATIONS_HPP
 
+#include "../../AutonomyLogging.h"
+
 /// \cond
 #include <opencv2/opencv.hpp>
 #include <sl/Camera.hpp>
@@ -49,7 +51,7 @@ namespace imgops
             case sl::MAT_TYPE::F32_C2: nOpenCVType = CV_32FC2; break;
             case sl::MAT_TYPE::F32_C3: nOpenCVType = CV_32FC3; break;
             case sl::MAT_TYPE::F32_C4: nOpenCVType = CV_32FC4; break;
-            case sl::MAT_TYPE::U16_C1: nOpenCVType = CV_16SC1; break;
+            case sl::MAT_TYPE::U16_C1: nOpenCVType = CV_16UC1; break;
             case sl::MAT_TYPE::U8_C1: nOpenCVType = CV_8UC1; break;
             case sl::MAT_TYPE::U8_C2: nOpenCVType = CV_8UC2; break;
             case sl::MAT_TYPE::U8_C3: nOpenCVType = CV_8UC3; break;
@@ -82,7 +84,7 @@ namespace imgops
             case CV_32FC2: slMatType = sl::MAT_TYPE::F32_C2; break;
             case CV_32FC3: slMatType = sl::MAT_TYPE::F32_C3; break;
             case CV_32FC4: slMatType = sl::MAT_TYPE::F32_C4; break;
-            case CV_16SC1: slMatType = sl::MAT_TYPE::U16_C1; break;
+            case CV_16UC1: slMatType = sl::MAT_TYPE::U16_C1; break;
             case CV_8UC1: slMatType = sl::MAT_TYPE::U8_C1; break;
             case CV_8UC2: slMatType = sl::MAT_TYPE::U8_C2; break;
             case CV_8UC3: slMatType = sl::MAT_TYPE::U8_C3; break;

@@ -35,6 +35,15 @@ class TagDetectionHandler
         std::shared_ptr<TagDetector> m_pTagDetectorRearCam;
         std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
+        // Persistent demand for each detector's overlay channels. A detector only clones and
+        // publishes overlay frames while a Subscription is alive, so this handler holds one for
+        // the lifetime of its detectors. That is what keeps GetDetectionOverlayFrame() and any
+        // direct reader of the last-good overlay (for example VerifyingMarkerState) supplied.
+        pubsub::Subscription m_subMainCamOverlay;
+        pubsub::Subscription m_subMainCamLastGoodOverlay;
+        pubsub::Subscription m_subRearCamOverlay;
+        pubsub::Subscription m_subRearCamLastGoodOverlay;
+
     public:
         /////////////////////////////////////////
         // Define public enumerators specific to this class.
@@ -65,7 +74,7 @@ class TagDetectionHandler
 
         std::shared_ptr<TagDetector> GetTagDetector(TagDetectors eDetectorName);
 
-        cv::Mat RequestDetectionOverlayFrame(TagDetectors eDetector = TagDetectors::eHeadMainCam);
+        cv::Mat GetDetectionOverlayFrame(TagDetectors eDetector = TagDetectors::eHeadMainCam);
 };
 
 #endif

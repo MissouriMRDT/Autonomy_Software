@@ -147,3 +147,32 @@ TEST_F(BasicCamTests, GetCameraLocation)
     // Check camera location.
     EXPECT_EQ(basicCam.GetCameraLocation(), "/dev/video0");
 }
+
+/******************************************************************************
+ * @brief Test the publish-latest frame channel. Runs without real camera hardware:
+ *      nothing is ever published, so Get() must return nullptr rather than blocking,
+ *      and the subscription plumbing must be reachable and correct.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-24
+ ******************************************************************************/
+TEST_F(BasicCamTests, FramePublisher)
+{
+    // Create a BasicCam object (the device will not open in CI, so nothing publishes).
+    BasicCam basicCam("/dev/video0", 1280, 720, 30, PIXEL_FORMATS::eBGRA, 90.0, 60.0, false, 1);
+
+    // No consumer has expressed demand yet, and nothing has been published.
+    EXPECT_FALSE(basicCam.GetFramePublisher().HasSubscribers());
+    EXPECT_EQ(basicCam.GetFramePublisher().Get(), nullptr);
+
+    // Subscribing registers demand so the producer knows to publish this channel.
+    pubsub::Subscription subFrames = basicCam.GetFramePublisher().Subscribe();
+    EXPECT_TRUE(basicCam.GetFramePublisher().HasSubscribers());
+
+    // Reading with nothing published must return null immediately rather than blocking.
+    EXPECT_EQ(basicCam.GetFramePublisher().Get(), nullptr);
+
+    // Releasing the last subscription drops demand so the producer stops doing the work.
+    subFrames.Release();
+    EXPECT_FALSE(basicCam.GetFramePublisher().HasSubscribers());
+}

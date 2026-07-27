@@ -56,7 +56,6 @@ BasicCam::BasicCam(const std::string szCameraPath,
     m_cvCamera.set(cv::CAP_PROP_FPS, nPropFramesPerSecond);
 
     // Initialize other member variables.
-    m_bCameraReopenAlreadyChecked = false;
 
     // Attempt to open camera with OpenCV's VideoCapture and print if successfully opened or not.
     if (m_cvCamera.open(szCameraPath))
@@ -69,6 +68,10 @@ BasicCam::BasicCam(const std::string szCameraPath,
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at path/URL {}", szCameraPath);
     }
+
+    // Publish the initial open status. This is the only place the VideoCapture is queried
+    // off the owning thread, and it happens before that thread starts, so it is safe.
+    m_abCameraOpen.store(m_cvCamera.isOpened(), std::memory_order_release);
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
@@ -119,7 +122,6 @@ BasicCam::BasicCam(const int nCameraIndex,
     m_cvCamera.set(cv::CAP_PROP_FPS, nPropFramesPerSecond);
 
     // Initialize other member variables.
-    m_bCameraReopenAlreadyChecked = false;
 
     // Attempt to open camera with OpenCV's VideoCapture.
     m_cvCamera.open(m_nCameraIndex);
@@ -134,6 +136,10 @@ BasicCam::BasicCam(const int nCameraIndex,
         // Submit logger message.
         LOG_ERROR(logging::g_qSharedLogger, "Unable to open camera at video index {}", m_nCameraIndex);
     }
+
+    // Publish the initial open status. This is the only place the VideoCapture is queried
+    // off the owning thread, and it happens before that thread starts, so it is safe.
+    m_abCameraOpen.store(m_cvCamera.isOpened(), std::memory_order_release);
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
@@ -170,10 +176,10 @@ BasicCam::~BasicCam()
 
 /******************************************************************************
  * @brief The code inside this private method runs in a separate thread, but still
- *      has access to this*. This method continuously get new frames from the OpenCV
- *      VideoCapture object and stores it in a member variable. Then a thread pool is
- *      started and joined once per iteration to mass copy the frames and/or measure
- *      to any other thread waiting in the queues.
+ *      has access to this*. This method continuously gets new frames from the OpenCV
+ *      VideoCapture object and publishes a deep-copied snapshot of each one, but only while
+ *      at least one consumer is subscribed. Consumers read the newest snapshot on their own
+ *      schedule, so this loop never waits on them.
  *
  *
  *
@@ -182,160 +188,113 @@ BasicCam::~BasicCam()
  ******************************************************************************/
 void BasicCam::ThreadedContinuousCode()
 {
-    // Check if camera is NOT open.
+    // Check if camera is NOT open. isOpened() only ever runs on this owning thread.
     if (!m_cvCamera.isOpened())
     {
-        // If this is the first iteration of the thread the camera probably isn't present so stop thread to save resources.
-        if (this->GetThreadState() == AutonomyThreadState::eStarting)
-        {
-            // Shutdown threads for this BasicCam.
-            this->RequestStop();
+        // Publish that the camera is not currently open so foreign readers see it lock free.
+        m_abCameraOpen.store(false, std::memory_order_release);
 
+        // Log the open -> closed transition exactly once instead of every iteration.
+        if (m_bLastKnownOpenState)
+        {
+            // Remember the new state so we do not log again until it changes back.
+            m_bLastKnownOpenState = false;
             // Submit logger message.
-            LOG_CRITICAL(logging::g_qSharedLogger, "Camera start was attempted for BasicCam at {}/{}, but camera was never opened!", m_nCameraIndex, m_szCameraPath);
+            LOG_CRITICAL(logging::g_qSharedLogger,
+                         "BasicCam at {}/{} is not open. Retrying every {} ms until it connects; this thread will keep running.",
+                         m_nCameraIndex,
+                         m_szCameraPath,
+                         constants::CAMERA_RECONNECT_RETRY_INTERVAL.count());
         }
-        else
+
+        // Rate limit reopen attempts on a monotonic deadline. This thread NEVER stops itself for a
+        // missing camera: it idles and keeps retrying, so a camera that is absent at startup or
+        // unplugged at runtime is recovered automatically and startup ordering never matters.
+        if (m_tmReconnectTimer.Ready())
         {
-            // Create instance variables.
-            bool bCameraReopened                  = false;
-            std::chrono::time_point tmCurrentTime = std::chrono::system_clock::now();
-            // Convert time point to seconds since epoch
-            int nTimeSinceEpoch = std::chrono::duration_cast<std::chrono::seconds>(tmCurrentTime.time_since_epoch()).count();
+            // Whether this attempt managed to reopen the capture device.
+            bool bCameraReopened = false;
 
-            // Only try to reopen camera every 5 seconds.
-            if (nTimeSinceEpoch % 5 == 0 && !m_bCameraReopenAlreadyChecked)
+            // Check if camera was opened with an index or path.
+            if (m_nCameraIndex == -1)
             {
-                // Check if camera was opened with an index or path.
-                if (m_nCameraIndex == -1)
-                {
-                    // Attempt to reopen camera.
-                    bCameraReopened = m_cvCamera.open(m_szCameraPath);
-                }
-                else
-                {
-                    // Attempt to reopen camera.
-                    bCameraReopened = m_cvCamera.open(m_nCameraIndex);
-                }
-
-                // Check if camera was reopened.
-                if (bCameraReopened)
-                {
-                    // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "Camera {}/{} has been reconnected and reopened!", m_nCameraIndex, m_szCameraPath);
-                }
-                else
-                {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "Attempt to reopen Camera {}/{} has failed! Trying again in 5 seconds...", m_nCameraIndex, m_szCameraPath);
-                    // Sleep for five seconds.
-                }
-
-                // Set toggle.
-                m_bCameraReopenAlreadyChecked = true;
+                // Attempt to reopen camera.
+                bCameraReopened = m_cvCamera.open(m_szCameraPath);
             }
-            else if (nTimeSinceEpoch % 5 != 0)
+            else
             {
-                // Reset toggle.
-                m_bCameraReopenAlreadyChecked = false;
+                // Attempt to reopen camera.
+                bCameraReopened = m_cvCamera.open(m_nCameraIndex);
+            }
+
+            // Check if camera was reopened.
+            if (bCameraReopened)
+            {
+                // Publish the reopened status.
+                m_abCameraOpen.store(true, std::memory_order_release);
+                // Record the closed -> open transition so the recovery is logged once.
+                m_bLastKnownOpenState = true;
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "Camera {}/{} has been reconnected and reopened!", m_nCameraIndex, m_szCameraPath);
+            }
+            else
+            {
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "Attempt to reopen Camera {}/{} has failed! Trying again in {} ms...",
+                            m_nCameraIndex,
+                            m_szCameraPath,
+                            constants::CAMERA_RECONNECT_RETRY_INTERVAL.count());
             }
         }
     }
     else
     {
-        // Check if new frame was computed successfully.
-        if (m_cvCamera.read(m_cvFrame))
-        {
-            // Resize the frame.
-            cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY), 0.0, 0.0, constants::BASICCAM_RESIZE_INTERPOLATION_METHOD);
-        }
-        else
-        {
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Unable to read new frame for camera {}, {}! Closing camera...", m_nCameraIndex, m_szCameraPath);
-            // Release camera capture.
-            m_cvCamera.release();
+        // Publish that the camera is open.
+        m_abCameraOpen.store(true, std::memory_order_release);
 
-            // Fill camera frame member variable with zeros. This ensures a non-corrupt, black image.
-            m_cvFrame = cv::Mat::zeros(m_nPropResolutionY, m_nPropResolutionX, CV_8UC3);
-        }
-    }
+        // Only grab and publish a frame when a consumer actually wants one. With no live
+        // subscribers there is nothing to produce, so we skip the read entirely.
+        if (m_pubFrame.HasSubscribers())
+        {
+            // Check if new frame was read successfully into the producer-local scratch buffer.
+            if (m_cvCamera.read(m_cvFrame))
+            {
+                // Resize the frame to the configured resolution.
+                cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY), 0.0, 0.0, constants::BASICCAM_RESIZE_INTERPOLATION_METHOD);
 
-    // Acquire a shared_lock on the frame copy queue.
-    std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
-    // Check if the frame copy queue is empty.
-    if (!m_qFrameCopySchedule.empty())
-    {
-        // Start the thread pool to store multiple copies of the sl::Mat into the given cv::Mats.
-        this->RunDetachedPool(m_qFrameCopySchedule.size(), m_nNumFrameRetrievalThreads);
-        // Wait for thread pool to finish.
-        this->JoinPool();
-        // Release lock on frame copy queue.
-        lkSchedulers.unlock();
+                // Acquire a pooled snapshot slot and DEEP COPY the frame into it. We must never
+                // publish a Mat that aliases the VideoCapture buffer; copyTo reuses the slot's
+                // existing allocation when the geometry matches, so steady state does not allocate.
+                std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubFrame.Acquire();
+                m_cvFrame.copyTo(pSlot->tData);
+                // Publish the immutable snapshot as the newest frame.
+                m_pubFrame.Publish(std::move(pSlot));
+            }
+            else
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger, "Unable to read new frame for camera {}, {}! Closing camera...", m_nCameraIndex, m_szCameraPath);
+                // Release camera capture.
+                m_cvCamera.release();
+                // Publish the closed status. Publish NO frame; the last good snapshot stays valid
+                // and consumers can detect it is stale via its sequence number and publish time.
+                m_abCameraOpen.store(false, std::memory_order_release);
+            }
+        }
     }
 }
 
 /******************************************************************************
- * @brief This method holds the code that is ran in the thread pool started by
- *      the ThreadedLinearCode() method. It copies the data from the different
- *      data objects to references of the same type stored in a vector queued up by the
- *      Grab methods.
- *
+ * @brief Not used. Frame distribution is handled by the publish-latest mechanism
+ *      in ThreadedContinuousCode(); no per-consumer fan-out work remains, so this
+ *      override is an intentional no-op required only because AutonomyThread
+ *      declares it pure virtual.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2023-09-16
+ * @date 2026-07-24
  ******************************************************************************/
-void BasicCam::PooledLinearCode()
-{
-    // Acquire mutex for getting frames out of the queue.
-    std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
-    // Check if the queue is empty.
-    if (!m_qFrameCopySchedule.empty())
-    {
-        // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qFrameCopySchedule.front();
-        // Pop out of queue.
-        m_qFrameCopySchedule.pop();
-        // Release lock.
-        lkFrameQueue.unlock();
-
-        // Copy frame to data container.
-        *stContainer.pFrame = m_cvFrame.clone();
-        // Signal future that the frame has been successfully retrieved.
-        stContainer.pCopiedFrameStatus->set_value(true);
-    }
-    else
-    {
-        // Release lock.
-        lkFrameQueue.unlock();
-    }
-}
-
-/******************************************************************************
- * @brief Puts a frame pointer into a queue so a copy of a frame from the camera can be written to it.
- *      Remember, this code will be ran in whatever, class/thread calls it.
- *
- * @param cvFrame - A reference to the cv::Mat to store the frame in.
- * @return std::future<bool> - A future that should be waited on before the passed in frame is used.
- *                          Value will be true if frame was successfully retrieved.
- *
- * @author ClayJay3 (claytonraycowen@gmail.com)
- * @date 2023-09-09
- ******************************************************************************/
-std::future<bool> BasicCam::RequestFrameCopy(cv::Mat& cvFrame)
-{
-    // Assemble the FrameFetchContainer.
-    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
-
-    // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
-    // Append frame fetch container to the schedule queue.
-    m_qFrameCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
-    lkScheduler.unlock();
-
-    // Return the future from the promise stored in the container.
-    return stContainer.pCopiedFrameStatus->get_future();
-}
+void BasicCam::PooledLinearCode() {}
 
 /******************************************************************************
  * @brief Accessor for the camera open status.
@@ -348,8 +307,9 @@ std::future<bool> BasicCam::RequestFrameCopy(cv::Mat& cvFrame)
  ******************************************************************************/
 bool BasicCam::GetCameraIsOpen()
 {
-    // Get camera status from OpenCV.
-    return this->GetThreadState() == AutonomyThreadState::eRunning && m_cvCamera.isOpened();
+    // Read the lock-free published open status. The VideoCapture itself is only ever touched
+    // on the owning thread, so foreign callers never race it here.
+    return this->GetThreadState() == AutonomyThreadState::eRunning && m_abCameraOpen.load(std::memory_order_acquire);
 }
 
 /******************************************************************************
