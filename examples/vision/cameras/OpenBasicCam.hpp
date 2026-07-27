@@ -14,6 +14,8 @@
 #include "../../../src/util/ExampleChecker.h"
 #include "../../../src/vision/cameras/BasicCam.h"
 
+#include <tracy/Tracy.hpp>
+
 /******************************************************************************
  * @brief This example demonstrates the proper way to consume frames from a camera.
  *
@@ -46,6 +48,10 @@
  ******************************************************************************/
 void RunExample()
 {
+    // Name this OS thread so it is identifiable in Tracy instead of showing up identically
+    // to every other unnamed thread in the process.
+    tracy::SetThreadName("Main (RunExample)");
+
     // Initialize basic cam.
     std::shared_ptr<BasicCamera> ExampleBasicCam1 = std::make_unique<BasicCam>(0, 1280, 720, 60, PIXEL_FORMATS::eBGR, 0, 0, false);
     // Start basic cam.
@@ -67,9 +73,15 @@ void RunExample()
     // Loop forever, or until user hits ESC.
     while (true)
     {
+        ZoneScopedC(tracy::Color::Wheat1);
+
         // Load the newest published frame ONCE into a local. Everything below works from this
         // local, so the frame cannot change underneath us mid-iteration.
-        pubsub::Publisher<cv::Mat>::SharedSnapshot pFrameSnapshot = ExampleBasicCam1->GetFramePublisher().Get();
+        pubsub::Publisher<cv::Mat>::SharedSnapshot pFrameSnapshot;
+        {
+            ZoneScopedNC("Get Snapshot", tracy::Color::Wheat2);
+            pFrameSnapshot = ExampleBasicCam1->GetFramePublisher().Get();
+        }
 
         // A null snapshot just means the camera has not published a frame yet (it may still be
         // opening). This is not an error and never blocks; simply try again next iteration.
@@ -78,9 +90,12 @@ void RunExample()
             // Remember which frame we processed so a repeat of it is skipped next time.
             ullLastProcessedSequence = pFrameSnapshot->ullSequence;
 
-            // The snapshot is immutable and shared with every other consumer, so clone it before
-            // drawing on it. Doing this on our own thread keeps it off the camera's critical path.
-            cvDisplayFrame = pFrameSnapshot->tData.clone();
+            {
+                ZoneScopedNC("Clone Frame", tracy::Color::Wheat2);
+                // The snapshot is immutable and shared with every other consumer, so clone it before
+                // drawing on it. Doing this on our own thread keeps it off the camera's critical path.
+                cvDisplayFrame = pFrameSnapshot->tData.clone();
+            }
 
             // Print info.
             LOG_INFO(logging::g_qConsoleLogger,
@@ -88,16 +103,19 @@ void RunExample()
                      ExampleBasicCam1->GetIPS().GetAverageIPS(),
                      ExampleBasicCam1->GetIPS().Get1PercentLow());
 
-            // Put FPS on our own copy of the frame.
-            cv::putText(cvDisplayFrame,
-                        std::to_string(ExampleBasicCam1->GetIPS().GetExactIPS()),
-                        cv::Point(50, 50),
-                        cv::FONT_HERSHEY_COMPLEX,
-                        1,
-                        cv::Scalar(255, 255, 255));
+            {
+                ZoneScopedNC("Draw + Display Frame", tracy::Color::Wheat3);
+                // Put FPS on our own copy of the frame.
+                cv::putText(cvDisplayFrame,
+                            std::to_string(ExampleBasicCam1->GetIPS().GetAverageIPS()),
+                            cv::Point(50, 50),
+                            cv::FONT_HERSHEY_COMPLEX,
+                            1,
+                            cv::Scalar(255, 255, 255));
 
-            // Display frame.
-            cv::imshow("BasicCamExample Frame", cvDisplayFrame);
+                // Display frame.
+                cv::imshow("BasicCamExample Frame", cvDisplayFrame);
+            }
         }
 
         // Tick FPS counter.
@@ -105,9 +123,17 @@ void RunExample()
         // Print FPS of main loop.
         LOG_INFO(logging::g_qConsoleLogger, "Main FPS: {}", FPS.GetAverageIPS());
 
-        char chKey = cv::waitKey(1);
+        char chKey;
+        {
+            ZoneScopedNC("waitKey", tracy::Color::Wheat3);
+            chKey = cv::waitKey(1);
+        }
         if (chKey == 27)    // Press 'Esc' key to exit
             break;
+
+        // Marks the end of one example-loop iteration as its own frame, so Tracy's frame
+        // histogram/outlier view shows this consumer loop's iteration timing.
+        FrameMark;
     }
 
     // Close all OpenCV windows.

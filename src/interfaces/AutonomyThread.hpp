@@ -23,6 +23,7 @@
 #include <condition_variable>
 #include <random>
 #include <sstream>
+#include <tracy/Tracy.hpp>
 #include <vector>
 
 /// \endcond
@@ -267,6 +268,22 @@ class AutonomyThread
          * @date 2026-03-21
          ******************************************************************************/
         void SetMainThreadPriority(AutonomyThreadPriority ePriority) { m_eMainThreadPriority = static_cast<BS::pr>(ePriority); }
+
+        /******************************************************************************
+         * @brief Set a human-readable name for the main continuous thread. Without this,
+         *      every AutonomyThread's OS thread is unnamed and profilers/debuggers (Tracy,
+         *      gdb, htop) can only tell them apart by an owning-process name repeated on
+         *      every row, or a raw thread ID.
+         *
+         * @param szName - The name to give the thread. Truncated to 15 characters on Linux
+         *                  (a pthread_setname_np limit), so keep it short.
+         *
+         * @note This will take effect the next time Start() is called.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-07-27
+         ******************************************************************************/
+        void SetMainThreadName(const std::string& szName) { m_szThreadName = szName; }
 
         /******************************************************************************
          * @brief Set the OS priority for the highly parallelized pool threads.
@@ -616,6 +633,7 @@ class AutonomyThread
         std::condition_variable m_cdThreadRunningCondition;
         int m_nMainThreadMaxIterationPerSecond;
         std::string m_szThreadUUID;
+        std::string m_szThreadName;
 
         /////////////////////////////////////////
         // Declare and/or define private methods.
@@ -639,6 +657,15 @@ class AutonomyThread
          ******************************************************************************/
         void RunThread(std::atomic_bool& bStopThread)
         {
+            // Give this OS thread a real name if the derived class set one, so profilers
+            // (Tracy) and system tools (gdb, htop) can tell it apart instead of every
+            // AutonomyThread showing up identically. The underlying pool thread is created
+            // once and reused across Start()/Stop() cycles, so this only needs to run here.
+            if (!m_szThreadName.empty())
+            {
+                tracy::SetThreadName(m_szThreadName.c_str());
+            }
+
             // Declare instance variables.
             std::chrono::_V2::system_clock::time_point tmStartTime;
 

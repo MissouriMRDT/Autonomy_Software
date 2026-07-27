@@ -76,6 +76,9 @@ BasicCam::BasicCam(const std::string szCameraPath,
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+    // Name the OS thread so it is identifiable in Tracy/gdb/htop instead of showing up
+    // identically to every other AutonomyThread in the process.
+    this->SetMainThreadName("BasicCam");
 }
 
 /******************************************************************************
@@ -144,6 +147,9 @@ BasicCam::BasicCam(const int nCameraIndex,
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+    // Name the OS thread so it is identifiable in Tracy/gdb/htop instead of showing up
+    // identically to every other AutonomyThread in the process.
+    this->SetMainThreadName("BasicCam" + std::to_string(nCameraIndex));
 }
 
 /******************************************************************************
@@ -214,6 +220,10 @@ void BasicCam::ThreadedContinuousCode()
         // unplugged at runtime is recovered automatically and startup ordering never matters.
         if (m_tmReconnectTimer.Ready())
         {
+            // VideoCapture::open() re-probes the device/driver and can block for a noticeable
+            // amount of time, so it gets its own zone separate from the steady-state read path.
+            ZoneScopedNC("Reopen Camera", tracy::Color::Pink2);
+
             // Whether this attempt managed to reopen the capture device.
             bool bCameraReopened = false;
 
@@ -259,19 +269,38 @@ void BasicCam::ThreadedContinuousCode()
         // subscribers there is nothing to produce, so we skip the read entirely.
         if (m_pubFrame.HasSubscribers())
         {
-            // Check if new frame was read successfully into the producer-local scratch buffer.
-            if (m_cvCamera.read(m_cvFrame))
+            // Whether the read below succeeded. Kept outside the zone so it is visible after.
+            bool bFrameReadSuccessfully;
             {
-                // Resize the frame to the configured resolution.
-                cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY), 0.0, 0.0, constants::BASICCAM_RESIZE_INTERPOLATION_METHOD);
+                // This is the actual blocking hardware/driver I/O call (V4L2 dequeue + decode),
+                // isolated in its own zone since it is the most likely bottleneck of this loop.
+                ZoneScopedNC("Read Frame", tracy::Color::Pink2);
+                bFrameReadSuccessfully = m_cvCamera.read(m_cvFrame);
+            }
+
+            // Check if new frame was read successfully into the producer-local scratch buffer.
+            if (bFrameReadSuccessfully)
+            {
+                {
+                    ZoneScopedNC("Resize Frame", tracy::Color::Pink3);
+                    // Resize the frame to the configured resolution.
+                    cv::resize(m_cvFrame, m_cvFrame, cv::Size(m_nPropResolutionX, m_nPropResolutionY), 0.0, 0.0, constants::BASICCAM_RESIZE_INTERPOLATION_METHOD);
+                }
 
                 // Acquire a pooled snapshot slot and DEEP COPY the frame into it. We must never
                 // publish a Mat that aliases the VideoCapture buffer; copyTo reuses the slot's
                 // existing allocation when the geometry matches, so steady state does not allocate.
-                std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubFrame.Acquire();
-                m_cvFrame.copyTo(pSlot->tData);
-                // Publish the immutable snapshot as the newest frame.
-                m_pubFrame.Publish(std::move(pSlot));
+                std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot;
+                {
+                    ZoneScopedNC("Acquire + Copy Frame", tracy::Color::Pink3);
+                    pSlot = m_pubFrame.Acquire();
+                    m_cvFrame.copyTo(pSlot->tData);
+                }
+                {
+                    ZoneScopedNC("Publish Frame", tracy::Color::Pink3);
+                    // Publish the immutable snapshot as the newest frame.
+                    m_pubFrame.Publish(std::move(pSlot));
+                }
             }
             else
             {
@@ -285,6 +314,11 @@ void BasicCam::ThreadedContinuousCode()
             }
         }
     }
+
+    // Marks the end of one camera-thread iteration as its own named frame set, so Tracy's
+    // frame histogram/outlier view can be inspected for this thread independent of the app's
+    // main frame loop.
+    FrameMarkNamed("BasicCam");
 }
 
 /******************************************************************************

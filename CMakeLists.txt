@@ -233,7 +233,18 @@ add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 ## Find Tracy
+# Disable automatic call-stack sampling. Tracy silently turns this on whenever the profiled
+# process has root/CAP_SYS_ADMIN (true in this dev container), statistically sampling every
+# thread's instruction pointer via perf_event_open. Most of those addresses land in code
+# without matching debug/frame-pointer info (our own binary, OpenCV, libc) and show up as a
+# flood of unresolved "[unknown]" ghost zones drowning out the actual instrumented zones. This
+# is a build-time client setting, not a per-session viewer toggle, so it has to be disabled
+# here to stay off across every future capture instead of being re-enabled on each new trace.
+set(TRACY_NO_SAMPLING ON CACHE BOOL "Disable call stack sampling" FORCE)
 add_subdirectory(external/tracy)
+# RoveComm_CPP pulls in src/interfaces/AutonomyThread.hpp (via ExternalIncludes.h), which now
+# includes <tracy/Tracy.hpp>, so it needs TracyClient's include directories too.
+target_link_libraries(RoveComm_CPP PRIVATE Tracy::TracyClient)
 
 ## Find Eigen3.
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)

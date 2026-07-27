@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 #include <version>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -302,6 +303,7 @@ namespace pubsub
              ******************************************************************************/
             std::shared_ptr<Snapshot<T>> Acquire()
             {
+                ZoneScoped;
                 // The raw slot pointer we will hand out.
                 Snapshot<T>* pSlot = nullptr;
 
@@ -360,6 +362,7 @@ namespace pubsub
              ******************************************************************************/
             void Publish(std::shared_ptr<Snapshot<T>> pSnapshot)
             {
+                ZoneScoped;
                 // Ignore a null publish rather than crashing.
                 if (pSnapshot == nullptr)
                 {
@@ -389,7 +392,11 @@ namespace pubsub
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-24
              ******************************************************************************/
-            SharedSnapshot Get() const { return this->LoadLatest(); }
+            SharedSnapshot Get() const
+            {
+                ZoneScoped;
+                return this->LoadLatest();
+            }
 
             /******************************************************************************
              * @brief Register demand for this Publisher's data. Hold the returned
