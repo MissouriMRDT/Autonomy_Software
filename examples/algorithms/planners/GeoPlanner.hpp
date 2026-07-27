@@ -38,7 +38,8 @@ void RunExample()
     geoops::UTMCoordinate stStart{614019.79, 4190069.29, 15, true};
     geoops::UTMCoordinate stEnd{614224.72, 4189924.76, 15, true};
 
-    std::vector<geoops::Waypoint> vPath = pPlanner->PlanPath(pLiDARHandler.get(), stStart, stEnd, 1000.0, 5.0, 0.0, true);
+    // Args are: LiDAR handler, start, end, search radius, max search time (s), corridor padding.
+    std::vector<geoops::Waypoint> vPath = pPlanner->PlanPath(pLiDARHandler.get(), stStart, stEnd, 1000.0, 5.0, 0.0);
 
     // Print the number of waypoints in the path.
     std::cout << "Planned path with " << vPath.size() << " waypoints." << std::endl;

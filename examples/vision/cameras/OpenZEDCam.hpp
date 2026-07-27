@@ -56,24 +56,33 @@ std::string PrintMatrix3f(const sl::Matrix3f& slMatrix)
 }
 
 /******************************************************************************
- * @brief This example demonstrates the proper way to interact with the CameraHandler.
- *      A pointer to a ZEDCam is retrieved and then a couple of local cv::Mat are created
- *      for storing frames. Then, the frames are passed to the RequestFrameCopy function of the
- *      camera and a future is IMMEDIATELY returned. The method call doesn't wait for frame to be
- *      retrieved/copied before returning. This allows you to request multiple frames/data from the
- *      camera non-sequentially.
+ * @brief This example demonstrates the proper way to consume data from a ZEDCam.
  *
- *      Inside the camera thread, the cv::Mat pointer that points to the cv::Mat within THIS class
- *      is written to and an std::promise is set to TRUE. The future that was return now contains this
- *      TRUE value. When the get() method is called on the returned future, the code will block until
- *      the promise is fulfilled (set to TRUE). Once the get() method returns, the cv::Mat within
- *      this class now contains a complete frame and can be display or used in other computer vision
- *      things.
+ *      The ZED exposes one publish-latest channel per data type: BGRA frame, depth
+ *      measure, depth image, point cloud, pose, floor plane, sensors, detected objects,
+ *      batched objects, and camera status. Each has both a CPU (cv::Mat) and a GPU
+ *      (cv::cuda::GpuMat) variant where it makes sense; use the one matching the memory
+ *      mode the camera was configured with (GetUsingGPUMem()).
  *
- *      The same exact process happens for the positional tracking pose that is retrieved from the camera.
- *      Multiple other methods of the ZEDCam class work this way as it allows this thread and other threads
- *      to get multiple pieces of from the camera without slowing it down to an unusable speed.
+ *      Consuming any of them is the same two steps:
  *
+ *      1. Subscribe() once and hold the pubsub::Subscription. The camera calls into the
+ *         ZED SDK for a data type ONLY while something is subscribed to it, so this is
+ *         what turns retrieval on. This is a real performance lever: never subscribe to
+ *         the point cloud if you only need the frame.
+ *
+ *      2. Get() the newest snapshot. This never blocks on the camera loop, so this loop
+ *         and the camera's run at completely independent rates. It returns nullptr until
+ *         the first publish, and after a failed grab the last good snapshot stays valid
+ *         (compare ullSequence / tmPublished to detect staleness).
+ *
+ *      Load each snapshot ONCE into a local and work from that local. Snapshots are
+ *      immutable and shared with every other consumer, so clone before modifying.
+ *
+ *      Note the ordering of the feature-enable calls below: configuring the camera BEFORE
+ *      Start() runs those commands inline on this thread, which is both simpler and
+ *      faster. Calling them after Start() also works, but they are then posted to the
+ *      camera thread and this thread blocks until it drains them (up to one frame period).
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-07-22
@@ -85,10 +94,9 @@ void RunExample()
 
     // Get pointer to camera.
     std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-    // Start ZED cam.
-    ExampleZEDCam1->Start();
 
-    // Turn on ZED features.
+    // Turn on ZED features BEFORE starting the camera thread so these run inline instead of
+    // being posted to the camera thread and waited on.
     ExampleZEDCam1->EnablePositionalTracking();
     // Check if we should turn on spatial mapping.
     if (ENABLE_SPATIAL_MAPPING)
@@ -97,17 +105,29 @@ void RunExample()
         ExampleZEDCam1->EnableSpatialMapping();
     }
 
-    // Declare mats to store images in.
+    // Start ZED cam.
+    ExampleZEDCam1->Start();
+
+    // Whether this camera hands out GPU or CPU mats. Decides which channels we subscribe to.
+    const bool bUsingGPUMem = ExampleZEDCam1->GetUsingGPUMem();
+
+    // Register demand for every data type we intend to read. The camera retrieves NOTHING for a
+    // channel with no subscribers, so these handles are what actually turn each retrieval on.
+    // Hold them for as long as we want the data; letting them fall out of scope withdraws demand.
+    pubsub::Subscription subFrame      = bUsingGPUMem ? ExampleZEDCam1->GetFrameGPUPublisher().Subscribe() : ExampleZEDCam1->GetFrameCPUPublisher().Subscribe();
+    pubsub::Subscription subDepthImage = bUsingGPUMem ? ExampleZEDCam1->GetDepthImageGPUPublisher().Subscribe() : ExampleZEDCam1->GetDepthImageCPUPublisher().Subscribe();
+    pubsub::Subscription subPointCloud = bUsingGPUMem ? ExampleZEDCam1->GetPointCloudGPUPublisher().Subscribe() : ExampleZEDCam1->GetPointCloudCPUPublisher().Subscribe();
+    pubsub::Subscription subPose       = ExampleZEDCam1->GetPosePublisher().Subscribe();
+    pubsub::Subscription subSensors    = ExampleZEDCam1->GetSensorsPublisher().Subscribe();
+
+    // Declare mats to store our own working copies in.
     cv::Mat cvNormalFrame1;
     cv::Mat cvDepthFrame1;
     cv::Mat cvPointCloud1;
     cv::Mat cvPointCloudColor1;
-    cv::cuda::GpuMat cvGPUNormalFrame1;
-    cv::cuda::GpuMat cvGPUDepthFrame1;
-    cv::cuda::GpuMat cvGPUPointCloud1;
-    // Declare other data types to store data in.
-    ZEDCam::Pose stPose;
-    sl::SensorsData slSensors;
+
+    // Track which frame we last processed so we can skip iterations with nothing new.
+    unsigned long long ullLastProcessedSequence = 0;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -115,41 +135,58 @@ void RunExample()
     // Loop forever, or until user hits ESC.
     while (true)
     {
-        // Create instance variables.
-        std::future<bool> fuFrameCopyStatus;
-        std::future<bool> fuDepthCopyStatus;
-        std::future<bool> fuPointCloudCopyStatus;
+        // Load the newest snapshot of each channel ONCE into a local. These are lock-free,
+        // non-blocking reads; a null result simply means nothing has been published yet.
+        bool bHaveNewImagery                        = false;
+        unsigned long long ullThisFrameSequence     = 0;
 
         // Check if the camera is setup to use CPU or GPU mats.
-        if (ExampleZEDCam1->GetUsingGPUMem())
+        if (bUsingGPUMem)
         {
-            // Grab frames from camera.
-            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
-            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1, false);
-            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
+            // Load the GPU snapshots.
+            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pFrame      = ExampleZEDCam1->GetFrameGPUPublisher().Get();
+            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pDepth      = ExampleZEDCam1->GetDepthImageGPUPublisher().Get();
+            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pPointCloud = ExampleZEDCam1->GetPointCloudGPUPublisher().Get();
+
+            // Only process once every channel has produced something new.
+            if (pFrame != nullptr && pDepth != nullptr && pPointCloud != nullptr && pFrame->ullSequence != ullLastProcessedSequence)
+            {
+                // Record which frame this is and that we have work to do.
+                ullThisFrameSequence = pFrame->ullSequence;
+                bHaveNewImagery      = true;
+                // Download from GPU memory onto our own mats. Done here, on this thread, off the
+                // camera's critical path.
+                pFrame->tData.download(cvNormalFrame1);
+                pDepth->tData.download(cvDepthFrame1);
+                pPointCloud->tData.download(cvPointCloud1);
+            }
         }
         else
         {
-            // Grab frames from camera.
-            fuFrameCopyStatus      = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
-            fuDepthCopyStatus      = ExampleZEDCam1->RequestDepthCopy(cvDepthFrame1, false);
-            fuPointCloudCopyStatus = ExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
-        }
-        // Grab other info from camera.
-        std::future<bool> fuPoseCopyStatus    = ExampleZEDCam1->RequestPositionalPoseCopy(stPose);
-        std::future<bool> fuSensorsCopyStatus = ExampleZEDCam1->RequestSensorsCopy(slSensors);
+            // Load the CPU snapshots.
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pFrame      = ExampleZEDCam1->GetFrameCPUPublisher().Get();
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pDepth      = ExampleZEDCam1->GetDepthImageCPUPublisher().Get();
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pPointCloud = ExampleZEDCam1->GetPointCloudCPUPublisher().Get();
 
-        // Wait for the frames to be copied.
-        if (fuFrameCopyStatus.get() && fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
-        {
-            // Check if the camera is setup to use CPU or GPU mats.
-            if (ExampleZEDCam1->GetUsingGPUMem())
+            // Only process once every channel has produced something new.
+            if (pFrame != nullptr && pDepth != nullptr && pPointCloud != nullptr && pFrame->ullSequence != ullLastProcessedSequence)
             {
-                // Download memory from gpu mats if necessary.
-                cvGPUNormalFrame1.download(cvNormalFrame1);
-                cvGPUDepthFrame1.download(cvDepthFrame1);
-                cvGPUPointCloud1.download(cvPointCloud1);
+                // Record which frame this is and that we have work to do.
+                ullThisFrameSequence = pFrame->ullSequence;
+                bHaveNewImagery      = true;
+                // Snapshots are immutable and shared, and we draw on these below, so take our own
+                // deep copies rather than aliasing the published buffers.
+                pFrame->tData.copyTo(cvNormalFrame1);
+                pDepth->tData.copyTo(cvDepthFrame1);
+                pPointCloud->tData.copyTo(cvPointCloud1);
             }
+        }
+
+        // Only do the display work when the camera actually produced a new frame.
+        if (bHaveNewImagery)
+        {
+            // Remember which frame we processed so a repeat of it is skipped next time.
+            ullLastProcessedSequence = ullThisFrameSequence;
 
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
@@ -165,9 +202,12 @@ void RunExample()
             // Split color from point cloud.
             imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
 
-            // Wait for the other info to be copied.
-            if (fuPoseCopyStatus.get())
+            // Read the newest pose snapshot. Null until positional tracking has published one.
+            pubsub::Publisher<ZEDCamera::Pose>::SharedSnapshot pPose = ExampleZEDCam1->GetPosePublisher().Get();
+            if (pPose != nullptr)
             {
+                // Work from the immutable snapshot's data.
+                const ZEDCamera::Pose& stPose = pPose->tData;
                 LOG_INFO(logging::g_qConsoleLogger,
                          "Positional Tracking: X: {} | Y: {} | Z: {}",
                          stPose.stTranslation.dX,
@@ -180,12 +220,16 @@ void RunExample()
                          stPose.stEulerAngles.dZO);
             }
 
-            // Wait for sensors data to be copied.
-            if (fuSensorsCopyStatus.get())
+            // Read the newest sensors snapshot. Null until the camera has published one.
+            pubsub::Publisher<sl::SensorsData>::SharedSnapshot pSensors = ExampleZEDCam1->GetSensorsPublisher().Get();
+            if (pSensors != nullptr)
             {
-                // Unpack sensors data.
-                double dRelativeAltitude = slSensors.barometer.relative_altitude;
-                float fTemperature       = 0.0;
+                // Copy the sensors data out of the snapshot. A const reference will not work here:
+                // several ZED SDK accessors (temperature.get(), the covariance members) are not
+                // const qualified. Copying also guarantees we never mutate shared snapshot data.
+                sl::SensorsData slSensors = pSensors->tData;
+                double dRelativeAltitude  = slSensors.barometer.relative_altitude;
+                float fTemperature        = 0.0;
                 slSensors.temperature.get(sl::SensorsData::TemperatureData::SENSOR_LOCATION::IMU, fTemperature);
                 float fMagHeading             = slSensors.magnetometer.magnetic_heading;
                 float fIMUVelocityX           = slSensors.imu.angular_velocity.x;
@@ -253,6 +297,14 @@ void RunExample()
     /////////////////////////////////////////
     // Cleanup.
     /////////////////////////////////////////
+    // Withdraw all of our demand so the camera stops retrieving data nobody is reading. This also
+    // happens automatically when these handles go out of scope.
+    subFrame.Release();
+    subDepthImage.Release();
+    subPointCloud.Release();
+    subPose.Release();
+    subSensors.Release();
+
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
     network::g_bRoveCommUDPStatus = false;
     network::g_bRoveCommTCPStatus = false;

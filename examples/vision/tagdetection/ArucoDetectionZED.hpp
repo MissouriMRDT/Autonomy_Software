@@ -16,9 +16,17 @@
 #include "../../../src/vision/cameras/BasicCam.h"
 
 /******************************************************************************
- * @brief This example demonstrates the proper way to interact with the TagDetectionHandler.
- *      A camera and detector are opened and started, then the detections are requested and logged.
+ * @brief This example demonstrates the proper way to interact with a TagDetector that is
+ *      running on a ZED camera. A camera and detector are opened and started, then their
+ *      published output is read and logged.
  *
+ *      The detector already subscribes to its camera internally, so this example only
+ *      subscribes to what IT wants to display. Note that we pick the camera's frame
+ *      channel to match its configured memory mode (GetUsingGPUMem()); the detector's
+ *      overlay channels are always cv::Mat regardless.
+ *
+ *      All reads are non-blocking Get() calls, so this loop, the detector's loop, and the
+ *      camera's loop all run at completely independent rates.
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-10-08
@@ -39,12 +47,17 @@ void RunExample()
     // Start the basic cam detector.
     ExampleTagDetector1->Start();
 
-    // Declare mats to store images in.
+    // Whether this camera hands out GPU or CPU mats. Decides which frame channel we subscribe to.
+    const bool bUsingGPUMem = ExampleZEDCam1->GetUsingGPUMem();
+
+    // Register demand for the camera frame we display and the detector's overlay frame. Both are
+    // produced only while something is subscribed. The detected-tags channel needs no subscription.
+    pubsub::Subscription subCameraFrame = bUsingGPUMem ? ExampleZEDCam1->GetFrameGPUPublisher().Subscribe() : ExampleZEDCam1->GetFrameCPUPublisher().Subscribe();
+    pubsub::Subscription subDetectionOverlay = ExampleTagDetector1->GetDetectionOverlayPublisher().Subscribe();
+
+    // Declare mats to draw our annotated copies into.
     cv::Mat cvNormalFrame1;
     cv::Mat cvDetectionsFrame1;
-    cv::cuda::GpuMat cvGPUNormalFrame1;
-    // Declare vector to store tag detections in.
-    std::vector<tagdetectutils::ArucoTag> vTagDetections1;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -52,37 +65,36 @@ void RunExample()
     // Loop forever, or until user hits ESC.
     while (true)
     {
-        // Create instance variables.
-        std::future<bool> fuCopyStatus1;
-        std::future<bool> fuDetectionCopyStatus1;
-        std::future<bool> fuDetectionFrameCopyStatus1;
+        // Whether we managed to load a camera frame this iteration.
+        bool bHaveCameraFrame = false;
 
         // Check if the camera is setup to use CPU or GPU mats.
-        if (ExampleZEDCam1->GetUsingGPUMem())
+        if (bUsingGPUMem)
         {
-            // Grab normal frame from camera.
-            fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvGPUNormalFrame1);
+            // Load the newest GPU frame snapshot ONCE into a local.
+            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pFrame = ExampleZEDCam1->GetFrameGPUPublisher().Get();
+            if (pFrame != nullptr && !pFrame->tData.empty())
+            {
+                // Download from GPU memory onto our own mat. Done here, off the camera's critical path.
+                pFrame->tData.download(cvNormalFrame1);
+                bHaveCameraFrame = true;
+            }
         }
         else
         {
-            // Grab normal frame from camera.
-            fuCopyStatus1 = ExampleZEDCam1->RequestFrameCopy(cvNormalFrame1);
-        }
-        // Get detections overlay frame from detector.
-        fuDetectionFrameCopyStatus1 = ExampleTagDetector1->RequestDetectionOverlayFrame(cvDetectionsFrame1);
-        // Grab other info from detector.
-        fuDetectionCopyStatus1 = ExampleTagDetector1->RequestDetectedArucoTags(vTagDetections1);
-
-        // Show first frame copy.
-        if (fuCopyStatus1.get())
-        {
-            // Check if the camera is setup to use CPU or GPU mats.
-            if (ExampleZEDCam1->GetUsingGPUMem())
+            // Load the newest CPU frame snapshot ONCE into a local.
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pFrame = ExampleZEDCam1->GetFrameCPUPublisher().Get();
+            if (pFrame != nullptr && !pFrame->tData.empty())
             {
-                // Download memory from gpu mats if necessary.
-                cvGPUNormalFrame1.download(cvNormalFrame1);
+                // Snapshots are immutable and shared, so clone before drawing on it.
+                cvNormalFrame1   = pFrame->tData.clone();
+                bHaveCameraFrame = true;
             }
+        }
 
+        // Show the camera frame.
+        if (bHaveCameraFrame)
+        {
             // Put FPS on normal frame.
             cv::putText(cvNormalFrame1,
                         std::to_string(ExampleZEDCam1->GetIPS().GetExactIPS()),
@@ -92,12 +104,16 @@ void RunExample()
                         cv::Scalar(255, 255, 255));
 
             // Display frame.
-            cv::imshow("BasicCamExample Frame1", cvNormalFrame1);
+            cv::imshow("ZEDCamExample Frame1", cvNormalFrame1);
         }
 
-        // Show detections overlay frame.
-        if (fuDetectionFrameCopyStatus1.get() && !cvDetectionsFrame1.empty())
+        // Load the newest detection overlay snapshot ONCE into a local.
+        pubsub::Publisher<cv::Mat>::SharedSnapshot pOverlay = ExampleTagDetector1->GetDetectionOverlayPublisher().Get();
+        if (pOverlay != nullptr && !pOverlay->tData.empty())
         {
+            // Snapshots are immutable and shared, so clone before drawing on it.
+            cvDetectionsFrame1 = pOverlay->tData.clone();
+
             // Put detector FPS on frame.
             cv::putText(cvDetectionsFrame1,
                         std::to_string(ExampleTagDetector1->GetIPS().GetExactIPS()),
@@ -110,11 +126,13 @@ void RunExample()
             cv::imshow("Detections Overlay Frame1", cvDetectionsFrame1);
         }
 
-        // Wait for detections to be copied.
-        if (fuDetectionCopyStatus1.get())
+        // Load the newest detected tags snapshot and report it.
+        pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>>::SharedSnapshot pTags = ExampleTagDetector1->GetDetectedTagsPublisher().Get();
+        if (pTags != nullptr)
         {
-            // Print length of detections vector.
-            LOG_INFO(logging::g_qConsoleLogger, "Detections1 vector length: {}", vTagDetections1.size());
+            // Print length of detections vector. Read straight from the snapshot; no copy needed
+            // unless we intended to keep or modify the tags.
+            LOG_INFO(logging::g_qConsoleLogger, "Detections1 vector length: {}", pTags->tData.size());
         }
 
         // Tick FPS counter.
@@ -133,6 +151,11 @@ void RunExample()
     /////////////////////////////////////////
     // Cleanup.
     /////////////////////////////////////////
+    // Withdraw our demand so the camera and detector stop producing data nobody is reading. This
+    // also happens automatically when these handles go out of scope.
+    subCameraFrame.Release();
+    subDetectionOverlay.Release();
+
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
     network::g_bRoveCommUDPStatus = false;
     network::g_bRoveCommTCPStatus = false;

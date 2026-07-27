@@ -15,19 +15,31 @@
 #include "../../../src/vision/cameras/BasicCam.h"
 
 /******************************************************************************
- * @brief This example demonstrates the proper way to interact with the CameraHandler.
- *      A pointer to a BasicCam is retrieved and then a couple of local cv::Mat are created
- *      for storing frames. Then, the frames are passed to the RequestFrameCopy function of the
- *      camera and a future is IMMEDIATELY returned. The method call doesn't wait for frame to be
- *      retrieved/copied before returning. This allows you to request multiple frames/data from the
- *      camera non-sequentially.
+ * @brief This example demonstrates the proper way to consume frames from a camera.
  *
- *      Inside the camera thread, the cv::Mat pointer that points to the cv::Mat within THIS class
- *      is written to and an std::promise is set to TRUE. The future that was return now contains this
- *      TRUE value. When the get() method is called on the returned future, the code will block until
- *      the promise is fulfilled (set to TRUE). Once the get() method returns, the cv::Mat within
- *      this class now contains a complete frame and can be display or used in other computer vision
- *      things.
+ *      Cameras hand data out through a publish-latest channel instead of per-consumer
+ *      requests. There are only two things a consumer does:
+ *
+ *      1. Subscribe() once, and hold the returned pubsub::Subscription for as long as
+ *         you want the data produced. The camera only reads and publishes a data type
+ *         while at least one subscriber is alive, so a channel nobody wants costs
+ *         nothing. Letting the Subscription go out of scope withdraws that demand.
+ *
+ *      2. Get() the newest snapshot whenever you want it. This is a non-blocking read
+ *         that never waits on the camera's loop, so your loop rate and the camera's are
+ *         completely independent. It returns nullptr until the camera has published its
+ *         first frame.
+ *
+ *      Two rules worth internalizing:
+ *
+ *      - Load the snapshot ONCE into a local and work from that local. Calling Get()
+ *        repeatedly returns whatever is newest each time, which is not a stable frame.
+ *      - A published snapshot is immutable and shared with every other consumer. To
+ *        modify it, clone it onto your own frame first, as this example does before
+ *        drawing text on it.
+ *
+ *      The snapshot's ullSequence lets you tell whether the camera has actually produced
+ *      something new since last time, so you can skip redundant work entirely.
  *
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-07-22
@@ -39,9 +51,15 @@ void RunExample()
     // Start basic cam.
     ExampleBasicCam1->Start();
 
-    // Declare mats to store images in.
-    cv::Mat cvNormalFrame1;
-    cv::Mat cvNormalFrame;
+    // Register demand for this camera's frames. Hold this handle for as long as we want the
+    // camera to keep producing; the camera reads nothing while it has no subscribers.
+    pubsub::Subscription subFrames = ExampleBasicCam1->GetFramePublisher().Subscribe();
+
+    // Declare a mat to draw our annotated copy into.
+    cv::Mat cvDisplayFrame;
+
+    // Track which frame we last processed so we can skip iterations with nothing new.
+    unsigned long long ullLastProcessedSequence = 0;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -49,21 +67,29 @@ void RunExample()
     // Loop forever, or until user hits ESC.
     while (true)
     {
-        // Grab normal frame from camera.
-        std::future<bool> fuCopyStatus1 = ExampleBasicCam1->RequestFrameCopy(cvNormalFrame1);
-        std::future<bool> fuCopyStatus2 = ExampleBasicCam1->RequestFrameCopy(cvNormalFrame2);
+        // Load the newest published frame ONCE into a local. Everything below works from this
+        // local, so the frame cannot change underneath us mid-iteration.
+        pubsub::Publisher<cv::Mat>::SharedSnapshot pFrameSnapshot = ExampleBasicCam1->GetFramePublisher().Get();
 
-        // Show first frame copy.
-        if (fuCopyStatus1.get() && !cvNormalFrame1.empty())
+        // A null snapshot just means the camera has not published a frame yet (it may still be
+        // opening). This is not an error and never blocks; simply try again next iteration.
+        if (pFrameSnapshot != nullptr && pFrameSnapshot->ullSequence != ullLastProcessedSequence)
         {
+            // Remember which frame we processed so a repeat of it is skipped next time.
+            ullLastProcessedSequence = pFrameSnapshot->ullSequence;
+
+            // The snapshot is immutable and shared with every other consumer, so clone it before
+            // drawing on it. Doing this on our own thread keeps it off the camera's critical path.
+            cvDisplayFrame = pFrameSnapshot->tData.clone();
+
             // Print info.
             LOG_INFO(logging::g_qConsoleLogger,
                      "BasicCam Getter FPS: {} | 1% Low: {}",
                      ExampleBasicCam1->GetIPS().GetAverageIPS(),
                      ExampleBasicCam1->GetIPS().Get1PercentLow());
 
-            // Put FPS on normal frame.
-            cv::putText(cvNormalFrame1,
+            // Put FPS on our own copy of the frame.
+            cv::putText(cvDisplayFrame,
                         std::to_string(ExampleBasicCam1->GetIPS().GetExactIPS()),
                         cv::Point(50, 50),
                         cv::FONT_HERSHEY_COMPLEX,
@@ -71,28 +97,7 @@ void RunExample()
                         cv::Scalar(255, 255, 255));
 
             // Display frame.
-            cv::imshow("BasicCamExample Frame1", cvNormalFrame1);
-        }
-
-        // Show second frame copy.
-        if (fuCopyStatus2.get() && !cvNormalFrame2.empty())
-        {
-            // Print info.
-            LOG_INFO(logging::g_qConsoleLogger,
-                     "BasicCam Getter FPS: {} | 1% Low: {}",
-                     ExampleBasicCam1->GetIPS().GetAverageIPS(),
-                     ExampleBasicCam1->GetIPS().Get1PercentLow());
-
-            // Put FPS on normal frame.
-            cv::putText(cvNormalFrame2,
-                        std::to_string(ExampleBasicCam1->GetIPS().GetExactIPS()),
-                        cv::Point(50, 50),
-                        cv::FONT_HERSHEY_COMPLEX,
-                        1,
-                        cv::Scalar(255, 255, 255));
-
-            // Display frame.
-            cv::imshow("BasicCamExample Frame2", cvNormalFrame2);
+            cv::imshow("BasicCamExample Frame", cvDisplayFrame);
         }
 
         // Tick FPS counter.
@@ -111,6 +116,9 @@ void RunExample()
     /////////////////////////////////////////
     // Cleanup.
     /////////////////////////////////////////
+    // Withdraw our demand so the camera stops producing frames nobody is reading. This also
+    // happens automatically when subFrames goes out of scope.
+    subFrames.Release();
     // Stop camera threads.
     globals::g_pCameraHandler->StopAllCameras();
 }

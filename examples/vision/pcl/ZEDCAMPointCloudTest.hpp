@@ -128,16 +128,19 @@ void RunExample()
     // Start ZED cam.
     pExampleZEDCam1->Start();
 
-    // Declare mats to store images in.
-    cv::Mat cvNormalFrame1;
+    // Whether this camera hands out GPU or CPU mats. Decides which channels we subscribe to.
+    const bool bUsingGPUMem = pExampleZEDCam1->GetUsingGPUMem();
+
+    // Register demand for the depth measure and point cloud. The camera calls into the ZED SDK for
+    // these ONLY while something is subscribed, so these handles are what turn retrieval on.
+    pubsub::Subscription subDepthMeasure =
+        bUsingGPUMem ? pExampleZEDCam1->GetDepthMeasureGPUPublisher().Subscribe() : pExampleZEDCam1->GetDepthMeasureCPUPublisher().Subscribe();
+    pubsub::Subscription subPointCloud =
+        bUsingGPUMem ? pExampleZEDCam1->GetPointCloudGPUPublisher().Subscribe() : pExampleZEDCam1->GetPointCloudCPUPublisher().Subscribe();
+
+    // Declare mats to store our own working copies in.
     cv::Mat cvDepthFrame1;
     cv::Mat cvPointCloud1;
-    cv::Mat cvPointCloudColor1;
-    cv::cuda::GpuMat cvGPUNormalFrame1;
-    cv::cuda::GpuMat cvGPUDepthFrame1;
-    cv::cuda::GpuMat cvGPUPointCloud1;
-    // Declare other data types to store data in.
-    ZEDCam::Pose stPose;
 
     // Declare FPS counter.
     IPS FPS = IPS();
@@ -148,33 +151,41 @@ void RunExample()
     // Loop forever, or until user hits ESC.
     while (true)
     {
-        // Create instance variables.
-        std::future<bool> fuDepthCopyStatus;
-        std::future<bool> fuPointCloudCopyStatus;
+        // Whether both channels produced something we can work with this iteration.
+        bool bHaveNewData = false;
 
         // Check if the camera is setup to use CPU or GPU mats.
-        if (pExampleZEDCam1->GetUsingGPUMem())
+        if (bUsingGPUMem)
         {
-            // Grab frames from camera.
-            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvGPUDepthFrame1);
-            fuPointCloudCopyStatus = pExampleZEDCam1->RequestPointCloudCopy(cvGPUPointCloud1);
+            // Load the newest GPU snapshots ONCE into locals.
+            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pDepth      = pExampleZEDCam1->GetDepthMeasureGPUPublisher().Get();
+            pubsub::Publisher<cv::cuda::GpuMat>::SharedSnapshot pPointCloud = pExampleZEDCam1->GetPointCloudGPUPublisher().Get();
+            if (pDepth != nullptr && pPointCloud != nullptr)
+            {
+                // Download data from GPU matrices onto our own mats.
+                pDepth->tData.download(cvDepthFrame1);
+                pPointCloud->tData.download(cvPointCloud1);
+                bHaveNewData = true;
+            }
         }
         else
         {
-            // Grab frames from camera.
-            fuDepthCopyStatus      = pExampleZEDCam1->RequestDepthCopy(cvDepthFrame1);
-            fuPointCloudCopyStatus = pExampleZEDCam1->RequestPointCloudCopy(cvPointCloud1);
+            // Load the newest CPU snapshots ONCE into locals.
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pDepth      = pExampleZEDCam1->GetDepthMeasureCPUPublisher().Get();
+            pubsub::Publisher<cv::Mat>::SharedSnapshot pPointCloud = pExampleZEDCam1->GetPointCloudCPUPublisher().Get();
+            if (pDepth != nullptr && pPointCloud != nullptr)
+            {
+                // Snapshots are immutable and shared, and the code below writes into these mats,
+                // so take our own deep copies rather than aliasing the published buffers.
+                pDepth->tData.copyTo(cvDepthFrame1);
+                pPointCloud->tData.copyTo(cvPointCloud1);
+                bHaveNewData = true;
+            }
         }
 
-        // Wait for the frames to be copied.
-        if (fuDepthCopyStatus.get() && fuPointCloudCopyStatus.get())
+        // Only do the display work once both channels have published.
+        if (bHaveNewData)
         {
-            if (pExampleZEDCam1->GetUsingGPUMem())
-            {
-                // Download data from GPU matrices.
-                cvGPUDepthFrame1.download(cvDepthFrame1);
-                cvGPUPointCloud1.download(cvPointCloud1);
-            }
 
             // Display the depth frame and set up mouse callback
             if (!cvDepthFrame1.empty())
@@ -267,6 +278,11 @@ void RunExample()
     /////////////////////////////////////////
     // Cleanup.
     /////////////////////////////////////////
+    // Withdraw our demand so the camera stops retrieving depth and point cloud data nobody is
+    // reading. This also happens automatically when these handles go out of scope.
+    subDepthMeasure.Release();
+    subPointCloud.Release();
+
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
     network::g_bRoveCommUDPStatus = false;
     network::g_bRoveCommTCPStatus = false;
