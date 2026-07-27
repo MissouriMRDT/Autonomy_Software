@@ -545,6 +545,7 @@ void VisualizationHandler::UpdateGoalBeacons(const geoops::UTMCoordinate& stRove
  ******************************************************************************/
 std::vector<char> VisualizationHandler::OnRequestTelemetry(const std::string& szQuery)
 {
+    ZoneScopedC(tracy::Color::Tan);
     (void) szQuery;
 
     // Acquire resource lock for reading the path.
@@ -622,6 +623,7 @@ std::vector<char> VisualizationHandler::OnRequestTelemetry(const std::string& sz
  ******************************************************************************/
 std::vector<char> VisualizationHandler::OnRequestPlannedPath(const std::string& szQuery)
 {
+    ZoneScopedC(tracy::Color::Tan);
     (void) szQuery;
 
     // Acquire lock to read planned path.
@@ -659,6 +661,7 @@ std::vector<char> VisualizationHandler::OnRequestPlannedPath(const std::string& 
  ******************************************************************************/
 std::vector<char> VisualizationHandler::OnRequestWaypoints(const std::string& szQuery)
 {
+    ZoneScopedC(tracy::Color::Tan);
     (void) szQuery;
 
     // Acquire locks to read waypoints and goal beacons.
@@ -717,6 +720,7 @@ std::vector<char> VisualizationHandler::OnRequestWaypoints(const std::string& sz
  ******************************************************************************/
 std::vector<char> VisualizationHandler::OnRequestDetections(const std::string& szQuery)
 {
+    ZoneScopedC(tracy::Color::Tan);
     (void) szQuery;
 
     // Acquire lock to read detections.
@@ -757,6 +761,7 @@ std::vector<char> VisualizationHandler::OnRequestDetections(const std::string& s
  ******************************************************************************/
 std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string& szQuery)
 {
+    ZoneScopedC(tracy::Color::Tan);
     (void) szQuery;
     std::string szJson = "[";
     std::string szDir  = logging::g_szLoggingOutputPath + "/detections/";
@@ -865,15 +870,13 @@ std::vector<char> VisualizationHandler::OnRequestPointCloud(const std::string& s
         LOG_WARNING(logging::g_qSharedLogger, "VisualizationHandler: Cannot get point cloud, one or both ZED cameras are not available.");
         return vBuffer;
     }
-    else
-    {
-        std::call_once(m_ocCameraSubscribeOnce,
-                       [this, pFrontCam, pRearCam]()
-                       {
-                           pFrontCam->GetPointCloudCPUPublisher().Subscribe();
-                           pRearCam->GetPointCloudCPUPublisher().Subscribe();
-                       });
-    }
+
+    std::call_once(m_ocCameraSubscribeOnce,
+                   [this, pFrontCam, pRearCam]()
+                   {
+                       m_subFrontPointCloud = pFrontCam->GetPointCloudCPUPublisher().Subscribe();
+                       m_subRearPointCloud  = pRearCam->GetPointCloudCPUPublisher().Subscribe();
+                   });
 
     pubsub::Publisher<cv::Mat>::SharedSnapshot pFrontCloudSnapshot = pFrontCam->GetPointCloudCPUPublisher().Get();
     pubsub::Publisher<cv::Mat>::SharedSnapshot pRearCloudSnapshot  = pRearCam->GetPointCloudCPUPublisher().Get();
@@ -928,6 +931,7 @@ std::vector<char> VisualizationHandler::OnRequestPointCloud(const std::string& s
  ******************************************************************************/
 std::vector<char> VisualizationHandler::OnRequestMap(const std::string& szQuery)
 {
+    ZoneScopedC(tracy::Color::Tan);
     // Declare instance variables with default values.
     float fCenterX  = 0.0f;
     float fCenterY  = 0.0f;

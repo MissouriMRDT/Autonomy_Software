@@ -144,11 +144,11 @@ class SIMZEDCam : public ZEDCamera
         cv::Mat m_cvFrame;
         cv::Mat m_cvDepthImageBuffer;
         cv::Mat m_cvDepthImage;
-        cv::Mat m_cvDepthMeasure;                           // Producer-computed from m_cvDepthImage.
-        cv::Mat m_cvPointCloud;                             // Producer-computed from m_cvDepthMeasure.
+        cv::Mat m_cvDepthMeasure;                                                 // Producer-computed from m_cvDepthImage.
+        cv::Mat m_cvPointCloud;                                                   // Producer-computed from m_cvDepthMeasure.
 
-        std::shared_mutex m_muWebRTCRGBImageCopyMutex;      // Guards m_cvFrame (RGB callback <-> producer).
-        std::shared_mutex m_muWebRTCDepthImageCopyMutex;    // Guards m_cvDepthImage (depth callback <-> producer).
-        std::shared_mutex m_muIMUDataMutex;                 // Guards m_stIMUData (RoveComm IMU callback <-> producer).
+        TracySharedLockable(std::shared_mutex, m_muWebRTCRGBImageCopyMutex);      // Guards m_cvFrame (RGB callback <-> producer).
+        TracySharedLockable(std::shared_mutex, m_muWebRTCDepthImageCopyMutex);    // Guards m_cvDepthImage (depth callback <-> producer).
+        TracySharedLockable(std::shared_mutex, m_muIMUDataMutex);                 // Guards m_stIMUData (RoveComm IMU callback <-> producer).
 };
 #endif

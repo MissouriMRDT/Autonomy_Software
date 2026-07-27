@@ -176,7 +176,7 @@ void SIMZEDCam::SetCallbacks()
                 // Acquire a lock on the webRTC copy mutex.
                 std::unique_lock lkWebRTC(m_muWebRTCRGBImageCopyMutex);
                 // Deep copy the frame.
-                m_cvFrame = cvFrame.clone();
+                cvFrame.copyTo(m_cvFrame);
             }
         });
     m_pDepthImageStream->SetOnFrameReceivedCallback(
@@ -187,10 +187,8 @@ void SIMZEDCam::SetCallbacks()
             {
                 // Acquire a lock on the webRTC copy mutex.
                 std::unique_lock lkWebRTC(m_muWebRTCDepthImageCopyMutex);
-                // Deep copy the frame to the depth image buffer.
-                m_cvDepthImageBuffer = cvFrame.clone();
                 // Convert the depth image buffer to grayscale.
-                cv::cvtColor(m_cvDepthImageBuffer, m_cvDepthImage, cv::COLOR_BGR2GRAY);
+                cv::cvtColor(cvFrame, m_cvDepthImage, cv::COLOR_BGR2GRAY);
             }
         });
 }
@@ -206,7 +204,7 @@ void SIMZEDCam::SetCallbacks()
  ******************************************************************************/
 void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDepthMeasure)
 {
-    ZoneScopedC(tracy::Color::Orange2);
+    ZoneScopedC(tracy::Color::Orange1);
     // Declare instance variables.
     const float fMaxDepth = 2001.0f;    // Maximum depth in cm.
 
@@ -321,6 +319,7 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
  ******************************************************************************/
 void SIMZEDCam::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Orange2);
     // 1. Control channel in. SetPositionalPose/ResetPositionalTracking run here, on this thread.
     m_cmdQueue.DrainAll();
 
@@ -378,7 +377,7 @@ void SIMZEDCam::ThreadedContinuousCode()
     if (m_pubFrameCPU.HasSubscribers())
     {
         // Acquire a read lock so the WebRTC callback does not write m_cvFrame mid-copy.
-        std::shared_lock<std::shared_mutex> lkRGB(m_muWebRTCRGBImageCopyMutex);
+        std::shared_lock lkRGB(m_muWebRTCRGBImageCopyMutex);
         if (!m_cvFrame.empty())
         {
             // Deep copy the frame into a pooled snapshot and publish.
@@ -399,8 +398,10 @@ void SIMZEDCam::ThreadedContinuousCode()
         bool bHaveDepth = false;
         {
             // Acquire a read lock so the WebRTC callback does not write m_cvDepthImage mid-read.
-            std::shared_lock<std::shared_mutex> lkDepth(m_muWebRTCDepthImageCopyMutex);
-            if (!m_cvDepthImage.empty())
+            std::shared_lock lkDepth(m_muWebRTCDepthImageCopyMutex);
+            m_cvDepthImage.copyTo(m_cvDepthImageBuffer);
+            lkDepth.unlock();
+            if (!m_cvDepthImageBuffer.empty())
             {
                 // Mark that we have a valid depth image this iteration.
                 bHaveDepth = true;
@@ -409,14 +410,14 @@ void SIMZEDCam::ThreadedContinuousCode()
                 {
                     // Deep copy the depth image into a pooled snapshot and publish.
                     std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDepthImageCPU.Acquire();
-                    m_cvDepthImage.copyTo(pSlot->tData);
+                    m_cvDepthImageBuffer.copyTo(pSlot->tData);
                     m_pubDepthImageCPU.Publish(std::move(pSlot));
                 }
                 // Compute the depth measure (needed by both the measure and point-cloud publishers).
                 if (bDepthMeasureWanted || bPointCloudWanted)
                 {
                     // Estimate the depth measure from the depth image into the producer-local Mat.
-                    this->EstimateDepthMeasure(m_cvDepthImage, m_cvDepthMeasure);
+                    this->EstimateDepthMeasure(m_cvDepthImageBuffer, m_cvDepthMeasure);
                 }
             }
         }
@@ -467,7 +468,7 @@ void SIMZEDCam::ThreadedContinuousCode()
     if (m_pubSensors.HasSubscribers())
     {
         // Acquire a read lock so the RoveComm IMU callback does not write m_stIMUData mid-copy.
-        std::shared_lock<std::shared_mutex> lkIMU(m_muIMUDataMutex);
+        std::shared_lock lkIMU(m_muIMUDataMutex);
         // Deep copy the sensor data into a pooled snapshot and publish.
         std::shared_ptr<pubsub::Snapshot<sl::SensorsData>> pSlot = m_pubSensors.Acquire();
         pSlot->tData                                             = m_stIMUData;
