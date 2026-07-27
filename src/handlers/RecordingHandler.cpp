@@ -112,6 +112,7 @@ RecordingHandler::~RecordingHandler()
  ******************************************************************************/
 void RecordingHandler::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::DarkOrange1);
     // Check what mode recorder was initialized with.
     switch (m_eRecordingMode)
     {
@@ -171,6 +172,7 @@ void RecordingHandler::PooledLinearCode() {}
  ******************************************************************************/
 void RecordingHandler::UpdateRecordableCameras()
 {
+    ZoneScopedC(tracy::Color::DarkOrange2);
     // Loop through all Basic cameras from the CameraHandler.
     for (int nCamera = int(CameraHandler::BasicCamName::BASICCAM_START) + 1; nCamera != int(CameraHandler::BasicCamName::BASICCAM_END); ++nCamera)
     {
@@ -336,6 +338,7 @@ void RecordingHandler::UpdateRecordableCameras()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteCameraFrames()
 {
+    ZoneScopedC(tracy::Color::DarkOrange2);
     // Loop through total number of cameras, read the newest frame, and write it.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
@@ -448,6 +451,7 @@ void RecordingHandler::WriteFrameToVideo(const int nFeedIndex)
  ******************************************************************************/
 void RecordingHandler::UpdateRecordableTagDetectors()
 {
+    ZoneScopedC(tracy::Color::DarkOrange2);
     // Loop through all Basic cameras from the CameraHandler.
     for (int nDetector = int(TagDetectionHandler::TagDetectors::TAGDETECTOR_START) + 1; nDetector != int(TagDetectionHandler::TagDetectors::TAGDETECTOR_END); ++nDetector)
     {
@@ -533,6 +537,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteTagDetectorFrames()
 {
+    ZoneScopedC(tracy::Color::DarkOrange2);
     // Loop through total number of detectors, read the newest overlay frame, and write it.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
@@ -569,6 +574,7 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
  ******************************************************************************/
 void RecordingHandler::UpdateRecordableObjectDetectors()
 {
+    ZoneScopedC(tracy::Color::DarkOrange2);
     // Loop through all Basic cameras from the CameraHandler.
     for (int nDetector = int(ObjectDetectionHandler::ObjectDetectors::OBJECTDETECTOR_START) + 1;
          nDetector != int(ObjectDetectionHandler::ObjectDetectors::OBJECTDETECTOR_END);
@@ -657,6 +663,7 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteObjectDetectorFrames()
 {
+    ZoneScopedC(tracy::Color::DarkOrange2);
     // Loop through total number of detectors, read the newest overlay frame, and write it.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {

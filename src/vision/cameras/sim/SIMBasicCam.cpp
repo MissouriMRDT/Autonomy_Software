@@ -101,6 +101,7 @@ SIMBasicCam::~SIMBasicCam()
  ******************************************************************************/
 void SIMBasicCam::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Pink1);
     // Check if camera is NOT open. isOpened() only ever runs on this owning thread.
     if (!m_cvCamera.isOpened())
     {

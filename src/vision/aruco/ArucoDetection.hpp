@@ -21,6 +21,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/opencv.hpp>
+#include <tracy/Tracy.hpp>
 #include <vector>
 
 /// \endcond
@@ -48,6 +49,7 @@ namespace arucotag
      ******************************************************************************/
     inline void PreprocessFrame(const cv::Mat& cvInputFrame, cv::Mat& cvOutputFrame)
     {
+        ZoneScopedC(tracy::Color::Purple);
         // Check if the input frame is in BGR format.
         if (cvInputFrame.channels() != 3)
         {
@@ -92,6 +94,8 @@ namespace arucotag
      ******************************************************************************/
     inline std::vector<tagdetectutils::ArucoTag> Detect(const cv::Mat& cvFrame, const cv::aruco::ArucoDetector& cvArucoDetector)
     {
+        ZoneScopedC(tracy::Color::Purple);
+
         /// Create instance variables.
         std::vector<int> vIDs;
         std::vector<std::vector<cv::Point2f>> cvMarkerCorners, cvRejectedCandidates;
@@ -137,6 +141,8 @@ namespace arucotag
      ******************************************************************************/
     inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<tagdetectutils::ArucoTag>& vDetectedTags)
     {
+        ZoneScopedC(tracy::Color::Purple);
+
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {

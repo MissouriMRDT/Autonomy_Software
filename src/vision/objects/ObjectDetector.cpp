@@ -16,6 +16,7 @@
 #include "./TorchObjectDetection.hpp"
 
 /// \cond
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -290,6 +291,7 @@ bool ObjectDetector::LoadLatestCameraFrames()
  ******************************************************************************/
 void ObjectDetector::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::LightBlue1);
     // Check if using ZEDCam or BasicCam.
     if (m_bUsingZedCamera)
     {
@@ -398,46 +400,51 @@ void ObjectDetector::ThreadedContinuousCode()
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
-        // Check if the frame is empty.
-        if (m_cvFrame.empty())
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
-            return;
-        }
 
-        // Clear the list of newly detected objects.
-        m_vNewlyDetectedObjects.clear();
-        // Clone frames.
-        m_cvDetectionOverlayFrame = m_cvFrame.clone();
-        m_cvTorchProcFrame        = m_cvFrame.clone();
-        // Copy the camera frame to the pre-processing frame and overlay frame.
-        cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
-
-        // Check if torch detection if turned on.
-        if (m_bTorchEnabled)
         {
-            // Atomically load the model shared_ptr into a local so a concurrent InitTorchDetection()
-            // swap can't invalidate it mid-inference (the local keeps the old model alive).
-            std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> pTorchDetector = std::atomic_load_explicit(&m_pTorchDetector, std::memory_order_acquire);
-            if (pTorchDetector != nullptr)
+            ZoneScopedNC("Detect Objects", tracy::Color::LightBlue2);
+
+            // Check if the frame is empty.
+            if (m_cvFrame.empty())
             {
-                // Detect objects in the image.
-                std::vector<objectdetectutils::Object> vNewTorchObjects =
-                    torchobject::Detect(m_cvTorchProcFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
-
-                // Add Torch objects to the list of newly detected objects.
-                m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+                return;
             }
-        }
 
-        // Set the FOV of the camera in the object structs for this detector's camera.
-        for (objectdetectutils::Object& stObject : m_vNewlyDetectedObjects)
-        {
-            // Set the UUID of the detector that detected this object to this ObjectDetector's camera name so we can associate it with this detector.
-            stObject.szDetectorUUID = this->GetThreadUUID();
-            // Set object FOV parameter to this object detectors camera's FOV.
-            stObject.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+            // Clear the list of newly detected objects.
+            m_vNewlyDetectedObjects.clear();
+            // Clone frames.
+            m_cvDetectionOverlayFrame = m_cvFrame.clone();
+            m_cvTorchProcFrame        = m_cvFrame.clone();
+            // Copy the camera frame to the pre-processing frame and overlay frame.
+            cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
+
+            // Check if torch detection if turned on.
+            if (m_bTorchEnabled)
+            {
+                // Atomically load the model shared_ptr into a local so a concurrent InitTorchDetection()
+                // swap can't invalidate it mid-inference (the local keeps the old model alive).
+                std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> pTorchDetector = std::atomic_load_explicit(&m_pTorchDetector, std::memory_order_acquire);
+                if (pTorchDetector != nullptr)
+                {
+                    // Detect objects in the image.
+                    std::vector<objectdetectutils::Object> vNewTorchObjects =
+                        torchobject::Detect(m_cvTorchProcFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+
+                    // Add Torch objects to the list of newly detected objects.
+                    m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
+                }
+            }
+
+            // Set the FOV of the camera in the object structs for this detector's camera.
+            for (objectdetectutils::Object& stObject : m_vNewlyDetectedObjects)
+            {
+                // Set the UUID of the detector that detected this object to this ObjectDetector's camera name so we can associate it with this detector.
+                stObject.szDetectorUUID = this->GetThreadUUID();
+                // Set object FOV parameter to this object detectors camera's FOV.
+                stObject.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+            }
         }
 
         // Merge the newly detected objects with the pre-existing detected objects.
@@ -726,6 +733,8 @@ cv::Size ObjectDetector::GetProcessFrameResolution() const
  ******************************************************************************/
 void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object>& vNewlyDetectedObjects)
 {
+    ZoneScopedC(tracy::Color::LightBlue3);
+
     // Check if tracking is enabled.
     if (m_bEnableTracking)
     {

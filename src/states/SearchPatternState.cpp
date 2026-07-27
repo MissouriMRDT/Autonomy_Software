@@ -15,6 +15,7 @@
 #include "../interfaces/State.hpp"
 #include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/states/TagDetectionChecker.hpp"
+#include <tracy/Tracy.hpp>
 
 /******************************************************************************
  * @brief Namespace containing all state machine related classes.
@@ -106,6 +107,7 @@ namespace statemachine
      ******************************************************************************/
     void SearchPatternState::RemoveRedZonePoints(std::vector<geoops::Waypoint>& vSkeletonPath)
     {
+        ZoneScopedC(tracy::Color::Blue3);
         for (long unsigned int i = 0; i < vSkeletonPath.size();)
         {
             int nTileX = static_cast<int>(std::floor(vSkeletonPath[i].GetUTMCoordinate().dEasting / 5.0));
@@ -141,6 +143,7 @@ namespace statemachine
      ******************************************************************************/
     std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& vSkeletonPath)
     {
+        ZoneScopedC(tracy::Color::Blue3);
         std::vector<geoops::Waypoint> m_vSearchPath;
         if (vSkeletonPath.size() < 2)
         {
@@ -189,6 +192,7 @@ namespace statemachine
      ******************************************************************************/
     void SearchPatternState::Run()
     {
+        ZoneScopedNC("Search Pattern", tracy::Color::Blue1);
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
 
@@ -224,6 +228,8 @@ namespace statemachine
         // In order to even care about any tags we see, the goal waypoint needs to be of type MARKER and we need to be within the search radius of the MARKER waypoint.
         if (m_stSearchPatternCenter.eType == geoops::WaypointType::eTagWaypoint)
         {
+            ZoneScopedNC("Search Detect Tags", tracy::Color::Blue2);
+
             // Create instance variables.
             tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;
             // Identify target marker.
@@ -250,6 +256,8 @@ namespace statemachine
         if (m_stSearchPatternCenter.eType == geoops::WaypointType::eObjectWaypoint || m_stSearchPatternCenter.eType == geoops::WaypointType::eMalletWaypoint ||
             m_stSearchPatternCenter.eType == geoops::WaypointType::eWaterBottleWaypoint || m_stSearchPatternCenter.eType == geoops::WaypointType::eRockPickWaypoint)
         {
+            ZoneScopedNC("Search Detect Objects", tracy::Color::Blue2);
+
             // Create instance variables.
             objectdetectutils::Object stBestTorchObject;
             // Identify target object.

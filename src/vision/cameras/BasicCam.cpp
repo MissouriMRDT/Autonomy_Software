@@ -11,6 +11,7 @@
 #include "BasicCam.h"
 #include "../../AutonomyConstants.h"
 #include "../../AutonomyLogging.h"
+#include <tracy/Tracy.hpp>
 
 /******************************************************************************
  * @brief Construct a new Basic Cam:: Basic Cam object.
@@ -188,6 +189,7 @@ BasicCam::~BasicCam()
  ******************************************************************************/
 void BasicCam::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Pink);
     // Check if camera is NOT open. isOpened() only ever runs on this owning thread.
     if (!m_cvCamera.isOpened())
     {

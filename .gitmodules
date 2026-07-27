@@ -7,3 +7,8 @@
 [submodule "external/rovecomm"]
 	path = external/rovecomm
 	url = https://github.com/MissouriMRDT/RoveComm_CPP.git
+    branch = fixes/interface-refactor
+[submodule "external/tracy"]
+	path = external/tracy
+	url = https://github.com/wolfpld/tracy
+    branch = v0.12.2

@@ -13,6 +13,7 @@
 #include "../../util/vision/Geolocate.hpp"
 #include "./ArucoDetection.hpp"
 #include "./TorchTagDetection.hpp"
+#include <tracy/Tracy.hpp>
 
 /******************************************************************************
  * @brief Construct a new TagDetector object.
@@ -325,6 +326,7 @@ bool TagDetector::LoadLatestCameraFrames()
  ******************************************************************************/
 void TagDetector::ThreadedContinuousCode()
 {
+    ZoneScopedC(tracy::Color::Magenta1);
     // Check if using ZEDCam or BasicCam.
     if (m_bUsingZedCamera)
     {
@@ -433,52 +435,56 @@ void TagDetector::ThreadedContinuousCode()
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
-        // Check if the frame is empty.
-        if (m_cvFrame.empty())
-        {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
-            return;
-        }
 
-        // Clear the list of newly detected tags.
-        m_vNewlyDetectedTags.clear();
-        // Clone frames.
-        m_cvArucoProcFrame = m_cvFrame.clone();
-        // Detect tags in the image
-        std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
-        // Loop through the newly detected OpenCV tags and set their detector UUID to this TagDetector's camera name so we can associate them with this detector.
-        for (tagdetectutils::ArucoTag& stTag : vNewOpenCVTags)
         {
-            stTag.szDetectorUUID = this->GetThreadUUID();
-        }
-        // Add OpenCV tags to the list of newly detected tags.
-        m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
-
-        // Check if torch detection if turned on.
-        if (m_bTorchEnabled)
-        {
-            // Atomically load the model shared_ptr into a local so a concurrent InitTorchDetection()
-            // swap can't invalidate it mid-inference (the local keeps the old model alive).
-            std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> pTorchDetector = std::atomic_load_explicit(&m_pTorchDetector, std::memory_order_acquire);
-            if (pTorchDetector != nullptr)
+            ZoneScopedNC("Detect Tags", tracy::Color::Magenta2);
+            // Check if the frame is empty.
+            if (m_cvFrame.empty())
             {
-                // Detect tags in the image.
-                std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
-                    torchtag::Detect(m_cvArucoProcFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
-
-                // Add Torch tags to the list of newly detected tags.
-                m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+                return;
             }
-        }
 
-        // Set the FOV of the camera in the tag structs for this detector's camera.
-        for (tagdetectutils::ArucoTag& stTag : m_vNewlyDetectedTags)
-        {
-            // Set the UUID of the detector that detected this tag to this TagDetector's camera name so we can associate it with this detector.
-            stTag.szDetectorUUID = this->GetThreadUUID();
-            // Set tag FOV parameter to this tag detectors camera's FOV.
-            stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+            // Clear the list of newly detected tags.
+            m_vNewlyDetectedTags.clear();
+            // Clone frames.
+            m_cvArucoProcFrame = m_cvFrame.clone();
+            // Detect tags in the image
+            std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
+            // Loop through the newly detected OpenCV tags and set their detector UUID to this TagDetector's camera name so we can associate them with this detector.
+            for (tagdetectutils::ArucoTag& stTag : vNewOpenCVTags)
+            {
+                stTag.szDetectorUUID = this->GetThreadUUID();
+            }
+            // Add OpenCV tags to the list of newly detected tags.
+            m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
+
+            // Check if torch detection if turned on.
+            if (m_bTorchEnabled)
+            {
+                // Atomically load the model shared_ptr into a local so a concurrent InitTorchDetection()
+                // swap can't invalidate it mid-inference (the local keeps the old model alive).
+                std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> pTorchDetector = std::atomic_load_explicit(&m_pTorchDetector, std::memory_order_acquire);
+                if (pTorchDetector != nullptr)
+                {
+                    // Detect tags in the image.
+                    std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
+                        torchtag::Detect(m_cvArucoProcFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+
+                    // Add Torch tags to the list of newly detected tags.
+                    m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
+                }
+            }
+
+            // Set the FOV of the camera in the tag structs for this detector's camera.
+            for (tagdetectutils::ArucoTag& stTag : m_vNewlyDetectedTags)
+            {
+                // Set the UUID of the detector that detected this tag to this TagDetector's camera name so we can associate it with this detector.
+                stTag.szDetectorUUID = this->GetThreadUUID();
+                // Set tag FOV parameter to this tag detectors camera's FOV.
+                stTag.dHorizontalFOV = m_pCamera->GetPropHorizontalFOV();
+            }
         }
 
         // Merge the newly detected tags with the pre-existing detected tags.
@@ -767,6 +773,8 @@ cv::Size TagDetector::GetProcessFrameResolution() const
  ******************************************************************************/
 void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNewlyDetectedTags)
 {
+    ZoneScopedC(tracy::Color::Magenta3);
+
     // Check if tracking is enabled.
     if (m_bEnableTracking)
     {

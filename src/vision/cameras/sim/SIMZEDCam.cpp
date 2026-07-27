@@ -15,11 +15,12 @@
 #include "../../../AutonomyLogging.h"
 #include "../../../AutonomyNetworking.h"
 #include "../../../util/NumberOperations.hpp"
+#include "SIMZEDCamCUDA.h"
 
 /// \cond
 #include <cmath>
-#include <nlohmann/json.hpp>
-#include <omp.h>
+
+// #include <omp.h>
 
 /// \endcond
 
@@ -107,23 +108,17 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     // Set callbacks for the WebRTC connections.
     this->SetCallbacks();
 
-    // Subscribe to RoveSoSimulator packets.
-    rovecomm::RoveCommPacket<u_int8_t> stSubscribePacket;
-    stSubscribePacket.unDataId    = manifest::System::SUBSCRIBE_DATA_ID;
-    stSubscribePacket.unDataCount = 0;
-    stSubscribePacket.eDataType   = manifest::DataTypes::UINT8_T;
-    stSubscribePacket.vData       = std::vector<uint8_t>{};
     // Set RoveComm callbacks for the data from the sim.
     if (network::g_pRoveCommUDPNode)
     {
         // Determine the IP address to send the subscribe packet to.
-        const char* cIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS.c_str() : manifest::RoveSoSimulator::IP_ADDRESS.IP_STR.c_str();
+        const manifest::AddressEntry& stIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS : manifest::RoveSoSimulator::IP_ADDRESS;
 
         // Send subscribe packet to RoveSoSimulator.
-        network::g_pRoveCommUDPNode->SendUDPPacket(stSubscribePacket, cIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
+        network::g_pRoveCommUDPNode->Subscribe(stIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
 
         // Set RoveComm callbacks.
-        network::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessIMUData, manifest::RoveSoSimulator::TELEMETRY.find("IMU")->second.DATA_ID);
+        network::g_pRoveCommUDPNode->On<manifest::RoveSoSimulator::Telemetry::IMU>([this](const auto& stPacket) { ProcessIMUData(stPacket); });
     }
 
     // Set max FPS of the ThreadedContinuousCode method.
@@ -145,6 +140,7 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
  ******************************************************************************/
 SIMZEDCam::~SIMZEDCam()
 {
+    LOG_NOTICE(logging::g_qSharedLogger, "Destroying SIMZEDCam object.");
     // Stop threaded code FIRST. The producer thread owns the stream objects: its reconnect path
     // (ImplReconnectStreams) closes, destroys and rebuilds them. Touching those pointers from this
     // thread before the producer is joined races that rebuild and can hang inside CloseConnection().
@@ -178,7 +174,7 @@ void SIMZEDCam::SetCallbacks()
             if (!cvFrame.empty())
             {
                 // Acquire a lock on the webRTC copy mutex.
-                std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCRGBImageCopyMutex);
+                std::unique_lock lkWebRTC(m_muWebRTCRGBImageCopyMutex);
                 // Deep copy the frame.
                 m_cvFrame = cvFrame.clone();
             }
@@ -190,7 +186,7 @@ void SIMZEDCam::SetCallbacks()
             if (!cvFrame.empty())
             {
                 // Acquire a lock on the webRTC copy mutex.
-                std::unique_lock<std::shared_mutex> lkWebRTC(m_muWebRTCDepthImageCopyMutex);
+                std::unique_lock lkWebRTC(m_muWebRTCDepthImageCopyMutex);
                 // Deep copy the frame to the depth image buffer.
                 m_cvDepthImageBuffer = cvFrame.clone();
                 // Convert the depth image buffer to grayscale.
@@ -210,6 +206,7 @@ void SIMZEDCam::SetCallbacks()
  ******************************************************************************/
 void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDepthMeasure)
 {
+    ZoneScopedC(tracy::Color::Orange2);
     // Declare instance variables.
     const float fMaxDepth = 2001.0f;    // Maximum depth in cm.
 
@@ -221,25 +218,32 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
         return;
     }
 
-// TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
-#pragma omp parallel for collapse(2)
-
-    // Iterate over each pixel in the cvDepthImage image.
-    for (int nY = 0; nY < cvDepthImage.rows; ++nY)
+    if (constants::SIM_DEPTH_STREAM_USE_GPU)
     {
-        for (int nX = 0; nX < cvDepthImage.cols; ++nX)
-        {
-            // For this, we are just using the depth image to estimate the depth measure. We will treat 255 as 0 cm and 0 as fMaxDepth - 1 cm.
-            // Get the depth value from the depth image.
-            uchar ucDepthValue = cvDepthImage.at<uchar>(nY, nX);
+        // Estimate the depth measure using CUDA.
+        EstimateDepthMeasureCUDA(cvDepthImage, cvDepthMeasure, fMaxDepth);
+    }
+    else
+    {
+        // #pragma omp parallel for collapse(2)
 
-            // Calculate the depth in cm.
-            float fDepth = (1.0f - (ucDepthValue / 255.0f)) * fMaxDepth;
-            // Check if nY and nX are within the bounds of the depth measure image.
-            if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
+        // Iterate over each pixel in the cvDepthImage image.
+        for (int nY = 0; nY < cvDepthImage.rows; ++nY)
+        {
+            for (int nX = 0; nX < cvDepthImage.cols; ++nX)
             {
-                // Store the estimated depth in the new cv::Mat. Convert cm to m.
-                cvDepthMeasure.at<float>(nY, nX) = fDepth / 100.0f;    // Convert cm to m.
+                // For this, we are just using the depth image to estimate the depth measure. We will treat 255 as 0 cm and 0 as fMaxDepth - 1 cm.
+                // Get the depth value from the depth image.
+                uchar ucDepthValue = cvDepthImage.at<uchar>(nY, nX);
+
+                // Calculate the depth in cm.
+                float fDepth = (1.0f - (ucDepthValue / 255.0f)) * fMaxDepth;
+                // Check if nY and nX are within the bounds of the depth measure image.
+                if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
+                {
+                    // Store the estimated depth in the new cv::Mat. Convert cm to m.
+                    cvDepthMeasure.at<float>(nY, nX) = fDepth / 100.0f;    // Convert cm to m.
+                }
             }
         }
     }
@@ -257,6 +261,7 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
  ******************************************************************************/
 void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
 {
+    ZoneScopedC(tracy::Color::Orange2);
     // Calculate focal lengths from FOV.
     const double dRadPerDeg = M_PI / 180.0;
     const double dFx        = (cvDepthMeasure.cols / 2.0) / tan(m_dPropHorizontalFOV * dRadPerDeg / 2.0);
@@ -265,32 +270,39 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
     const double dCx = cvDepthMeasure.cols / 2.0;
     const double dCy = cvDepthMeasure.rows / 2.0;
 
-// TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
-// This is a parallel for loop that calculates the point cloud from the decoded depth measure.
-#pragma omp parallel for collapse(2)
-
-    // Iterate over each pixel in the cvDepthMeasure image.
-    for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
+    if (constants::SIM_DEPTH_STREAM_USE_GPU)
     {
-        for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
+        // Calculate the point cloud using CUDA.
+        CalculatePointCloudCUDA(cvDepthMeasure, cvPointCloud, dFx, dFy, dCx, dCy);
+    }
+    else
+    {
+        // This is a parallel for loop that calculates the point cloud from the decoded depth measure.
+        // #pragma omp parallel for collapse(2)
+
+        // Iterate over each pixel in the cvDepthMeasure image.
+        for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
         {
-            // Get depth value.
-            float fDepth = cvDepthMeasure.at<float>(nY, nX);
-
-            // Skip invalid depth values.
-            if (fDepth <= 0)
+            for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
             {
-                cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(0, 0, 0, 0);
-                continue;
+                // Get depth value.
+                float fDepth = cvDepthMeasure.at<float>(nY, nX);
+
+                // Skip invalid depth values.
+                if (fDepth <= 0)
+                {
+                    cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(0, 0, 0, 0);
+                    continue;
+                }
+
+                // Convert from pixel coordinates to 3D coordinates.
+                float fX = static_cast<float>((nX - dCx) * fDepth / dFx);
+                float fY = static_cast<float>((dCy - nY) * fDepth / dFy);
+                float fZ = fDepth;
+
+                // Store point. (XYZ + intensity, using Y channel for intensity)
+                cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 255);
             }
-
-            // Convert from pixel coordinates to 3D coordinates.
-            float fX = static_cast<float>((nX - dCx) * fDepth / dFx);
-            float fY = static_cast<float>((dCy - nY) * fDepth / dFy);
-            float fZ = fDepth;
-
-            // Store point. (XYZ + intensity, using Y channel for intensity)
-            cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 255);
         }
     }
 }
@@ -495,7 +507,7 @@ void SIMZEDCam::PublishStatus()
 {
     // Build the status from the current connection state (queried on the owning thread).
     CameraStatus stStatus;
-    stStatus.bCameraIsOpen = this->GetStreamsAreConnected();
+    stStatus.bCameraIsOpen              = this->GetStreamsAreConnected();
     stStatus.bPositionalTrackingEnabled = m_bCameraPositionalTrackingEnabled.load(std::memory_order_acquire) && stStatus.bCameraIsOpen;
     stStatus.szCameraModel              = "SIMZED2i";
 
@@ -752,4 +764,54 @@ bool SIMZEDCam::GetPositionalTrackingEnabled()
     // Lock-free read of the newest published status snapshot.
     pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.Get();
     return pStatus != nullptr && pStatus->tData.bPositionalTrackingEnabled && this->GetThreadState() == AutonomyThreadState::eRunning;
+}
+
+/******************************************************************************
+ * @brief Callback function to process incoming IMU data from RoveComm for the SIM ZED Camera.
+ *      Normally, this data would come from the physical ZED camera's IMU over USB,
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-11-19
+ ******************************************************************************/
+void SIMZEDCam::ProcessIMUData(const rovecomm::RoveCommPacket<double>& stPacket)
+{
+    // Acquire a write lock on the IMU data handoff mutex (this callback runs on a foreign
+    // RoveComm thread; the producer thread reads m_stIMUData under the same lock).
+    std::unique_lock lkSensorsProcessLock(m_muIMUDataMutex);
+    // Update IMU data.
+    m_stIMUData.imu.linear_acceleration.x = static_cast<float>(stPacket.vData[0]);
+    m_stIMUData.imu.linear_acceleration.y = static_cast<float>(stPacket.vData[1]);
+    m_stIMUData.imu.linear_acceleration.z = static_cast<float>(stPacket.vData[2]);
+    m_stIMUData.imu.angular_velocity.x    = static_cast<float>(stPacket.vData[3]);
+    m_stIMUData.imu.angular_velocity.y    = static_cast<float>(stPacket.vData[4]);
+    m_stIMUData.imu.angular_velocity.z    = static_cast<float>(stPacket.vData[5]);
+
+    // Manually calculate the Gyro pose using the Tait-Bryan angles (ZYX convention) and the quaternion representation.
+    // This is because the SIM does not provide orientation data from the IMU, only angular velocity.
+    double dQx    = stPacket.vData[6];
+    double dQy    = stPacket.vData[7];
+    double dQz    = stPacket.vData[8];
+    double dQw    = stPacket.vData[9];
+    double dRoll  = std::atan2(2.0 * (dQw * dQx + dQy * dQz), 1.0 - 2.0 * (dQx * dQx + dQy * dQy));
+    double dPitch = std::asin(2.0 * (dQw * dQy - dQz * dQx));
+    double dYaw   = std::atan2(2.0 * (dQw * dQz + dQx * dQy), 1.0 - 2.0 * (dQy * dQy + dQz * dQz));
+    // Pack the gyro values into a sl::Transform.
+    sl::float3 slEulerAngles(static_cast<float>(dRoll), static_cast<float>(dPitch), static_cast<float>(dYaw));
+    sl::Transform slIMUTransform;
+    slIMUTransform.setEulerAngles(slEulerAngles);
+    m_stIMUData.imu.pose = slIMUTransform;
+
+    // Unlock mutex.
+    lkSensorsProcessLock.unlock();
+
+    // Submit logger message.
+    LOG_DEBUG(logging::g_qSharedLogger,
+              "Incoming IMU data processed from RoveComm for SIM ZED Camera: (AccelX {}, AccelY {}, AccelZ {}, GyroX {}, GyroY {}, GyroZ {})",
+              stPacket.vData[0],
+              stPacket.vData[1],
+              stPacket.vData[2],
+              stPacket.vData[3],
+              stPacket.vData[4],
+              stPacket.vData[5]);
 }

@@ -18,6 +18,7 @@
 #include <atomic>
 #include <future>
 #include <shared_mutex>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 

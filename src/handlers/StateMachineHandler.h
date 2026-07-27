@@ -28,6 +28,7 @@
 #include <RoveComm/RoveCommManifest.h>
 #include <atomic>
 #include <shared_mutex>
+#include <tracy/Tracy.hpp>
 
 /// \endcond
 
@@ -76,137 +77,10 @@ class StateMachineHandler : private AutonomyThread<void>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
 
-        /******************************************************************************
-         * @brief Callback function used to trigger the start of autonomy. No matter what
-         *      state we are in, signal a StartAutonomy Event.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-03-15
-         ******************************************************************************/
-        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> AutonomyStartCallback =
-            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
-        {
-            // Not using this.
-            (void) stPacket;
-            (void) stdAddr;
-
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Start Autonomy!");
-
-            // Signal statemachine handler with Start event.
-            this->HandleEvent(statemachine::Event::eStart);
-        };
-
-        /******************************************************************************
-         * @brief Callback function used to trigger autonomy to stop. No matter what
-         *      state we are in, signal an Abort Event.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-03-15
-         ******************************************************************************/
-        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> AutonomyStopCallback =
-            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
-        {
-            // Not using this.
-            (void) stPacket;
-            (void) stdAddr;
-
-            // Submit logger message.
-            LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Abort Autonomy!");
-
-            // Signal statemachine handler with stop event.
-            this->HandleEvent(statemachine::Event::eAbort, true);
-        };
-
-        /******************************************************************************
-         * @brief Callback function that is called whenever RoveComm receives new CLEARWAYPOINTS packet.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-03-03
-         ******************************************************************************/
-        const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> ClearWaypointsCallback =
-            [this](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
-        {
-            // Not using this.
-            (void) stPacket;
-            (void) stdAddr;
-
-            /*
-                The clear waypoints command will clear all waypoints in the WaypointHandler, but it also clears all saved states in the StateMachineHandler
-                to prevent any conflicts when restarting autonomy with previously saved states that may have waypoints associated with them.
-                However, we only want to delete our saved states if we are currently in IdleState.
-            */
-
-            // Check if the current state is IdleState.
-            if (this->GetCurrentState() == statemachine::States::eIdle)
-            {
-                // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Deleting all saved states in StateMachineHandler...");
-                // Clear the saved states.
-                this->ClearSavedStates();
-            }
-            else
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Incoming Clear Waypoints packet: Cannot clear saved states in StateMachineHandler unless in Idle state. Current state is {}.",
-                            static_cast<int>(this->GetCurrentState()));
-            }
-        };
-
-        /******************************************************************************
-         * @brief Callback function used to force autonomy into Idle state if battery voltage gets too low.
-         *      No matter what state we are in, signal an Abort Event.
-         *
-         *
-         * @author clayjay3 (claytonraycowen@gmail.com)
-         * @date 2024-04-04
-         ******************************************************************************/
-        const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> PMSCellVoltageCallback =
-            [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
-        {
-            // Not using this.
-            (void) stdAddr;
-
-            // Create instance variables.
-            double dTotalCellVoltages   = 0.0;
-            int nValidCellVoltageValues = 0;
-
-            // Loop through voltage values and average all of the valid ones.
-            for (int nIter = 0; nIter < stPacket.unDataCount; ++nIter)
-            {
-                // Check if the voltage values is greater than at least 0.1.
-                if (stPacket.vData[nIter] >= 0.1)
-                {
-                    // Add cell voltage value to total.
-                    dTotalCellVoltages += stPacket.vData[nIter];
-                    // Increment voltage voltage counter.
-                    ++nValidCellVoltageValues;
-                }
-            }
-            // Calculate average cell voltage.
-            double dAverageCellVoltage = dTotalCellVoltages / nValidCellVoltageValues;
-
-            // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "Incoming Packet: PMS Cell Voltages. Average voltage is: {}", dAverageCellVoltage);
-
-            // Check if voltage is above the safe minimum for lithium ion batteries.
-            if (constants::BATTERY_CHECKS_ENABLED && dAverageCellVoltage < constants::BATTERY_MINIMUM_CELL_VOLTAGE &&
-                this->GetCurrentState() != statemachine::States::eIdle)
-            {
-                // Submit logger message.
-                LOG_CRITICAL(logging::g_qSharedLogger,
-                             "Incoming PMS Packet: Average cell voltage is {} which is below the safe minimum of {}. Entering Idle state...",
-                             dAverageCellVoltage,
-                             constants::BATTERY_MINIMUM_CELL_VOLTAGE);
-
-                // Signal statemachine handler with stop event.
-                this->HandleEvent(statemachine::Event::eAbort, true);
-            }
-        };
+        void AutonomyStartCallback(const rovecomm::RoveCommPacket<uint8_t>& stPacket);
+        void AutonomyStopCallback(const rovecomm::RoveCommPacket<uint8_t>& stPacket);
+        void ClearWaypointsCallback(const rovecomm::RoveCommPacket<uint8_t>& stPacket);
+        void PMSCellVoltageCallback(const rovecomm::RoveCommPacket<float>& stPacket);
 
     public:
         /////////////////////////////////////////

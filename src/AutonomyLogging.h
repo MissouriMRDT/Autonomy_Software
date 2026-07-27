@@ -92,31 +92,7 @@ namespace logging
     // Declare namespace callbacks.
     /////////////////////////////////////////
 
-    const std::function<void(const rovecomm::RoveCommPacket<uint8_t>&, const sockaddr_in&)> SetLoggingLevelsCallback =
-        [](const rovecomm::RoveCommPacket<uint8_t>& stPacket, const sockaddr_in& stdAddr)
-    {
-        // Not using this.
-        (void) stdAddr;
-
-        // Convert Minimum Permitted Console Level to Integer Value
-        const int nMinConsoleLevel = static_cast<int>(constants::CONSOLE_MIN_LEVEL);
-        const int nMinFileLevel    = static_cast<int>(constants::FILE_MIN_LEVEL);
-
-        // Convert Requested Console Level to Integer Value
-        const int nRequestedConsoleLevel = stPacket.vData[0];
-        const int nRequestedFileLevel    = stPacket.vData[1];
-
-        // Determine if change is allowed
-        bool bConsoleLevelChangePermitted = nRequestedConsoleLevel >= nMinConsoleLevel;
-        bool bFileLevelChangePermitted    = nRequestedFileLevel >= nMinFileLevel;
-
-        // Convert RoveComm Enumeration to Quill Enumeration and store to logging globals if permitted
-        logging::g_eConsoleLogLevel = bConsoleLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[0]) : logging::g_eConsoleLogLevel;
-        logging::g_eFileLogLevel    = bFileLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[1]) : logging::g_eFileLogLevel;
-
-        // Submit logger message.
-        LOG_INFO(logging::g_qSharedLogger, "Incoming SETLOGGINGLEVELS: [Console: {}, File: {}]", stPacket.vData[0], stPacket.vData[1]);
-    };
+    void SetLoggingLevelsCallback(const rovecomm::RoveCommPacket<uint8_t>& stPacket);
 
     /////////////////////////////////////////
     // Define namespace file filters.
