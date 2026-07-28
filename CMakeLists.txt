@@ -376,7 +376,7 @@ if (BUILD_TESTS_MODE)
     file(GLOB         Runner_SRC            CONFIGURE_DEPENDS  "tests/main.cc")
 
     ## Find Source Files Required for Tests
-    file(GLOB_RECURSE TEST_SRC       CONFIGURE_DEPENDS  "src/*.cpp")
+    file(GLOB_RECURSE TEST_SRC       CONFIGURE_DEPENDS  "src/*.cpp" "src/*.cu")
     # Remove main.cpp from test compilation to avoid duplicate main function
     list(REMOVE_ITEM TEST_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 

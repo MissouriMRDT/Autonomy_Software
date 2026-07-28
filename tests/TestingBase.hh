@@ -103,18 +103,19 @@ class TestingBase : public ::testing::Test
          ******************************************************************************/
         inline void SetupRoveComm()
         {
-            // Initialize RoveComm.
+            // Initialize RoveComm. This must mirror how main.cpp brings the nodes up: the globals
+            // are raw pointers that TeardownRoveComm() deletes, so they are allocated with new
+            // rather than a smart pointer.
             if (network::g_pRoveCommUDPNode == nullptr)
             {
-                network::g_pRoveCommUDPNode   = std::make_shared<rovecomm::RoveCommUDP>();
-                network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->InitUDPSocket(manifest::General::ETHERNET_UDP_PORT);
+                network::g_pRoveCommUDPNode   = new rovecomm::RoveCommUDP();
+                network::g_bRoveCommUDPStatus = network::g_pRoveCommUDPNode->Init(manifest::General::ETHERNET_UDP_PORT);
             }
 
             if (network::g_pRoveCommTCPNode == nullptr)
             {
-                network::g_pRoveCommTCPNode = std::make_shared<rovecomm::RoveCommTCP>();
-                network::g_bRoveCommTCPStatus =
-                    network::g_pRoveCommTCPNode->InitTCPSocket(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
+                network::g_pRoveCommTCPNode   = new rovecomm::RoveCommTCP();
+                network::g_bRoveCommTCPStatus = network::g_pRoveCommTCPNode->Init(constants::ROVECOMM_TCP_INTERFACE_IP.c_str(), manifest::General::ETHERNET_TCP_PORT);
             }
 
             // Check if RoveComm was successfully initialized.
@@ -152,11 +153,11 @@ class TestingBase : public ::testing::Test
             // Stop handlers.
             if (network::g_pRoveCommUDPNode != nullptr)
             {
-                network::g_pRoveCommUDPNode->CloseUDPSocket();
+                network::g_pRoveCommUDPNode->Close();
             }
             if (network::g_pRoveCommTCPNode != nullptr)
             {
-                network::g_pRoveCommTCPNode->CloseTCPSocket();
+                network::g_pRoveCommTCPNode->Close();
             }
 
             // Delete dynamically allocated objects.

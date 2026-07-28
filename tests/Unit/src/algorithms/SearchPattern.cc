@@ -13,7 +13,9 @@
 #include "../../../TestingBase.hh"
 
 /// \cond
+#include <cmath>
 #include <gtest/gtest.h>
+#include <vector>
 
 /// \endcond
 
@@ -34,17 +36,32 @@ class SearchPatternTests : public TestingBase<SearchPatternTests>
         // Just do any setup or teardown in the SetUp and TearDown methods respectively.
 
         /******************************************************************************
-         * @brief Function used in testing to determine if a returns list of waypoints
-         *      is a good spiral.
+         * @brief Function used in testing to determine if a returned list of waypoints
+         *      forms a valid out-and-back spiral.
          *
-         * @param vPoints - The list of waypoint that, in order, should form a spiral.
-         * @return true - The list of waypoints is a valid spiral.
-         * @return false - The list of waypoint is not a valid spiral.
+         *      CalculateSpiralPatternWaypoints() winds outward from the center until it
+         *      passes the max radius, then winds back in to the center again (see the
+         *      "Same but going back in" loop in SearchPattern.hpp). So a valid path is a
+         *      single peak: radius strictly increases to one turnaround point, then
+         *      strictly decreases, with the bearing advancing at every step so the path
+         *      is genuinely spiralling rather than moving radially in and out.
+         *
+         *      An earlier version of this helper required the radius to increase
+         *      monotonically across the WHOLE path, which only described the outward leg
+         *      and has not matched the algorithm since the return leg was added.
+         *
+         * @param vPoints - The list of waypoints that, in order, should form a spiral.
+         * @return true - The list of waypoints is a valid out-and-back spiral.
+         * @return false - The list of waypoints is not a valid out-and-back spiral.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-03-01
          ******************************************************************************/
-        bool IsOutwardSpiral(const std::vector<geoops::Waypoint>& vPoints)
+        // Minimum bearing sweep, in degrees, required between consecutive waypoints for a path to
+        // count as spiralling rather than travelling radially. The real pattern steps ~57 degrees.
+        static constexpr double MIN_SPIRAL_BEARING_STEP_DEGREES = 1.0;
+
+        bool IsOutAndBackSpiral(const std::vector<geoops::Waypoint>& vPoints)
         {
             // At least 4 vPoints are needed to form a spiral.
             if (vPoints.size() < 4)
@@ -54,38 +71,71 @@ class SearchPatternTests : public TestingBase<SearchPatternTests>
 
             // Store starting point.
             geoops::UTMCoordinate stCenterPoint = vPoints[0].GetUTMCoordinate();
-            // Store geo distance information of last point.
-            geoops::GeoMeasurement stLastGeodesicFromCenterPoint;
 
-            // Loop through each waypoint.
-            for (int nIter = 1; nIter < vPoints.size(); ++nIter)
+            // Track the previous point's distance and bearing from the center.
+            geoops::GeoMeasurement stLastGeodesicFromCenterPoint = geoops::CalculateGeoMeasurement(stCenterPoint, vPoints[1].GetUTMCoordinate());
+            // Whether we have passed the turnaround and are now winding back inward.
+            bool bWindingInward = false;
+            // How many times the radius reversed direction. A valid path reverses exactly once.
+            int nDirectionChanges = 0;
+
+            // Loop through each remaining waypoint.
+            for (size_t siIter = 2; siIter < vPoints.size(); ++siIter)
             {
-                // Check if this is the first iteration.
-                if (nIter == 1)
-                {
-                    // Just calculate geo distance between start and first point and store it.
-                    stLastGeodesicFromCenterPoint = geoops::CalculateGeoMeasurement(stCenterPoint, vPoints[nIter].GetUTMCoordinate());
-                }
-                else
-                {
-                    // Calculate geo measurement for new point.
-                    geoops::GeoMeasurement stNewMeasurement = geoops::CalculateGeoMeasurement(stCenterPoint, vPoints[nIter].GetUTMCoordinate());
+                // Calculate geo measurement for new point.
+                geoops::GeoMeasurement stNewMeasurement = geoops::CalculateGeoMeasurement(stCenterPoint, vPoints[siIter].GetUTMCoordinate());
 
-                    // Check that the measurement is further away from the center point that last time and is radially progressing in some direction.
-                    if (stNewMeasurement.dDistanceMeters < stLastGeodesicFromCenterPoint.dDistanceMeters ||
-                        stNewMeasurement.dStartRelativeBearing == stLastGeodesicFromCenterPoint.dStartRelativeBearing ||
-                        stNewMeasurement.dEndRelativeBearing == stLastGeodesicFromCenterPoint.dEndRelativeBearing)
+                // Check whether the radius reversed direction on this step.
+                if (!bWindingInward && stNewMeasurement.dDistanceMeters < stLastGeodesicFromCenterPoint.dDistanceMeters)
+                {
+                    // This is the turnaround from the outward leg to the return leg.
+                    bWindingInward = true;
+                    ++nDirectionChanges;
+                }
+                else if (bWindingInward && stNewMeasurement.dDistanceMeters > stLastGeodesicFromCenterPoint.dDistanceMeters)
+                {
+                    // The path started winding back outward, which is not a single clean spiral.
+                    ++nDirectionChanges;
+                    return false;
+                }
+                else if (stNewMeasurement.dDistanceMeters == stLastGeodesicFromCenterPoint.dDistanceMeters)
+                {
+                    // The radius stalled, so the path is not progressing radially at all.
+                    return false;
+                }
+
+                // The bearing must advance every step, otherwise the path is moving straight in or
+                // out along one ray rather than spiralling. The center point itself has no
+                // meaningful bearing, so skip the comparison when either point sits on it.
+                if (stLastGeodesicFromCenterPoint.dDistanceMeters > 0.0 && stNewMeasurement.dDistanceMeters > 0.0)
+                {
+                    // Compare bearings with a tolerance rather than for exact equality. These
+                    // measurements are geodesics derived from UTM points, so even a perfectly
+                    // radial path produces bearings that differ in the last few decimal places and
+                    // an equality test would never fire. The real pattern steps ~57 degrees per
+                    // waypoint, so anything under a degree is not spiralling.
+                    double dBearingDeltaDegrees = std::fabs(stNewMeasurement.dStartRelativeBearing - stLastGeodesicFromCenterPoint.dStartRelativeBearing);
+                    // Take the short way round the compass so the 360/0 wrap is not seen as a huge step.
+                    if (dBearingDeltaDegrees > 180.0)
                     {
-                        // Conditions net met, this is not a proper spiral.
-                        return false;
+                        // Fold the difference back into [0, 180].
+                        dBearingDeltaDegrees = 360.0 - dBearingDeltaDegrees;
                     }
 
-                    // Update last measurement variable.
-                    stLastGeodesicFromCenterPoint = stNewMeasurement;
+                    // Check that the path actually swept round the center this step.
+                    if (dBearingDeltaDegrees < MIN_SPIRAL_BEARING_STEP_DEGREES)
+                    {
+                        // Conditions not met, this is not a proper spiral.
+                        return false;
+                    }
                 }
+
+                // Update last measurement variable.
+                stLastGeodesicFromCenterPoint = stNewMeasurement;
             }
 
-            return true;
+            // A valid out-and-back spiral turns around exactly once.
+            return nDirectionChanges == 1;
         }
 
         /******************************************************************************
@@ -199,6 +249,56 @@ class SearchPatternTests : public TestingBase<SearchPatternTests>
  * @author ClayJay3 (claytonraycowen@gmail.com)
  * @date 2023-10-12
  ******************************************************************************/
+/******************************************************************************
+ * @brief Guard tests for the IsOutAndBackSpiral helper itself. Without these, a helper
+ *      that accidentally always returned true would make every spiral shape test pass
+ *      vacuously - which is exactly how the previous version went stale unnoticed.
+ *
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-07-28
+ ******************************************************************************/
+TEST_F(SearchPatternTests, SpiralShapeHelperRejectsBadPaths)
+{
+    // Center the synthetic paths on the same spot the real tests use.
+    const double dCenterEasting  = 607344.14;
+    const double dCenterNorthing = 4201167.33;
+
+    // Build a waypoint at a given offset from the center.
+    auto MakeWaypoint = [&](const double dOffsetEasting, const double dOffsetNorthing)
+    {
+        // Assemble the UTM coordinate and wrap it as a navigation waypoint.
+        geoops::UTMCoordinate stCoordinate(dCenterEasting + dOffsetEasting, dCenterNorthing + dOffsetNorthing, 15, true);
+        return geoops::Waypoint(stCoordinate, geoops::WaypointType::eNavigationWaypoint);
+    };
+
+    // A purely OUTWARD spiral must be rejected: the algorithm is required to wind back in,
+    // so a path that never turns around is a regression, not a valid pattern.
+    std::vector<geoops::Waypoint> vOutwardOnly;
+    for (int nIter = 0; nIter < 6; ++nIter)
+    {
+        // Step the radius out by 1m and the bearing round by 57 degrees each time.
+        const double dRadius = static_cast<double>(nIter);
+        const double dAngle  = nIter * 57.0 * M_PI / 180.0;
+        vOutwardOnly.emplace_back(MakeWaypoint(dRadius * std::cos(dAngle), dRadius * std::sin(dAngle)));
+    }
+    EXPECT_FALSE(IsOutAndBackSpiral(vOutwardOnly));
+
+    // A path that goes straight out and straight back along ONE bearing must be rejected: the
+    // radius profile is right but it is a line, not a spiral.
+    std::vector<geoops::Waypoint> vRadialLine;
+    for (const double dRadius : {0.0, 1.0, 2.0, 3.0, 2.0, 1.0})
+    {
+        // Every point sits due east of the center, so the bearing never advances.
+        vRadialLine.emplace_back(MakeWaypoint(dRadius, 0.0));
+    }
+    EXPECT_FALSE(IsOutAndBackSpiral(vRadialLine));
+
+    // Too few points to describe a spiral at all.
+    std::vector<geoops::Waypoint> vTooShort{MakeWaypoint(0.0, 0.0), MakeWaypoint(1.0, 0.0)};
+    EXPECT_FALSE(IsOutAndBackSpiral(vTooShort));
+}
+
 TEST_F(SearchPatternTests, SpiralPatternShapeGPS)
 {
     // Create a new GPS coordinate.
@@ -207,8 +307,8 @@ TEST_F(SearchPatternTests, SpiralPatternShapeGPS)
     // Use this for generating a search pattern with default params.
     std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSpiralPatternWaypoints(stGPSRollaCoordinate);
 
-    // Check if the returned path resembles an outward spiral pattern.
-    EXPECT_TRUE(IsOutwardSpiral(vSearchPatternPath));
+    // Check if the returned path resembles an out-and-back spiral pattern.
+    EXPECT_TRUE(IsOutAndBackSpiral(vSearchPatternPath));
 }
 
 /******************************************************************************
@@ -226,8 +326,8 @@ TEST_F(SearchPatternTests, SpiralPatternShapeUTM)
     // Use this for generating a search pattern with default params.
     std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSpiralPatternWaypoints(stUTMRollaCoordinate);
 
-    // Check if the returned path resembles an outward spiral pattern.
-    EXPECT_TRUE(IsOutwardSpiral(vSearchPatternPath));
+    // Check if the returned path resembles an out-and-back spiral pattern.
+    EXPECT_TRUE(IsOutAndBackSpiral(vSearchPatternPath));
 }
 
 /******************************************************************************

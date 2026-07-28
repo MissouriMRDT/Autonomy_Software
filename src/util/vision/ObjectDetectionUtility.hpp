@@ -117,6 +117,34 @@ namespace objectdetectutils
             bool operator!=(const Object& stOther) const { return !(*this == stOther); }
 
             /******************************************************************************
+             * @brief Explicitly default the default constructor.
+             *
+             *      Declaring the copy constructor below suppresses the compiler's implicit default
+             *      constructor, and plenty of code default-constructs this struct. Every member has
+             *      a default member initializer, so the defaulted version is exactly what the
+             *      implicit one used to do.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2026-07-28
+             ******************************************************************************/
+            Object() = default;
+
+            /******************************************************************************
+             * @brief Explicitly default the copy constructor.
+             *
+             *      This struct provides its own copy-assignment operator below, which under the
+             *      Rule of Three makes the compiler's implicitly-declared copy constructor
+             *      deprecated (-Wdeprecated-copy). The implicit one already does exactly the right
+             *      thing - the assignment operator is a plain memberwise copy, matching it - so
+             *      declaring it defaulted states that intent and silences the deprecation for
+             *      every caller rather than at each copy site.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2026-07-28
+             ******************************************************************************/
+            Object(const Object&) = default;
+
+            /******************************************************************************
              * @brief Overload the assignment operator for the Object struct to perform a deep copy.
              *
              * @param stOther - The other Object struct to copy from.
