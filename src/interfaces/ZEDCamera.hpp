@@ -218,7 +218,7 @@ class ZEDCamera : public Camera<cv::Mat>
 
         // NOTE: All data delivery (frames, depth, point clouds, pose, floor plane, sensors and
         // detected objects) is handled by this class's publish-latest channels. Consumers hold a
-        // Subscription to express demand and Get() the newest immutable snapshot, so there are no
+        // Reader to express demand and Get() the newest immutable snapshot, so there are no
         // per-consumer request methods on this interface. See the publisher accessors below.
 
         /******************************************************************************
@@ -469,7 +469,7 @@ class ZEDCamera : public Camera<cv::Mat>
         virtual bool GetObjectDetectionEnabled() { return false; }
 
         /////////////////////////////////////////
-        // Publish-latest data channels. Consumers Subscribe() to express demand and
+        // Publish-latest data channels. Consumers hold a Reader to express demand and
         // Get() the newest immutable snapshot without blocking the producer. Both the
         // real ZEDCam and the simulated SIMZEDCam publish through these same channels,
         // so consumers stay drop-in interchangeable. A camera in CPU memory mode
@@ -477,85 +477,85 @@ class ZEDCamera : public Camera<cv::Mat>
         /////////////////////////////////////////
 
         /******************************************************************************
-         * @brief Accessor for the BGRA frame publisher (CPU memory).
+         * @brief Read handle for the BGRA frame channel (CPU memory).
          * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the CPU frame channel.
          ******************************************************************************/
         pubsub::Reader<cv::Mat> GetFrameCPUReader() { return m_pubFrameCPU.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the BGRA frame publisher (GPU memory).
+         * @brief Read handle for the BGRA frame channel (GPU memory).
          * @return pubsub::Reader<cv::cuda::GpuMat> - A demand-carrying read handle for the GPU frame channel.
          ******************************************************************************/
         pubsub::Reader<cv::cuda::GpuMat> GetFrameGPUReader() { return m_pubFrameGPU.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the depth measure publisher (CPU memory).
+         * @brief Read handle for the depth measure channel (CPU memory).
          * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the CPU depth measure channel.
          ******************************************************************************/
         pubsub::Reader<cv::Mat> GetDepthMeasureCPUReader() { return m_pubDepthMeasureCPU.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the depth measure publisher (GPU memory).
+         * @brief Read handle for the depth measure channel (GPU memory).
          * @return pubsub::Reader<cv::cuda::GpuMat> - A demand-carrying read handle for the GPU depth measure channel.
          ******************************************************************************/
         pubsub::Reader<cv::cuda::GpuMat> GetDepthMeasureGPUReader() { return m_pubDepthMeasureGPU.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the depth image (grayscale) publisher (CPU memory).
+         * @brief Read handle for the depth image (grayscale) channel (CPU memory).
          * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the CPU depth image channel.
          ******************************************************************************/
         pubsub::Reader<cv::Mat> GetDepthImageCPUReader() { return m_pubDepthImageCPU.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the depth image (grayscale) publisher (GPU memory).
+         * @brief Read handle for the depth image (grayscale) channel (GPU memory).
          * @return pubsub::Reader<cv::cuda::GpuMat> - A demand-carrying read handle for the GPU depth image channel.
          ******************************************************************************/
         pubsub::Reader<cv::cuda::GpuMat> GetDepthImageGPUReader() { return m_pubDepthImageGPU.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the point cloud publisher (CPU memory).
+         * @brief Read handle for the point cloud channel (CPU memory).
          * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the CPU point cloud channel.
          ******************************************************************************/
         pubsub::Reader<cv::Mat> GetPointCloudCPUReader() { return m_pubPointCloudCPU.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the point cloud publisher (GPU memory).
+         * @brief Read handle for the point cloud channel (GPU memory).
          * @return pubsub::Reader<cv::cuda::GpuMat> - A demand-carrying read handle for the GPU point cloud channel.
          ******************************************************************************/
         pubsub::Reader<cv::cuda::GpuMat> GetPointCloudGPUReader() { return m_pubPointCloudGPU.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the realigned positional pose publisher.
+         * @brief Read handle for the realigned positional pose channel.
          * @return pubsub::Reader<Pose> - A demand-carrying read handle for the pose channel.
          ******************************************************************************/
         pubsub::Reader<Pose> GetPoseReader() { return m_pubPose.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the floor plane publisher.
+         * @brief Read handle for the floor plane channel.
          * @return pubsub::Reader<sl::Plane> - A demand-carrying read handle for the floor plane channel.
          ******************************************************************************/
         pubsub::Reader<sl::Plane> GetFloorPlaneReader() { return m_pubFloorPlane.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the sensors data publisher.
+         * @brief Read handle for the sensors data channel.
          * @return pubsub::Reader<sl::SensorsData> - A demand-carrying read handle for the sensors channel.
          ******************************************************************************/
         pubsub::Reader<sl::SensorsData> GetSensorsReader() { return m_pubSensors.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the detected objects publisher.
+         * @brief Read handle for the detected objects channel.
          * @return pubsub::Reader<std::vector<sl::ObjectData>> - A demand-carrying read handle for the objects channel.
          ******************************************************************************/
         pubsub::Reader<std::vector<sl::ObjectData>> GetObjectsReader() { return m_pubObjects.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the batched detected objects publisher.
+         * @brief Read handle for the batched detected objects channel.
          * @return pubsub::Reader<std::vector<sl::ObjectsBatch>> - A demand-carrying read handle for the batched objects channel.
          ******************************************************************************/
         pubsub::Reader<std::vector<sl::ObjectsBatch>> GetBatchedObjectsReader() { return m_pubBatchedObjects.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the camera status publisher (lock-free status reads).
+         * @brief Read handle for the camera status channel (non-blocking status reads).
          * @return pubsub::Reader<CameraStatus> - A demand-carrying read handle for the status channel.
          ******************************************************************************/
         pubsub::Reader<CameraStatus> GetStatusReader() { return m_pubStatus.CreateReader(); }

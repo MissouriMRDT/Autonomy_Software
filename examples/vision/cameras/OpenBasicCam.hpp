@@ -59,7 +59,7 @@ void RunExample()
 
     // Register demand for this camera's frames. Hold this handle for as long as we want the
     // camera to keep producing; the camera reads nothing while it has no subscribers.
-    pubsub::Reader<cv::Mat> subFrames = ExampleBasicCam1->GetFrameReader();
+    pubsub::Reader<cv::Mat> rdFrames = ExampleBasicCam1->GetFrameReader();
 
     // Declare a mat to draw our annotated copy into.
     cv::Mat cvDisplayFrame;
@@ -77,10 +77,10 @@ void RunExample()
 
         // Load the newest published frame ONCE into a local. Everything below works from this
         // local, so the frame cannot change underneath us mid-iteration.
-        pubsub::Reader<cv::Mat>::SharedSnapshot pFrameSnapshot;
+        pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot;
         {
             ZoneScopedNC("Get Snapshot", tracy::Color::Wheat2);
-            pFrameSnapshot = subFrames.Get();
+            pFrameSnapshot = rdFrames.Get();
         }
 
         // A null snapshot just means the camera has not published a frame yet (it may still be
@@ -143,8 +143,8 @@ void RunExample()
     // Cleanup.
     /////////////////////////////////////////
     // Withdraw our demand so the camera stops producing frames nobody is reading. This also
-    // happens automatically when subFrames goes out of scope.
-    subFrames.Release();
+    // happens automatically when rdFrames goes out of scope.
+    rdFrames.Release();
     // Stop camera threads.
     globals::g_pCameraHandler->StopAllCameras();
 }

@@ -286,7 +286,7 @@ float DriveBoard::VariableDriveEffort()
     // Get pointer to camera.
     std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
     // Register demand for the camera's sensor data exactly once. The camera only retrieves and
-    // publishes sensor data while a Subscription is alive, and this member holds ours for the
+    // publishes sensor data while a Reader is alive, and this member holds ours for the
     // lifetime of the DriveBoard.
     std::call_once(m_ocSensorReaderOnce, [this, &ExampleZEDCam1]() { m_rdMainCamSensors = ExampleZEDCam1->GetSensorsReader(); });
 
@@ -295,7 +295,7 @@ float DriveBoard::VariableDriveEffort()
 
     // Load the newest published sensor snapshot once into a local. Lock free and non-blocking;
     // null until the camera has published its first sensor snapshot.
-    pubsub::Reader<sl::SensorsData>::SharedSnapshot pSensorSnapshot = m_rdMainCamSensors.Get();
+    pubsub::SharedSnapshot<sl::SensorsData> pSensorSnapshot = m_rdMainCamSensors.Get();
     if (pSensorSnapshot != nullptr)
     {
         // Declare roll, pitch, yaw from sensor data

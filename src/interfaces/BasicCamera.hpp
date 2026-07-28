@@ -119,7 +119,7 @@ class BasicCamera : public Camera<cv::Mat>
          * @brief The code inside this private method runs in a separate thread, but still
          *      has access to this*. This method continuously gets new frames from the OpenCV
          *      VideoCapture object and publishes a deep-copied snapshot of each one, but only
-         *      while at least one consumer is subscribed. Consumers read the newest snapshot on
+         *      while at least one Reader is alive. Consumers read the newest snapshot on
          *      their own schedule, so this loop never waits on them.
          *
          * @author clayjay3 (claytonraycowen@gmail.com)

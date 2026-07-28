@@ -54,19 +54,19 @@ void RunExample()
     // produced only while something is subscribed. The detected-tags channel needs no subscription.
     // Only the handle matching the camera's memory mode is taken; the other stays
     // default constructed and inactive.
-    pubsub::Reader<cv::Mat> subCameraFrameCPU;
-    pubsub::Reader<cv::cuda::GpuMat> subCameraFrameGPU;
+    pubsub::Reader<cv::Mat> rdCameraFrameCPU;
+    pubsub::Reader<cv::cuda::GpuMat> rdCameraFrameGPU;
     if (bUsingGPUMem)
     {
         // Take the GPU channel handle.
-        subCameraFrameGPU = ExampleZEDCam1->GetFrameGPUReader();
+        rdCameraFrameGPU = ExampleZEDCam1->GetFrameGPUReader();
     }
     else
     {
         // Take the CPU channel handle.
-        subCameraFrameCPU = ExampleZEDCam1->GetFrameCPUReader();
+        rdCameraFrameCPU = ExampleZEDCam1->GetFrameCPUReader();
     }
-    pubsub::Reader<cv::Mat> subDetectionOverlay = ExampleTagDetector1->GetDetectionOverlayReader();
+    pubsub::Reader<cv::Mat> rdDetectionOverlay = ExampleTagDetector1->GetDetectionOverlayReader();
 
     // Declare mats to draw our annotated copies into.
     cv::Mat cvNormalFrame1;
@@ -85,7 +85,7 @@ void RunExample()
         if (bUsingGPUMem)
         {
             // Load the newest GPU frame snapshot ONCE into a local.
-            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pFrame = subCameraFrameGPU.Get();
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pFrame = rdCameraFrameGPU.Get();
             if (pFrame != nullptr && !pFrame->tData.empty())
             {
                 // Download from GPU memory onto our own mat. Done here, off the camera's critical path.
@@ -96,7 +96,7 @@ void RunExample()
         else
         {
             // Load the newest CPU frame snapshot ONCE into a local.
-            pubsub::Reader<cv::Mat>::SharedSnapshot pFrame = subCameraFrameCPU.Get();
+            pubsub::SharedSnapshot<cv::Mat> pFrame = rdCameraFrameCPU.Get();
             if (pFrame != nullptr && !pFrame->tData.empty())
             {
                 // Snapshots are immutable and shared, so clone before drawing on it.
@@ -121,7 +121,7 @@ void RunExample()
         }
 
         // Load the newest detection overlay snapshot ONCE into a local.
-        pubsub::Reader<cv::Mat>::SharedSnapshot pOverlay = subDetectionOverlay.Get();
+        pubsub::SharedSnapshot<cv::Mat> pOverlay = rdDetectionOverlay.Get();
         if (pOverlay != nullptr && !pOverlay->tData.empty())
         {
             // Snapshots are immutable and shared, so clone before drawing on it.
@@ -140,7 +140,7 @@ void RunExample()
         }
 
         // Load the newest detected tags snapshot and report it.
-        pubsub::Reader<std::vector<tagdetectutils::ArucoTag>>::SharedSnapshot pTags = ExampleTagDetector1->GetDetectedTagsReader().Get();
+        pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pTags = ExampleTagDetector1->GetDetectedTagsReader().Get();
         if (pTags != nullptr)
         {
             // Print length of detections vector. Read straight from the snapshot; no copy needed
@@ -166,9 +166,9 @@ void RunExample()
     /////////////////////////////////////////
     // Withdraw our demand so the camera and detector stop producing data nobody is reading. This
     // also happens automatically when these handles go out of scope.
-    subCameraFrameCPU.Release();
-    subCameraFrameGPU.Release();
-    subDetectionOverlay.Release();
+    rdCameraFrameCPU.Release();
+    rdCameraFrameGPU.Release();
+    rdDetectionOverlay.Release();
 
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
     network::g_bRoveCommUDPStatus = false;

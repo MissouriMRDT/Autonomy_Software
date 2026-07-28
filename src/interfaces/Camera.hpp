@@ -248,7 +248,7 @@ class Camera : public AutonomyThread<void>
 
         // NOTE: Frame delivery is handled entirely by each concrete camera's publish-latest
         // channel (see BasicCamera::GetFramePublisher / ZEDCamera::GetFrameCPUPublisher, etc.).
-        // Consumers Subscribe() to express demand and Get() the newest immutable snapshot, so
+        // Consumers hold a Reader to express demand and Get() the newest immutable snapshot, so
         // this interface declares no frame-request method at all.
 
     private:

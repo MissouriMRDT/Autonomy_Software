@@ -168,7 +168,7 @@ void SIMBasicCam::ThreadedContinuousCode()
         m_abCameraOpen.store(true, std::memory_order_release);
 
         // Only produce a frame when a consumer actually wants one.
-        if (m_pubFrame.HasSubscribers())
+        if (m_pubFrame.HasReaders())
         {
             // TODO: PUT CODE HERE FOR GETTING FRAMES AND DATA FROM SIMULATOR into m_cvFrame.
 

@@ -871,15 +871,15 @@ std::vector<char> VisualizationHandler::OnRequestPointCloud(const std::string& s
         return vBuffer;
     }
 
-    std::call_once(m_ocCameraSubscribeOnce,
+    std::call_once(m_ocCameraReadersOnce,
                    [this, pFrontCam, pRearCam]()
                    {
                        m_rdFrontPointCloud = pFrontCam->GetPointCloudCPUReader();
                        m_rdRearPointCloud  = pRearCam->GetPointCloudCPUReader();
                    });
 
-    pubsub::Reader<cv::Mat>::SharedSnapshot pFrontCloudSnapshot = m_rdFrontPointCloud.Get();
-    pubsub::Reader<cv::Mat>::SharedSnapshot pRearCloudSnapshot  = m_rdRearPointCloud.Get();
+    pubsub::SharedSnapshot<cv::Mat> pFrontCloudSnapshot = m_rdFrontPointCloud.Get();
+    pubsub::SharedSnapshot<cv::Mat> pRearCloudSnapshot  = m_rdRearPointCloud.Get();
     if (!pFrontCloudSnapshot || !pRearCloudSnapshot)
     {
         LOG_WARNING(logging::g_qSharedLogger, "VisualizationHandler: Failed to get point cloud for visualization.");

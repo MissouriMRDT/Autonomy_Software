@@ -130,19 +130,19 @@ ObjectDetector::~ObjectDetector()
 }
 
 /******************************************************************************
- * @brief Register this detector's demand for the camera data it consumes. Runs
- *      exactly once, on the first loop iteration. Holding these subscriptions for
+ * @brief Take this detector's read handles on the camera data it consumes. Runs
+ *      exactly once, on the first loop iteration. Holding these read handles for
  *      the detector's lifetime is what tells the camera to keep retrieving and
- *      publishing these data types; a type nobody subscribes to is never retrieved.
+ *      publishing these data types; a type nobody holds a Reader on is never retrieved.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2026-07-24
  ******************************************************************************/
-void ObjectDetector::EnsureCameraSubscriptions()
+void ObjectDetector::EnsureCameraReaders()
 {
-    // Subscribe exactly once, no matter how many times the loop runs.
-    std::call_once(m_ocCameraSubscribeOnce,
+    // Take the read handles exactly once, no matter how many times the loop runs.
+    std::call_once(m_ocCameraReadersOnce,
                    [this]()
                    {
                        // Check whether we are consuming from a ZED camera or a basic camera.
@@ -202,8 +202,8 @@ bool ObjectDetector::LoadLatestCameraFrames()
         if (m_bUsingGpuMats)
         {
             // Load both GPU snapshots once into locals.
-            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pFrameSnapshot = m_rdCameraFrameGPU.Get();
-            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pCloudSnapshot = m_rdCameraPointCloudGPU.Get();
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pFrameSnapshot = m_rdCameraFrameGPU.Get();
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pCloudSnapshot = m_rdCameraPointCloudGPU.Get();
             // Nothing has been published yet.
             if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
             {
@@ -228,8 +228,8 @@ bool ObjectDetector::LoadLatestCameraFrames()
         else
         {
             // Load both CPU snapshots once into locals.
-            pubsub::Reader<cv::Mat>::SharedSnapshot pFrameSnapshot = m_rdCameraFrameCPU.Get();
-            pubsub::Reader<cv::Mat>::SharedSnapshot pCloudSnapshot = m_rdCameraPointCloudCPU.Get();
+            pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot = m_rdCameraFrameCPU.Get();
+            pubsub::SharedSnapshot<cv::Mat> pCloudSnapshot = m_rdCameraPointCloudCPU.Get();
             // Nothing has been published yet.
             if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
             {
@@ -253,7 +253,7 @@ bool ObjectDetector::LoadLatestCameraFrames()
     else
     {
         // Load the basic camera's frame snapshot once into a local.
-        pubsub::Reader<cv::Mat>::SharedSnapshot pFrameSnapshot = m_rdCameraFrameCPU.Get();
+        pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot = m_rdCameraFrameCPU.Get();
         // Nothing has been published yet.
         if (pFrameSnapshot == nullptr)
         {
@@ -381,7 +381,7 @@ void ObjectDetector::ThreadedContinuousCode()
     if (m_bCameraIsOpened)
     {
         // Register demand for the camera data we consume (once, on the first iteration).
-        this->EnsureCameraSubscriptions();
+        this->EnsureCameraReaders();
 
         // Load the newest published camera snapshots. This is a lock-free read that never blocks
         // on the camera's loop. Returns false when there is nothing new to process, in which case
@@ -464,7 +464,7 @@ void ObjectDetector::ThreadedContinuousCode()
 
         // Publish the freshly computed outputs to any subscribed consumers (deep copy once each).
         // Detection overlay frame.
-        if (m_pubDetectionOverlay.HasSubscribers())
+        if (m_pubDetectionOverlay.HasReaders())
         {
             // Deep copy the overlay into a pooled snapshot and publish.
             std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDetectionOverlay.Acquire();
@@ -472,7 +472,7 @@ void ObjectDetector::ThreadedContinuousCode()
             m_pubDetectionOverlay.Publish(std::move(pSlot));
         }
         // Last good detection overlay frame.
-        if (m_pubLastGoodOverlay.HasSubscribers())
+        if (m_pubLastGoodOverlay.HasReaders())
         {
             // Deep copy the last-good overlay into a pooled snapshot and publish.
             std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubLastGoodOverlay.Acquire();

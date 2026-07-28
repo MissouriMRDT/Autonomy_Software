@@ -77,24 +77,24 @@ class ObjectDetector : public AutonomyThread<void>
         cv::Size GetProcessFrameResolution() const;
 
         /////////////////////////////////////////
-        // Publish-latest data channels out. Consumers Subscribe()/Get() the newest
+        // Publish-latest data channels out. Consumers hold a Reader and Get() the newest
         // immutable snapshot without blocking this detector's loop.
         /////////////////////////////////////////
 
         /******************************************************************************
-         * @brief Accessor for the detection-overlay frame publisher.
+         * @brief Read handle for the detection-overlay frame channel.
          * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the detection overlay channel.
          ******************************************************************************/
         pubsub::Reader<cv::Mat> GetDetectionOverlayReader() { return m_pubDetectionOverlay.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the last-good detection-overlay frame publisher.
+         * @brief Read handle for the last-good detection-overlay frame channel.
          * @return pubsub::Reader<cv::Mat> - A demand-carrying read handle for the last-good overlay channel.
          ******************************************************************************/
         pubsub::Reader<cv::Mat> GetLastGoodOverlayReader() { return m_pubLastGoodOverlay.CreateReader(); }
 
         /******************************************************************************
-         * @brief Accessor for the detected objects publisher.
+         * @brief Read handle for the detected objects channel.
          * @return pubsub::Reader<std::vector<objectdetectutils::Object>> - A demand-carrying read handle for the objects channel.
          ******************************************************************************/
         pubsub::Reader<std::vector<objectdetectutils::Object>> GetDetectedObjectsReader() { return m_pubDetectedObjects.CreateReader(); }
@@ -119,7 +119,7 @@ class ObjectDetector : public AutonomyThread<void>
         void ThreadedContinuousCode() override;
         void PooledLinearCode() override;
         void UpdateDetectedObjects(std::vector<objectdetectutils::Object>& vNewlyDetectedObjects);
-        void EnsureCameraSubscriptions();
+        void EnsureCameraReaders();
         bool LoadLatestCameraFrames();
 
         /////////////////////////////////////////
@@ -166,7 +166,7 @@ class ObjectDetector : public AutonomyThread<void>
         // Demand for the camera data this detector consumes. Held for this detector's whole
         // lifetime so the camera retrieves and publishes only what is actually being used.
 
-        std::once_flag m_ocCameraSubscribeOnce;
+        std::once_flag m_ocCameraReadersOnce;
         // Typed read handles onto the camera channels this detector consumes. Only the pair
         // matching the camera's memory mode is ever active; the other stays default constructed
         // and inactive. Each handle both expresses demand (the camera retrieves nothing without

@@ -56,7 +56,7 @@ class StateMachineHandler : private AutonomyThread<void>
         std::shared_ptr<ZEDCamera> m_pMainCam;
 
         // Persistent demand for the main camera's sensor data. The camera only calls into the SDK
-        // for sensor data while a Subscription is alive, so this handler holds one for its
+        // for sensor data while a Reader is alive, so this handler holds one for its
         // lifetime and then reads the newest snapshot with a lock-free, non-blocking Get().
         pubsub::Reader<sl::SensorsData> m_rdMainCamSensors;
         std::shared_ptr<ZEDCamera> m_pRearCam;

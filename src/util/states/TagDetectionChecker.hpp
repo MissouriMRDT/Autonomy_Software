@@ -35,7 +35,7 @@ namespace statemachine
      *      Each detector's tags are read as a single lock-free load of its newest immutable
      *      snapshot, so this never blocks on a detector's loop. Detectors publish their detected
      *      tags unconditionally (the tags are already computed by the detection pass), so no
-     *      Subscription is required to read this channel.
+     *      Reader is required only to keep it published, not to read it.
      *
      * @param vDetectedArucoTags - Reference vector that will hold all of the aggregated detected Aruco tags.
      * @param vTagDetectors - Vector of pointers to tag detectors that will be read from.
@@ -57,7 +57,7 @@ namespace statemachine
             }
 
             // Load the newest snapshot once into a local so it cannot change while we read it.
-            pubsub::Reader<std::vector<tagdetectutils::ArucoTag>>::SharedSnapshot pSnapshot = pTagDetector->GetDetectedTagsReader().Get();
+            pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pSnapshot = pTagDetector->GetDetectedTagsReader().Get();
             // Nothing has been published yet.
             if (pSnapshot == nullptr)
             {

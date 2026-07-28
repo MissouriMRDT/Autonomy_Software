@@ -201,10 +201,10 @@ namespace statemachine
                     if (pTagDetector->GetThreadUUID() == m_stBestArucoTag.szDetectorUUID || pTagDetector->GetThreadUUID() == m_stBestTorchTag.szDetectorUUID)
                     {
                         // Load the detector's newest last-good overlay snapshot once into a local.
-                        // The TagDetectionHandler holds a Subscription to this channel for the
+                        // The TagDetectionHandler holds a Reader on this channel for the
                         // detector's lifetime, so it is being published. This read is lock free and
                         // never blocks on the detector's loop.
-                        pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = pTagDetector->GetLastGoodOverlayReader().Get();
+                        pubsub::SharedSnapshot<cv::Mat> pSnapshot = pTagDetector->GetLastGoodOverlayReader().Get();
                         if (pSnapshot != nullptr)
                         {
                             // Deep copy the immutable snapshot so we own the frame we are about to save.

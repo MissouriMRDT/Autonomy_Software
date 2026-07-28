@@ -49,9 +49,9 @@ void RunExample()
 
     // Register demand for the channels we want. The camera produces a data type only while
     // something is subscribed to it, so these handles are what turn each one on.
-    pubsub::Reader<cv::Mat> subFrame        = pZEDCam->GetFrameCPUReader();
-    pubsub::Reader<cv::Mat> subDepthImage   = pZEDCam->GetDepthImageCPUReader();
-    pubsub::Reader<cv::Mat> subDepthMeasure = pZEDCam->GetDepthMeasureCPUReader();
+    pubsub::Reader<cv::Mat> rdFrame        = pZEDCam->GetFrameCPUReader();
+    pubsub::Reader<cv::Mat> rdDepthImage   = pZEDCam->GetDepthImageCPUReader();
+    pubsub::Reader<cv::Mat> rdDepthMeasure = pZEDCam->GetDepthMeasureCPUReader();
 
     // Track which frame we last processed so we can skip iterations with nothing new.
     unsigned long long ullLastProcessedSequence = 0;
@@ -60,9 +60,9 @@ void RunExample()
     {
         // Load the newest snapshot of each channel ONCE into a local. Non-blocking reads that
         // return null until the simulator connects and the camera publishes.
-        pubsub::Reader<cv::Mat>::SharedSnapshot pFrame        = subFrame.Get();
-        pubsub::Reader<cv::Mat>::SharedSnapshot pDepthImage   = subDepthImage.Get();
-        pubsub::Reader<cv::Mat>::SharedSnapshot pDepthMeasure = subDepthMeasure.Get();
+        pubsub::SharedSnapshot<cv::Mat> pFrame        = rdFrame.Get();
+        pubsub::SharedSnapshot<cv::Mat> pDepthImage   = rdDepthImage.Get();
+        pubsub::SharedSnapshot<cv::Mat> pDepthMeasure = rdDepthMeasure.Get();
 
         // Only redraw when the camera has actually produced a new frame.
         if (pFrame != nullptr && pFrame->ullSequence != ullLastProcessedSequence)
@@ -104,9 +104,9 @@ void RunExample()
 
     // Withdraw our demand so the camera stops producing data nobody is reading. This also happens
     // automatically when these handles go out of scope.
-    subFrame.Release();
-    subDepthImage.Release();
-    subDepthMeasure.Release();
+    rdFrame.Release();
+    rdDepthImage.Release();
+    rdDepthMeasure.Release();
 
     // Stop the camera.
     pZEDCam->RequestStop();

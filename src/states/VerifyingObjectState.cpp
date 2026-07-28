@@ -198,10 +198,10 @@ namespace statemachine
                     if (pObjectDetector->GetThreadUUID() == m_stBestObject.szDetectorUUID)
                     {
                         // Load the detector's newest last-good overlay snapshot once into a local.
-                        // The ObjectDetectionHandler holds a Subscription to this channel for the
+                        // The ObjectDetectionHandler holds a Reader on this channel for the
                         // detector's lifetime, so it is being published. This read is lock free and
                         // never blocks on the detector's loop.
-                        pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = pObjectDetector->GetLastGoodOverlayReader().Get();
+                        pubsub::SharedSnapshot<cv::Mat> pSnapshot = pObjectDetector->GetLastGoodOverlayReader().Get();
                         if (pSnapshot != nullptr)
                         {
                             // Deep copy the immutable snapshot so we own the frame we are about to save.

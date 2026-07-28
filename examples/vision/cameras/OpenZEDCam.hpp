@@ -116,48 +116,48 @@ void RunExample()
     // Hold them for as long as we want the data; letting them fall out of scope withdraws demand.
     // Only the handle matching the camera's memory mode is taken; the other stays
     // default constructed and inactive.
-    pubsub::Reader<cv::Mat> subFrameCPU;
-    pubsub::Reader<cv::cuda::GpuMat> subFrameGPU;
+    pubsub::Reader<cv::Mat> rdFrameCPU;
+    pubsub::Reader<cv::cuda::GpuMat> rdFrameGPU;
     if (bUsingGPUMem)
     {
         // Take the GPU channel handle.
-        subFrameGPU = ExampleZEDCam1->GetFrameGPUReader();
+        rdFrameGPU = ExampleZEDCam1->GetFrameGPUReader();
     }
     else
     {
         // Take the CPU channel handle.
-        subFrameCPU = ExampleZEDCam1->GetFrameCPUReader();
+        rdFrameCPU = ExampleZEDCam1->GetFrameCPUReader();
     }
     // Only the handle matching the camera's memory mode is taken; the other stays
     // default constructed and inactive.
-    pubsub::Reader<cv::Mat> subDepthImageCPU;
-    pubsub::Reader<cv::cuda::GpuMat> subDepthImageGPU;
+    pubsub::Reader<cv::Mat> rdDepthImageCPU;
+    pubsub::Reader<cv::cuda::GpuMat> rdDepthImageGPU;
     if (bUsingGPUMem)
     {
         // Take the GPU channel handle.
-        subDepthImageGPU = ExampleZEDCam1->GetDepthImageGPUReader();
+        rdDepthImageGPU = ExampleZEDCam1->GetDepthImageGPUReader();
     }
     else
     {
         // Take the CPU channel handle.
-        subDepthImageCPU = ExampleZEDCam1->GetDepthImageCPUReader();
+        rdDepthImageCPU = ExampleZEDCam1->GetDepthImageCPUReader();
     }
     // Only the handle matching the camera's memory mode is taken; the other stays
     // default constructed and inactive.
-    pubsub::Reader<cv::Mat> subPointCloudCPU;
-    pubsub::Reader<cv::cuda::GpuMat> subPointCloudGPU;
+    pubsub::Reader<cv::Mat> rdPointCloudCPU;
+    pubsub::Reader<cv::cuda::GpuMat> rdPointCloudGPU;
     if (bUsingGPUMem)
     {
         // Take the GPU channel handle.
-        subPointCloudGPU = ExampleZEDCam1->GetPointCloudGPUReader();
+        rdPointCloudGPU = ExampleZEDCam1->GetPointCloudGPUReader();
     }
     else
     {
         // Take the CPU channel handle.
-        subPointCloudCPU = ExampleZEDCam1->GetPointCloudCPUReader();
+        rdPointCloudCPU = ExampleZEDCam1->GetPointCloudCPUReader();
     }
-    pubsub::Reader<ZEDCamera::Pose> subPose       = ExampleZEDCam1->GetPoseReader();
-    pubsub::Reader<sl::SensorsData> subSensors    = ExampleZEDCam1->GetSensorsReader();
+    pubsub::Reader<ZEDCamera::Pose> rdPose       = ExampleZEDCam1->GetPoseReader();
+    pubsub::Reader<sl::SensorsData> rdSensors    = ExampleZEDCam1->GetSensorsReader();
 
     // Declare mats to store our own working copies in.
     cv::Mat cvNormalFrame1;
@@ -183,9 +183,9 @@ void RunExample()
         if (bUsingGPUMem)
         {
             // Load the GPU snapshots.
-            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pFrame      = subFrameGPU.Get();
-            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pDepth      = subDepthImageGPU.Get();
-            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pPointCloud = subPointCloudGPU.Get();
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pFrame      = rdFrameGPU.Get();
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pDepth      = rdDepthImageGPU.Get();
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pPointCloud = rdPointCloudGPU.Get();
 
             // Only process once every channel has produced something new.
             if (pFrame != nullptr && pDepth != nullptr && pPointCloud != nullptr && pFrame->ullSequence != ullLastProcessedSequence)
@@ -203,9 +203,9 @@ void RunExample()
         else
         {
             // Load the CPU snapshots.
-            pubsub::Reader<cv::Mat>::SharedSnapshot pFrame      = subFrameCPU.Get();
-            pubsub::Reader<cv::Mat>::SharedSnapshot pDepth      = subDepthImageCPU.Get();
-            pubsub::Reader<cv::Mat>::SharedSnapshot pPointCloud = subPointCloudCPU.Get();
+            pubsub::SharedSnapshot<cv::Mat> pFrame      = rdFrameCPU.Get();
+            pubsub::SharedSnapshot<cv::Mat> pDepth      = rdDepthImageCPU.Get();
+            pubsub::SharedSnapshot<cv::Mat> pPointCloud = rdPointCloudCPU.Get();
 
             // Only process once every channel has produced something new.
             if (pFrame != nullptr && pDepth != nullptr && pPointCloud != nullptr && pFrame->ullSequence != ullLastProcessedSequence)
@@ -242,7 +242,7 @@ void RunExample()
             imgops::SplitPointCloudColors(cvPointCloud1, cvPointCloudColor1);
 
             // Read the newest pose snapshot. Null until positional tracking has published one.
-            pubsub::Reader<ZEDCamera::Pose>::SharedSnapshot pPose = subPose.Get();
+            pubsub::SharedSnapshot<ZEDCamera::Pose> pPose = rdPose.Get();
             if (pPose != nullptr)
             {
                 // Work from the immutable snapshot's data.
@@ -260,7 +260,7 @@ void RunExample()
             }
 
             // Read the newest sensors snapshot. Null until the camera has published one.
-            pubsub::Reader<sl::SensorsData>::SharedSnapshot pSensors = subSensors.Get();
+            pubsub::SharedSnapshot<sl::SensorsData> pSensors = rdSensors.Get();
             if (pSensors != nullptr)
             {
                 // Copy the sensors data out of the snapshot. A const reference will not work here:
@@ -338,14 +338,14 @@ void RunExample()
     /////////////////////////////////////////
     // Withdraw all of our demand so the camera stops retrieving data nobody is reading. This also
     // happens automatically when these handles go out of scope.
-    subFrameCPU.Release();
-    subFrameGPU.Release();
-    subDepthImageCPU.Release();
-    subDepthImageGPU.Release();
-    subPointCloudCPU.Release();
-    subPointCloudGPU.Release();
-    subPose.Release();
-    subSensors.Release();
+    rdFrameCPU.Release();
+    rdFrameGPU.Release();
+    rdDepthImageCPU.Release();
+    rdDepthImageGPU.Release();
+    rdPointCloudCPU.Release();
+    rdPointCloudGPU.Release();
+    rdPose.Release();
+    rdSensors.Release();
 
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
     network::g_bRoveCommUDPStatus = false;

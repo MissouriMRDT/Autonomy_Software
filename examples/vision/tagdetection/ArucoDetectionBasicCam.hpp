@@ -24,7 +24,7 @@
  *
  *      - GetDetectedTagsReader()         - the detected tags. Published unconditionally,
  *                                          because the detection pass already computed
- *                                          them, so no Subscription is needed to read it.
+ *                                          them, so no Reader is needed to keep it published.
  *      - GetDetectionOverlayReader()     - the annotated frame. Demand gated, because it
  *                                          costs a full-frame clone. Subscribe to enable.
  *      - GetLastGoodOverlayReader()      - the last annotated frame that had detections.
@@ -54,8 +54,8 @@ void RunExample()
     // Register demand for the camera's frames and the detector's overlay frame. The camera and
     // the detector each produce these only while something is subscribed, so these handles are
     // what turn that work on. The detected-tags channel needs no subscription.
-    pubsub::Reader<cv::Mat> subCameraFrame     = ExampleBasicCam1->GetFrameReader();
-    pubsub::Reader<cv::Mat> subDetectionOverlay = ExampleTagDetector1->GetDetectionOverlayReader();
+    pubsub::Reader<cv::Mat> rdCameraFrame     = ExampleBasicCam1->GetFrameReader();
+    pubsub::Reader<cv::Mat> rdDetectionOverlay = ExampleTagDetector1->GetDetectionOverlayReader();
 
     // Declare mats to draw our annotated copies into.
     cv::Mat cvNormalFrame1;
@@ -69,9 +69,9 @@ void RunExample()
     {
         // Load the newest snapshot of each channel ONCE into a local. All three reads are
         // non-blocking and return null until that producer has published something.
-        pubsub::Reader<cv::Mat>::SharedSnapshot pCameraFrame = subCameraFrame.Get();
-        pubsub::Reader<cv::Mat>::SharedSnapshot pOverlay     = subDetectionOverlay.Get();
-        pubsub::Reader<std::vector<tagdetectutils::ArucoTag>>::SharedSnapshot pTags = ExampleTagDetector1->GetDetectedTagsReader().Get();
+        pubsub::SharedSnapshot<cv::Mat> pCameraFrame = rdCameraFrame.Get();
+        pubsub::SharedSnapshot<cv::Mat> pOverlay     = rdDetectionOverlay.Get();
+        pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pTags = ExampleTagDetector1->GetDetectedTagsReader().Get();
 
         // Show the camera frame.
         if (pCameraFrame != nullptr && !pCameraFrame->tData.empty())
@@ -135,8 +135,8 @@ void RunExample()
     /////////////////////////////////////////
     // Withdraw our demand so the camera and detector stop producing data nobody is reading. This
     // also happens automatically when these handles go out of scope.
-    subCameraFrame.Release();
-    subDetectionOverlay.Release();
+    rdCameraFrame.Release();
+    rdDetectionOverlay.Release();
 
     // Stop the detector and camera we created, in that order: consumers before producers.
     ExampleTagDetector1->RequestStop();

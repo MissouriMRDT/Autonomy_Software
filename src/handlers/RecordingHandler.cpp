@@ -365,7 +365,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
         if (m_vBasicCameras[nIter] != nullptr)
         {
             // Load the newest published frame snapshot once into a local.
-            pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = m_vFrameReadersCPU[nIter].Get();
+            pubsub::SharedSnapshot<cv::Mat> pSnapshot = m_vFrameReadersCPU[nIter].Get();
             // Nothing has been published yet.
             if (pSnapshot == nullptr)
             {
@@ -381,7 +381,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
             if (m_vZEDCameras[nIter]->GetUsingGPUMem())
             {
                 // Load the newest published GPU frame snapshot once into a local.
-                pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pSnapshot = m_vFrameReadersGPU[nIter].Get();
+                pubsub::SharedSnapshot<cv::cuda::GpuMat> pSnapshot = m_vFrameReadersGPU[nIter].Get();
                 // Nothing has been published yet.
                 if (pSnapshot == nullptr)
                 {
@@ -394,7 +394,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
             else
             {
                 // Load the newest published CPU frame snapshot once into a local.
-                pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = m_vFrameReadersCPU[nIter].Get();
+                pubsub::SharedSnapshot<cv::Mat> pSnapshot = m_vFrameReadersCPU[nIter].Get();
                 // Nothing has been published yet.
                 if (pSnapshot == nullptr)
                 {
@@ -561,7 +561,7 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
         }
 
         // Load the newest published overlay snapshot once into a local.
-        pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = m_vFrameReadersCPU[nIter].Get();
+        pubsub::SharedSnapshot<cv::Mat> pSnapshot = m_vFrameReadersCPU[nIter].Get();
         // Nothing has been published yet.
         if (pSnapshot == nullptr)
         {
@@ -687,7 +687,7 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
         }
 
         // Load the newest published overlay snapshot once into a local.
-        pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = m_vFrameReadersCPU[nIter].Get();
+        pubsub::SharedSnapshot<cv::Mat> pSnapshot = m_vFrameReadersCPU[nIter].Get();
         // Nothing has been published yet.
         if (pSnapshot == nullptr)
         {

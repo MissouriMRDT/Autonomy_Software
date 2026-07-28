@@ -267,7 +267,7 @@ void BasicCam::ThreadedContinuousCode()
 
         // Only grab and publish a frame when a consumer actually wants one. With no live
         // subscribers there is nothing to produce, so we skip the read entirely.
-        if (m_pubFrame.HasSubscribers())
+        if (m_pubFrame.HasReaders())
         {
             // Whether the read below succeeded. Kept outside the zone so it is visible after.
             bool bFrameReadSuccessfully;

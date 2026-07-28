@@ -180,7 +180,7 @@ TEST_F(PublisherTests, HeldSnapshotIsImmutableAcrossManyProducerCycles)
  ******************************************************************************/
 TEST_F(PublisherTests, SnapshotOutlivesPublisherViaWeakPtrDeleter)
 {
-    pubsub::Publisher<Payload>::SharedSnapshot pSurvivor;
+    pubsub::SharedSnapshot<Payload> pSurvivor;
     {
         pubsub::Publisher<Payload> pub(2);
         auto pSlot = pub.Acquire();
@@ -196,22 +196,22 @@ TEST_F(PublisherTests, SnapshotOutlivesPublisherViaWeakPtrDeleter)
 }
 
 /******************************************************************************
- * @brief HasSubscribers reflects the number of live Reader handles.
+ * @brief HasReaders reflects the number of live Reader handles.
  ******************************************************************************/
 TEST_F(PublisherTests, ReaderTracksDemand)
 {
     pubsub::Publisher<int> pub(2);
-    EXPECT_FALSE(pub.HasSubscribers());
+    EXPECT_FALSE(pub.HasReaders());
     {
         auto sub1 = pub.CreateReader();
-        EXPECT_TRUE(pub.HasSubscribers());
+        EXPECT_TRUE(pub.HasReaders());
         {
             auto sub2 = pub.CreateReader();
-            EXPECT_TRUE(pub.HasSubscribers());
+            EXPECT_TRUE(pub.HasReaders());
         }
-        EXPECT_TRUE(pub.HasSubscribers());
+        EXPECT_TRUE(pub.HasReaders());
     }
-    EXPECT_FALSE(pub.HasSubscribers());
+    EXPECT_FALSE(pub.HasReaders());
 }
 
 /******************************************************************************
@@ -224,13 +224,13 @@ TEST_F(PublisherTests, ReaderMoveSemantics)
     EXPECT_FALSE(rdOuter.IsActive());
     {
         auto rdInner = pub.CreateReader();
-        EXPECT_TRUE(pub.HasSubscribers());
+        EXPECT_TRUE(pub.HasReaders());
         rdOuter = std::move(rdInner);
         EXPECT_TRUE(rdOuter.IsActive());
     }
-    EXPECT_TRUE(pub.HasSubscribers());
+    EXPECT_TRUE(pub.HasReaders());
     rdOuter.Release();
-    EXPECT_FALSE(pub.HasSubscribers());
+    EXPECT_FALSE(pub.HasReaders());
 }
 
 /******************************************************************************

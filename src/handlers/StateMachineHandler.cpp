@@ -394,7 +394,7 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
 
         // Load the newest published sensor data from the ZED camera once into a local. Lock free
         // and non-blocking; null until the camera has published its first sensor snapshot.
-        pubsub::Reader<sl::SensorsData>::SharedSnapshot pSensorSnapshot = m_rdMainCamSensors.Get();
+        pubsub::SharedSnapshot<sl::SensorsData> pSensorSnapshot = m_rdMainCamSensors.Get();
         if (pSensorSnapshot != nullptr)
         {
             // Get Degrees heading from ZED IMU data.

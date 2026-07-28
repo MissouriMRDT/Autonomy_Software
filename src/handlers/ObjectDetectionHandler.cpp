@@ -92,7 +92,7 @@ void ObjectDetectionHandler::StartAllDetectors()
     m_pObjectDetectorRearCam->Start();
 
     // Register this handler's demand for every detector's overlay channels. Detectors only clone
-    // and publish overlay frames while a Subscription is alive, so holding these for the lifetime
+    // and publish overlay frames while a Reader is alive, so holding these for the lifetime
     // of the detectors is what keeps GetDetectionOverlayFrame() supplied with frames.
     m_rdMainCamOverlay         = m_pObjectDetectorMainCam->GetDetectionOverlayReader();
     m_rdMainCamLastGoodOverlay = m_pObjectDetectorMainCam->GetLastGoodOverlayReader();
@@ -203,8 +203,8 @@ cv::Mat ObjectDetectionHandler::GetDetectionOverlayFrame(ObjectDetectors eDetect
     }
 
     // Load the newest published overlay snapshot once into a local. This handler holds a
-    // Subscription for the detector's lifetime, so the detector is publishing this channel.
-    pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = pDetector->GetDetectionOverlayReader().Get();
+    // Reader for the detector's lifetime, so the detector is publishing this channel.
+    pubsub::SharedSnapshot<cv::Mat> pSnapshot = pDetector->GetDetectionOverlayReader().Get();
     if (pSnapshot == nullptr)
     {
         // Submit logger message.

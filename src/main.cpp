@@ -260,7 +260,7 @@ int main()
 
         // Register demand for the main camera's sensor data for the lifetime of the main loop, so
         // the 's' console command below always has a snapshot to read. The camera only retrieves
-        // and publishes sensor data while a Subscription is alive.
+        // and publishes sensor data while a Reader is alive.
         pubsub::Reader<sl::SensorsData> rdMainCamSensors = pMainCam->GetSensorsReader();
 
         // Create a vector of ints to store the FPS values for each thread.
@@ -352,7 +352,7 @@ int main()
                     {
                         // Load the newest published sensor snapshot once into a local. Lock free and
                         // non-blocking; null until the camera has published its first snapshot.
-                        pubsub::Reader<sl::SensorsData>::SharedSnapshot pSensorSnapshot = rdMainCamSensors.Get();
+                        pubsub::SharedSnapshot<sl::SensorsData> pSensorSnapshot = rdMainCamSensors.Get();
 
                         // Only print if the camera has actually published sensor data.
                         if (pSensorSnapshot != nullptr)

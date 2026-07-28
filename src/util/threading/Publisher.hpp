@@ -10,7 +10,7 @@
  *
  *      The write and read faces are deliberately separate types over one shared channel:
  *
- *        Publisher<T>  Acquire() / Publish() / HasSubscribers(). Held privately by the
+ *        Publisher<T>  Acquire() / Publish() / HasReaders(). Held privately by the
  *                      producer that owns the data. Never handed out.
  *        Reader<T>     Get(), plus RAII demand. This is what producers hand to consumers.
  *
@@ -21,7 +21,7 @@
  *           consumer of that channel.
  *        2. A consumer physically cannot read without registering demand, because Get()
  *           lives on the same object that holds the demand count. Reads that "work" only
- *           because some unrelated consumer happened to be subscribed are unrepresentable.
+ *           because some unrelated consumer happened to hold a Reader are unrepresentable.
  *
  *      A Reader owns a strong reference to the channel, so it stays valid even if the
  *      producer that created it is destroyed first; Get() simply keeps returning the last
@@ -101,6 +101,24 @@ namespace pubsub
     };
 
     /******************************************************************************
+     * @brief The handle consumers receive for one published value: a reference-counted
+     *      pointer to an immutable Snapshot.
+     *
+     *      This lives at namespace scope, next to Snapshot itself, because a snapshot
+     *      handle belongs to neither the Publisher nor the Reader - both merely hand out
+     *      or receive one. Declaring it inside those classes would imply an ownership
+     *      relationship that does not exist, and would suggest the two spellings might be
+     *      different types when they are necessarily the same one.
+     *
+     * @tparam T - The value type carried by the snapshot.
+     *
+     * @author clayjay3 (claytonraycowen@gmail.com)
+     * @date 2026-07-26
+     ******************************************************************************/
+    template<typename T>
+    using SharedSnapshot = std::shared_ptr<const Snapshot<T>>;
+
+    /******************************************************************************
      * @brief Namespace containing implementation details of the publish-latest
      *      channel. Nothing in here is part of the public interface.
      *
@@ -129,9 +147,6 @@ namespace pubsub
         class Channel
         {
             public:
-                // Public type alias for the immutable snapshot handle consumers receive.
-                using SharedSnapshot = std::shared_ptr<const Snapshot<T>>;
-
                 /////////////////////////////////////////
                 // Declare public member variables.
                 /////////////////////////////////////////
@@ -141,7 +156,7 @@ namespace pubsub
                 std::atomic<size_t> siPoolMisses{0};               // Slots allocated because the free list was empty.
                 std::atomic<size_t> siAllocated{0};                // Total slots ever allocated (free + in use).
                 std::atomic<bool> bCeilingBreached{false};         // Set once total allocation passes the ceiling.
-                std::atomic<long> nSubscribers{0};                 // Number of live Readers expressing demand.
+                std::atomic<long> nReaderCount{0};                 // Number of live Readers expressing demand.
                 std::atomic<unsigned long long> ullSequence{0};    // Monotonic publish sequence source.
                 size_t siGrowthCeiling = 0;                        // Soft cap on total allocation (0 = unlimited).
                 std::function<void(T&)> fnSlotInitializer;         // Optional per-slot data initializer.
@@ -226,31 +241,31 @@ namespace pubsub
 
 #if PUBSUB_HAS_ATOMIC_SHARED_PTR
                 // Modern path: a real atomic shared_ptr.
-                std::atomic<SharedSnapshot> atomLatest;
+                std::atomic<SharedSnapshot<T>> atomLatest;
 
                 /******************************************************************************
                  * @brief Atomically load the newest snapshot with acquire ordering.
                  ******************************************************************************/
-                SharedSnapshot LoadLatest() const { return atomLatest.load(std::memory_order_acquire); }
+                SharedSnapshot<T> LoadLatest() const { return atomLatest.load(std::memory_order_acquire); }
 
                 /******************************************************************************
                  * @brief Atomically store the newest snapshot with release ordering.
                  ******************************************************************************/
-                void StoreLatest(SharedSnapshot pSnapshot) { atomLatest.store(std::move(pSnapshot), std::memory_order_release); }
+                void StoreLatest(SharedSnapshot<T> pSnapshot) { atomLatest.store(std::move(pSnapshot), std::memory_order_release); }
 #else
                 // Fallback path: a plain shared_ptr accessed through the deprecated
                 // free-function atomics (the only option on libstdc++ < 12).
-                SharedSnapshot pLatest;
+                SharedSnapshot<T> pLatest;
 
                 /******************************************************************************
                  * @brief Atomically load the newest snapshot with acquire ordering.
                  ******************************************************************************/
-                SharedSnapshot LoadLatest() const { return std::atomic_load_explicit(&pLatest, std::memory_order_acquire); }
+                SharedSnapshot<T> LoadLatest() const { return std::atomic_load_explicit(&pLatest, std::memory_order_acquire); }
 
                 /******************************************************************************
                  * @brief Atomically store the newest snapshot with release ordering.
                  ******************************************************************************/
-                void StoreLatest(SharedSnapshot pSnapshot) { std::atomic_store_explicit(&pLatest, std::move(pSnapshot), std::memory_order_release); }
+                void StoreLatest(SharedSnapshot<T> pSnapshot) { std::atomic_store_explicit(&pLatest, std::move(pSnapshot), std::memory_order_release); }
 #endif
         };
     }    // namespace internal
@@ -261,10 +276,10 @@ namespace pubsub
      *
      *      A Reader is a move-only RAII handle that does two things at once:
      *
-     *        - It expresses demand. Construction increments the channel's subscriber
+     *        - It expresses demand. Construction increments the channel's reader
      *          count and destruction decrements it, so a producer retrieves and
      *          publishes a data type only while at least one Reader for it is alive.
-     *          Demand therefore tracks reality with no manual unsubscribe to forget.
+     *          Demand therefore tracks reality with no manual release to forget.
      *        - It reads. Get() returns the newest immutable snapshot with a non-blocking
      *          atomic load that never waits on the producer's loop.
      *
@@ -289,9 +304,6 @@ namespace pubsub
     class Reader
     {
         public:
-            // Public type alias for the immutable snapshot handle this reader returns.
-            using SharedSnapshot = std::shared_ptr<const Snapshot<T>>;
-
             /******************************************************************************
              * @brief Construct a new, inactive Reader. Holds no demand and Get() returns
              *      nullptr. Exists so a Reader can be a default-constructed member that is
@@ -316,8 +328,8 @@ namespace pubsub
                 // Register demand if the channel is valid.
                 if (m_pChannel != nullptr)
                 {
-                    // Increment the subscriber count.
-                    m_pChannel->nSubscribers.fetch_add(1, std::memory_order_acq_rel);
+                    // Increment the reader count.
+                    m_pChannel->nReaderCount.fetch_add(1, std::memory_order_acq_rel);
                 }
             }
 
@@ -372,7 +384,7 @@ namespace pubsub
             /******************************************************************************
              * @brief Get the newest published snapshot with a non-blocking atomic load.
              *
-             * @return SharedSnapshot - The newest immutable snapshot, or nullptr if nothing
+             * @return SharedSnapshot<T> - The newest immutable snapshot, or nullptr if nothing
              *                  has been published yet or this Reader is inactive.
              *
              * @note Load once into a local and work from that local. Calling Get()
@@ -382,7 +394,7 @@ namespace pubsub
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-26
              ******************************************************************************/
-            SharedSnapshot Get() const
+            SharedSnapshot<T> Get() const
             {
                 ZoneScoped;
 
@@ -420,8 +432,8 @@ namespace pubsub
                 // Only decrement if we currently hold demand.
                 if (m_pChannel != nullptr)
                 {
-                    // Decrement the subscriber count.
-                    m_pChannel->nSubscribers.fetch_sub(1, std::memory_order_acq_rel);
+                    // Decrement the reader count.
+                    m_pChannel->nReaderCount.fetch_sub(1, std::memory_order_acq_rel);
                     // Drop the channel so we never decrement twice and Get() reports nothing.
                     m_pChannel = nullptr;
                 }
@@ -457,9 +469,6 @@ namespace pubsub
     class Publisher
     {
         public:
-            // Public type alias for the immutable snapshot handle this channel carries.
-            using SharedSnapshot = std::shared_ptr<const Snapshot<T>>;
-
             /******************************************************************************
              * @brief Construct a new Publisher object.
              *
@@ -613,7 +622,7 @@ namespace pubsub
                 pSnapshot->tmPublished = std::chrono::system_clock::now();
 
                 // Atomically store the (now immutable) snapshot as the newest value.
-                m_pChannel->StoreLatest(SharedSnapshot(std::move(pSnapshot)));
+                m_pChannel->StoreLatest(SharedSnapshot<T>(std::move(pSnapshot)));
             }
 
             /******************************************************************************
@@ -622,7 +631,7 @@ namespace pubsub
              *      channel (for example a camera answering GetCameraIsOpen() from the
              *      status snapshot it just published).
              *
-             * @return SharedSnapshot - The newest immutable snapshot, or nullptr if
+             * @return SharedSnapshot<T> - The newest immutable snapshot, or nullptr if
              *                  nothing has been published yet.
              *
              * @note Consumers must never use this; they hold a Reader, which couples the
@@ -633,7 +642,7 @@ namespace pubsub
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-26
              ******************************************************************************/
-            SharedSnapshot PeekLatest() const
+            SharedSnapshot<T> PeekLatest() const
             {
                 ZoneScoped;
                 return m_pChannel->LoadLatest();
@@ -648,7 +657,7 @@ namespace pubsub
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-24
              ******************************************************************************/
-            bool HasSubscribers() const { return m_pChannel->nSubscribers.load(std::memory_order_acquire) > 0; }
+            bool HasReaders() const { return m_pChannel->nReaderCount.load(std::memory_order_acquire) > 0; }
 
             /******************************************************************************
              * @brief Accessor for the number of pool misses (slots allocated because
@@ -722,7 +731,7 @@ namespace pubsub
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-26
              ******************************************************************************/
-            long GetSubscriberCount() const { return m_pChannel->nSubscribers.load(std::memory_order_acquire); }
+            long GetReaderCount() const { return m_pChannel->nReaderCount.load(std::memory_order_acquire); }
 
         private:
             // Declare private member variables.

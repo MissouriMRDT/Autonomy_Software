@@ -35,7 +35,7 @@ namespace statemachine
      *      Each detector's objects are read as a single lock-free load of its newest immutable
      *      snapshot, so this never blocks on a detector's loop. Detectors publish their detected
      *      objects unconditionally (the objects are already computed by the detection pass), so no
-     *      Subscription is required to read this channel.
+     *      Reader is required only to keep it published, not to read it.
      *
      * @param vDetectedObjects - Reference vector that will hold all of the aggregated detected objects.
      * @param vObjectDetectors - Vector of pointers to object detectors that will be read from.
@@ -57,7 +57,7 @@ namespace statemachine
             }
 
             // Load the newest snapshot once into a local so it cannot change while we read it.
-            pubsub::Reader<std::vector<objectdetectutils::Object>>::SharedSnapshot pSnapshot = pObjectDetector->GetDetectedObjectsReader().Get();
+            pubsub::SharedSnapshot<std::vector<objectdetectutils::Object>> pSnapshot = pObjectDetector->GetDetectedObjectsReader().Get();
             // Nothing has been published yet.
             if (pSnapshot == nullptr)
             {

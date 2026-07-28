@@ -214,8 +214,8 @@ cv::Mat TagDetectionHandler::GetDetectionOverlayFrame(TagDetectors eDetector)
     }
 
     // Load the newest published overlay snapshot once into a local. This handler holds a
-    // Subscription for the detector's lifetime, so the detector is publishing this channel.
-    pubsub::Reader<cv::Mat>::SharedSnapshot pSnapshot = pDetector->GetDetectionOverlayReader().Get();
+    // Reader for the detector's lifetime, so the detector is publishing this channel.
+    pubsub::SharedSnapshot<cv::Mat> pSnapshot = pDetector->GetDetectionOverlayReader().Get();
     if (pSnapshot == nullptr)
     {
         // Submit logger message.

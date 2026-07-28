@@ -374,7 +374,7 @@ void SIMZEDCam::ThreadedContinuousCode()
     }
 
     // 4. RGB frame out. The RGB callback writes m_cvFrame on a foreign thread, so read under the lock.
-    if (m_pubFrameCPU.HasSubscribers())
+    if (m_pubFrameCPU.HasReaders())
     {
         // Acquire a read lock so the WebRTC callback does not write m_cvFrame mid-copy.
         std::shared_lock lkRGB(m_muWebRTCRGBImageCopyMutex);
@@ -389,9 +389,9 @@ void SIMZEDCam::ThreadedContinuousCode()
     }
 
     // 5. Depth image and the products derived from it (measure, point cloud).
-    const bool bDepthImageWanted   = m_pubDepthImageCPU.HasSubscribers();
-    const bool bDepthMeasureWanted = m_pubDepthMeasureCPU.HasSubscribers();
-    const bool bPointCloudWanted   = m_pubPointCloudCPU.HasSubscribers();
+    const bool bDepthImageWanted   = m_pubDepthImageCPU.HasReaders();
+    const bool bDepthMeasureWanted = m_pubDepthMeasureCPU.HasReaders();
+    const bool bPointCloudWanted   = m_pubPointCloudCPU.HasReaders();
     if (bDepthImageWanted || bDepthMeasureWanted || bPointCloudWanted)
     {
         // Under the depth lock, publish the depth image and compute the depth measure (both need m_cvDepthImage).
@@ -447,7 +447,7 @@ void SIMZEDCam::ThreadedContinuousCode()
     }
 
     // 6. Pose out (only while positional tracking is enabled).
-    if (m_bCameraPositionalTrackingEnabled.load(std::memory_order_acquire) && m_pubPose.HasSubscribers())
+    if (m_bCameraPositionalTrackingEnabled.load(std::memory_order_acquire) && m_pubPose.HasReaders())
     {
         // Get angle realignments.
         double dNewYO = numops::InputAngleModulus<double>(m_stCurrentRoverPose.GetCompassHeading() + m_dPoseOffsetYO, 0.0, 360.0);
@@ -465,7 +465,7 @@ void SIMZEDCam::ThreadedContinuousCode()
     }
 
     // 7. Sensors (IMU) out. The IMU callback writes m_stIMUData on a foreign thread; read under the lock.
-    if (m_pubSensors.HasSubscribers())
+    if (m_pubSensors.HasReaders())
     {
         // Acquire a read lock so the RoveComm IMU callback does not write m_stIMUData mid-copy.
         std::shared_lock lkIMU(m_muIMUDataMutex);
@@ -718,7 +718,7 @@ void SIMZEDCam::ImplSetPositionalPose(const double dX, const double dY, const do
 bool SIMZEDCam::GetCameraIsOpen()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
+    pubsub::SharedSnapshot<CameraStatus> pStatus = m_pubStatus.PeekLatest();
     return pStatus != nullptr && pStatus->tData.bCameraIsOpen && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 
@@ -763,7 +763,7 @@ std::string SIMZEDCam::GetCameraModel()
 bool SIMZEDCam::GetPositionalTrackingEnabled()
 {
     // Lock-free read of the newest published status snapshot.
-    pubsub::Publisher<CameraStatus>::SharedSnapshot pStatus = m_pubStatus.PeekLatest();
+    pubsub::SharedSnapshot<CameraStatus> pStatus = m_pubStatus.PeekLatest();
     return pStatus != nullptr && pStatus->tData.bPositionalTrackingEnabled && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 

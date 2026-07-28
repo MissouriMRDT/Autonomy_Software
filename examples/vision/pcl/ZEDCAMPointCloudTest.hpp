@@ -135,31 +135,31 @@ void RunExample()
     // these ONLY while something is subscribed, so these handles are what turn retrieval on.
     // Only the handle matching the camera's memory mode is taken; the other stays
     // default constructed and inactive.
-    pubsub::Reader<cv::Mat> subDepthMeasureCPU;
-    pubsub::Reader<cv::cuda::GpuMat> subDepthMeasureGPU;
+    pubsub::Reader<cv::Mat> rdDepthMeasureCPU;
+    pubsub::Reader<cv::cuda::GpuMat> rdDepthMeasureGPU;
     if (bUsingGPUMem)
     {
         // Take the GPU channel handle.
-        subDepthMeasureGPU = pExampleZEDCam1->GetDepthMeasureGPUReader();
+        rdDepthMeasureGPU = pExampleZEDCam1->GetDepthMeasureGPUReader();
     }
     else
     {
         // Take the CPU channel handle.
-        subDepthMeasureCPU = pExampleZEDCam1->GetDepthMeasureCPUReader();
+        rdDepthMeasureCPU = pExampleZEDCam1->GetDepthMeasureCPUReader();
     }
     // Only the handle matching the camera's memory mode is taken; the other stays
     // default constructed and inactive.
-    pubsub::Reader<cv::Mat> subPointCloudCPU;
-    pubsub::Reader<cv::cuda::GpuMat> subPointCloudGPU;
+    pubsub::Reader<cv::Mat> rdPointCloudCPU;
+    pubsub::Reader<cv::cuda::GpuMat> rdPointCloudGPU;
     if (bUsingGPUMem)
     {
         // Take the GPU channel handle.
-        subPointCloudGPU = pExampleZEDCam1->GetPointCloudGPUReader();
+        rdPointCloudGPU = pExampleZEDCam1->GetPointCloudGPUReader();
     }
     else
     {
         // Take the CPU channel handle.
-        subPointCloudCPU = pExampleZEDCam1->GetPointCloudCPUReader();
+        rdPointCloudCPU = pExampleZEDCam1->GetPointCloudCPUReader();
     }
 
     // Declare mats to store our own working copies in.
@@ -182,8 +182,8 @@ void RunExample()
         if (bUsingGPUMem)
         {
             // Load the newest GPU snapshots ONCE into locals.
-            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pDepth      = subDepthMeasureGPU.Get();
-            pubsub::Reader<cv::cuda::GpuMat>::SharedSnapshot pPointCloud = subPointCloudGPU.Get();
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pDepth      = rdDepthMeasureGPU.Get();
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pPointCloud = rdPointCloudGPU.Get();
             if (pDepth != nullptr && pPointCloud != nullptr)
             {
                 // Download data from GPU matrices onto our own mats.
@@ -195,8 +195,8 @@ void RunExample()
         else
         {
             // Load the newest CPU snapshots ONCE into locals.
-            pubsub::Reader<cv::Mat>::SharedSnapshot pDepth      = subDepthMeasureCPU.Get();
-            pubsub::Reader<cv::Mat>::SharedSnapshot pPointCloud = subPointCloudCPU.Get();
+            pubsub::SharedSnapshot<cv::Mat> pDepth      = rdDepthMeasureCPU.Get();
+            pubsub::SharedSnapshot<cv::Mat> pPointCloud = rdPointCloudCPU.Get();
             if (pDepth != nullptr && pPointCloud != nullptr)
             {
                 // Snapshots are immutable and shared, and the code below writes into these mats,
@@ -304,10 +304,10 @@ void RunExample()
     /////////////////////////////////////////
     // Withdraw our demand so the camera stops retrieving depth and point cloud data nobody is
     // reading. This also happens automatically when these handles go out of scope.
-    subDepthMeasureCPU.Release();
-    subDepthMeasureGPU.Release();
-    subPointCloudCPU.Release();
-    subPointCloudGPU.Release();
+    rdDepthMeasureCPU.Release();
+    rdDepthMeasureGPU.Release();
+    rdPointCloudCPU.Release();
+    rdPointCloudGPU.Release();
 
     // Stop RoveComm quill logging or quill will segfault if trying to output logs to RoveComm.
     network::g_bRoveCommUDPStatus = false;
