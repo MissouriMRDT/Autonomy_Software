@@ -371,15 +371,21 @@ void TagDetector::ThreadedContinuousCode()
         // Draw tag overlays onto normal image.
         arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
         torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
+
+        // Check if the detected tags vector is empty. If not, set the last good detection overlay frame to the current one with detections drawn on it.
+        if (!m_vDetectedArucoTags.empty())
+        {
+            m_cvLastGoodDetectionOverlayFrame = m_cvArucoProcFrame.clone();
+        }
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
     // Acquire a shared_lock on the detected tags copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the detected tag copy queue is empty.
-    if (!m_qDetectedTagDrawnOverlayFramesCopySchedule.empty() || !m_qDetectedArucoTagCopySchedule.empty())
+    if (!m_qDetectionOverlayFramesCopySchedule.empty() || !m_qDetectedArucoTagCopySchedule.empty())
     {
-        size_t siQueueLength = m_qDetectedTagDrawnOverlayFramesCopySchedule.size() + m_qDetectedArucoTagCopySchedule.size();
+        size_t siQueueLength = m_qDetectionOverlayFramesCopySchedule.size() + m_qDetectedArucoTagCopySchedule.size();
         // Start the thread pool to store multiple copies of the detected tags to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumDetectedTagsRetrievalThreads);
         // Wait for thread pool to finish.
@@ -405,14 +411,14 @@ void TagDetector::PooledLinearCode()
     //  Detection Overlay Frame queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedTagCopySchedule.
-    std::unique_lock<std::shared_mutex> lkTagOverlayFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock<std::shared_mutex> lkTagOverlayFrameQueue(m_muDetectionOverlayCopyMutex);
     // Check if there are unfulfilled requests.
-    if (!m_qDetectedTagDrawnOverlayFramesCopySchedule.empty())
+    if (!m_qDetectionOverlayFramesCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedTagDrawnOverlayFramesCopySchedule.front();
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectionOverlayFramesCopySchedule.front();
         // Pop out of queue.
-        m_qDetectedTagDrawnOverlayFramesCopySchedule.pop();
+        m_qDetectionOverlayFramesCopySchedule.pop();
         // Release lock.
         lkTagOverlayFrameQueue.unlock();
 
@@ -421,6 +427,32 @@ void TagDetector::PooledLinearCode()
         {
             case PIXEL_FORMATS::eArucoDetection: *stContainer.pFrame = m_cvArucoProcFrame.clone(); break;
             default: *stContainer.pFrame = m_cvArucoProcFrame.clone(); break;
+        }
+
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedFrameStatus->set_value(true);
+    }
+
+    /////////////////////////////
+    //  Last Good Detection Overlay Frame queue.
+    /////////////////////////////
+    // Acquire sole writing access to the detectedTagCopySchedule.
+    std::unique_lock<std::shared_mutex> lkLastGoodDetectionOverlayFrameQueue(m_muLastGoodDetectionOverlayCopyMutex);
+    // Check if there are unfulfilled requests.
+    if (!m_qLastGoodDetectionOverlayFramesCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qLastGoodDetectionOverlayFramesCopySchedule.front();
+        // Pop out of queue.
+        m_qLastGoodDetectionOverlayFramesCopySchedule.pop();
+        // Release lock.
+        lkLastGoodDetectionOverlayFrameQueue.unlock();
+
+        // Check which frame we should copy.
+        switch (stContainer.eFrameType)
+        {
+            case PIXEL_FORMATS::eArucoDetection: *stContainer.pFrame = m_cvLastGoodDetectionOverlayFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvLastGoodDetectionOverlayFrame.clone(); break;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -452,7 +484,7 @@ void TagDetector::PooledLinearCode()
 
 /******************************************************************************
  * @brief Request a copy of a frame containing the tag detection overlays from the
- *      aruco and tensorflow library.
+ *      aruco and torch library.
  *
  * @param cvFrame - The frame to copy the detection overlay image to.
  * @return std::future<bool> - The future that should be waited on before using the passed in frame.
@@ -469,7 +501,34 @@ std::future<bool> TagDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
-    m_qDetectedTagDrawnOverlayFramesCopySchedule.push(stContainer);
+    m_qDetectionOverlayFramesCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkScheduler.unlock();
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+
+/******************************************************************************
+ * @brief Request a copy of a frame containing the last good tag detection overlays from the
+ *      aruco and torch library.
+ *
+ * @param cvFrame - The frame to copy the detection overlay image to.
+ * @return std::future<bool> - The future that should be waited on before using the passed in frame.
+ *                      Future will be true or false based on whether or not the frame was successfully retrieved.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2023-10-11
+ ******************************************************************************/
+std::future<bool> TagDetector::RequestLastGoodOverlayFrame(cv::Mat& cvFrame)
+{
+    // Assemble the DataFetchContainer.
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eArucoDetection);
+
+    // Acquire lock on pool copy queue.
+    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qLastGoodDetectionOverlayFramesCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
 
@@ -863,12 +922,29 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
                                          stCameraPose,
                                          cv::Point(stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2, stTag.pBoundingBox->y + stTag.pBoundingBox->height / 2),
                                          nNeighborhoodSize);
-                // Since this is a tag detection, set the tag's waypoint type appropriately.
-                stGeolocation.eType = geoops::WaypointType::eTagWaypoint;
 
-                // Check if the geolocation is valid.
+                // Calculate the yaw angle to the tag using the center point of the tag and the camera's field of view.
+                // This is a fallback in case the geolocation fails for some reason, we can still provide a relative angle to the tag.
+                // Get the center X pixel coordinate of the tag's bounding box.
+                double dTagCenterX = stTag.pBoundingBox->x + (stTag.pBoundingBox->width / 2.0);
+                // Get the center X pixel coordinate of the camera frame.
+                double dFrameCenterX = m_cvFrame.cols / 2.0;
+                // Calculate the offset in pixels from the center of the camera frame.
+                // (Positive offset = target is to the right, Negative = target is to the left)
+                double dPixelOffsetX = dTagCenterX - dFrameCenterX;
+                // Calculate how many real-world degrees each pixel represents.
+                double dDegreesPerPixel = stTag.dHorizontalFOV / static_cast<double>(m_cvFrame.cols);
+                // Multiply the pixel offset by the degrees per pixel to get the relative yaw angle.
+                stTag.dYawAngle = dPixelOffsetX * dDegreesPerPixel;
+                // Explicitly set distance to 0.0 so the autonomy state machines know the depth map failed
+                // and will properly fall back to using this calculated dYawAngle.
+                stTag.dStraightLineDistance = 0.0;
+
+                // Check if the geolocation is valid. If it is overwrite the yaw angle and distance with the geolocation data.
                 if (stGeolocation != geoops::Waypoint())
                 {
+                    // Since this is a tag detection, set the tag's waypoint type appropriately.
+                    stGeolocation.eType = geoops::WaypointType::eTagWaypoint;
                     // Calculate the geo measurement and print the distance to the tag.
                     geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stGeolocation.GetUTMCoordinate());
 

@@ -50,7 +50,6 @@ enum class PIXEL_FORMATS
     eObjectDetection,
     eObstacleDetection,
     eDepthDetection,
-    eTensorflowDetection,
     eTorchDetection,
     eUNKNOWN
 };

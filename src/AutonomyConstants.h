@@ -355,6 +355,8 @@ namespace constants
     // Handler.
     extern const int STATEMACHINE_MAX_IPS;
     extern const double STATEMACHINE_ZED_REALIGN_THRESHOLD;
+    extern const double ZED_REALIGN_ROT_THRESH;
+    extern const double ZED_REALIGN_VEL_THRESH;
 
     // Approaching Marker State
     extern const double APPROACH_MARKER_MOTOR_POWER;
@@ -364,6 +366,10 @@ namespace constants
     extern const double APPROACH_MARKER_VERIFY_TIME;
     extern const double APPROACH_MARKER_TAG_LOST_BUFFER_TIME;
     extern const bool APPROACH_MARKER_ENABLE_STUCK_DETECT;
+    extern const double APPROACH_MARKER_STUCK_CHECK_INTERVAL;
+    extern const unsigned int APPROACH_MARKER_STUCK_CHECK_ATTEMPTS;
+    extern const double APPROACH_MARKER_STUCK_CHECK_ROT_THRESH;
+    extern const double APPROACH_MARKER_STUCK_CHECK_VEL_THRESH;
 
     // Approaching Object State
     extern const double APPROACH_OBJECT_MOTOR_POWER;
@@ -371,18 +377,21 @@ namespace constants
     extern const double APPROACH_OBJECT_LOST_GIVE_UP_TIME;
     extern const bool APPROACH_OBJECT_VERIFY_POSITION;
     extern const double APPROACH_OBJECT_VERIFY_TIME;
+    extern const double APPROACH_OBJECT_REQUIRED_TIME_HIT_RATE;
     extern const double APPROACH_OBJECT_LOST_BUFFER_TIME;
     extern const bool APPROACH_OBJECT_ENABLE_STUCK_DETECT;
+    extern const double APPROACH_OBJECT_STUCK_CHECK_INTERVAL;
+    extern const unsigned int APPROACH_OBJECT_STUCK_CHECK_ATTEMPTS;
+    extern const double APPROACH_OBJECT_STUCK_CHECK_ROT_THRESH;
+    extern const double APPROACH_OBJECT_STUCK_CHECK_VEL_THRESH;
 
     // Stuck State
-    extern const double STUCK_CHECK_INTERVAL;
-    extern const unsigned int STUCK_CHECK_ATTEMPTS;
-    extern const double STUCK_CHECK_ROT_THRESH;
-    extern const double STUCK_CHECK_VEL_THRESH;
     extern const double STUCK_SAME_POINT_PROXIMITY;
     extern const double STUCK_HEADING_ALIGN_TIMEOUT;
     extern const double STUCK_ALIGN_DEGREES;
     extern const double STUCK_ALIGN_TOLERANCE;
+    extern const double STUCK_OBSTACLE_DISTANCE;
+    extern const double STUCK_OBSTACLE_RADIUS;
 
     // Reverse State.
     extern const double REVERSE_MOTOR_POWER;
@@ -398,6 +407,10 @@ namespace constants
     extern const double SEARCH_SNAKE_SLITHERS;
     extern const double SEARCH_WAYPOINT_PROXIMITY;
     extern const bool SEARCH_ENABLE_STUCK_DETECT;
+    extern const double SEARCH_STUCK_CHECK_INTERVAL;
+    extern const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS;
+    extern const double SEARCH_STUCK_CHECK_ROT_THRESH;
+    extern const double SEARCH_STUCK_CHECK_VEL_THRESH;
 
     // Navigating State.
     extern const double NAVIGATING_MOTOR_POWER;
@@ -405,6 +418,11 @@ namespace constants
     extern const bool NAVIGATING_VERIFY_POSITION;
     extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
     extern const bool NAVIGATING_ENABLE_STUCK_DETECT;
+    extern const bool NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS;
+    extern const double NAVIGATING_STUCK_CHECK_INTERVAL;
+    extern const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS;
+    extern const double NAVIGATING_STUCK_CHECK_ROT_THRESH;
+    extern const double NAVIGATING_STUCK_CHECK_VEL_THRESH;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -418,6 +436,10 @@ namespace constants
     extern const double STANLEY_ANGULAR_VELOCITY_LIMIT;
     extern const int STANLEY_PREDICTION_HORIZON;
     extern const double STANLEY_PREDICTION_TIME_STEP;
+    extern const double STANLEY_MIN_STABLE_SPEED;
+
+    // Pure Pursuit Controller config.
+    extern const double CLOSE_RANGE_PENALTY;
 
     // ASTAR config.
     extern const double ASTAR_AVOIDANCE_MULTIPLIER;

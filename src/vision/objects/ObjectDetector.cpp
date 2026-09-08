@@ -300,8 +300,8 @@ void ObjectDetector::ThreadedContinuousCode()
         // Clear the list of newly detected objects.
         m_vNewlyDetectedObjects.clear();
         // Clone frames.
-        m_cvTorchOverlayFrame = m_cvFrame.clone();
-        m_cvTorchProcFrame    = m_cvFrame.clone();
+        m_cvDetectionOverlayFrame = m_cvFrame.clone();
+        m_cvTorchProcFrame        = m_cvFrame.clone();
         // Copy the camera frame to the pre-processing frame and overlay frame.
         cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
 
@@ -329,16 +329,23 @@ void ObjectDetector::ThreadedContinuousCode()
         this->UpdateDetectedObjects(m_vNewlyDetectedObjects);
 
         // Draw object overlays onto normal image.
-        torchobject::DrawDetections(m_cvTorchOverlayFrame, m_vDetectedObjects);
+        torchobject::DrawDetections(m_cvDetectionOverlayFrame, m_vDetectedObjects);
+
+        // Check if the detected objects vector is not empty.
+        if (!m_vDetectedObjects.empty())
+        {
+            // It's not empty so we should have a valid overlay frame with detections drawn on it.
+            m_cvLastGoodOverlayFrame = m_cvDetectionOverlayFrame.clone();
+        }
         /////////////////////////////////////////////////////////////////////////////////////
     }
 
     // Acquire a shared_lock on the detected objects copy queue.
     std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
     // Check if the detected object copy queue is empty.
-    if (!m_qDetectedObjectDrawnOverlayFramesCopySchedule.empty() || !m_qDetectedObjectCopySchedule.empty())
+    if (!m_qDetectionOverlayFramesCopySchedule.empty() || !m_qLastGoodDetectionOverlayFramesCopySchedule.empty() || !m_qDetectedObjectCopySchedule.empty())
     {
-        size_t siQueueLength = m_qDetectedObjectDrawnOverlayFramesCopySchedule.size() + m_qDetectedObjectCopySchedule.size();
+        size_t siQueueLength = m_qDetectionOverlayFramesCopySchedule.size() + m_qLastGoodDetectionOverlayFramesCopySchedule.size() + m_qDetectedObjectCopySchedule.size();
         // Start the thread pool to store multiple copies of the detected objects to the requesting threads
         this->RunDetachedPool(siQueueLength, m_nNumDetectedObjectsRetrievalThreads);
         // Wait for thread pool to finish.
@@ -363,22 +370,48 @@ void ObjectDetector::PooledLinearCode()
     //  Detection Overlay Frame queue.
     /////////////////////////////
     // Acquire sole writing access to the detectedObjectCopySchedule.
-    std::unique_lock<std::shared_mutex> lkObjectOverlayFrameQueue(m_muFrameCopyMutex);
+    std::unique_lock<std::shared_mutex> lkObjectOverlayFrameQueue(m_muDetectionOverlayCopyMutex);
     // Check if there are unfulfilled requests.
-    if (!m_qDetectedObjectDrawnOverlayFramesCopySchedule.empty())
+    if (!m_qDetectionOverlayFramesCopySchedule.empty())
     {
         // Get frame container out of queue.
-        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectedObjectDrawnOverlayFramesCopySchedule.front();
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qDetectionOverlayFramesCopySchedule.front();
         // Pop out of queue.
-        m_qDetectedObjectDrawnOverlayFramesCopySchedule.pop();
+        m_qDetectionOverlayFramesCopySchedule.pop();
         // Release lock.
         lkObjectOverlayFrameQueue.unlock();
 
         // Check which frame we should copy.
         switch (stContainer.eFrameType)
         {
-            case PIXEL_FORMATS::eObjectDetection: *stContainer.pFrame = m_cvTorchOverlayFrame.clone(); break;
-            default: *stContainer.pFrame = m_cvTorchOverlayFrame.clone(); break;
+            case PIXEL_FORMATS::eObjectDetection: *stContainer.pFrame = m_cvDetectionOverlayFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvDetectionOverlayFrame.clone(); break;
+        }
+
+        // Signal future that the frame has been successfully retrieved.
+        stContainer.pCopiedFrameStatus->set_value(true);
+    }
+
+    /////////////////////////////
+    //  Last GoodDetection Overlay Frame queue.
+    /////////////////////////////
+    // Acquire sole writing access to the detectedObjectCopySchedule.
+    std::unique_lock<std::shared_mutex> lkLastGoodObjectOverlayFrameQueue(m_muLastGoodDetectionOverlayCopyMutex);
+    // Check if there are unfulfilled requests.
+    if (!m_qLastGoodDetectionOverlayFramesCopySchedule.empty())
+    {
+        // Get frame container out of queue.
+        containers::FrameFetchContainer<cv::Mat> stContainer = m_qLastGoodDetectionOverlayFramesCopySchedule.front();
+        // Pop out of queue.
+        m_qLastGoodDetectionOverlayFramesCopySchedule.pop();
+        // Release lock.
+        lkLastGoodObjectOverlayFrameQueue.unlock();
+
+        // Check which frame we should copy.
+        switch (stContainer.eFrameType)
+        {
+            case PIXEL_FORMATS::eObjectDetection: *stContainer.pFrame = m_cvLastGoodOverlayFrame.clone(); break;
+            default: *stContainer.pFrame = m_cvLastGoodOverlayFrame.clone(); break;
         }
 
         // Signal future that the frame has been successfully retrieved.
@@ -426,7 +459,33 @@ std::future<bool> ObjectDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
     // Append frame fetch container to the schedule queue.
-    m_qDetectedObjectDrawnOverlayFramesCopySchedule.push(stContainer);
+    m_qDetectionOverlayFramesCopySchedule.push(stContainer);
+    // Release lock on the frame schedule queue.
+    lkScheduler.unlock();
+
+    // Return the future from the promise stored in the container.
+    return stContainer.pCopiedFrameStatus->get_future();
+}
+
+/******************************************************************************
+ * @brief Request a copy of the frame containing the last known good detected objects from all
+ *      detection methods drawn onto the frame.
+ *
+ * @param cvFrame - The cv::Mat frame to copy the detection overlay image to.
+ * @return std::future<bool> - The future that will be set to true when the frame is copied.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2025-05-05
+ ******************************************************************************/
+std::future<bool> ObjectDetector::RequestLastGoodDetectionOverlayFrame(cv::Mat& cvFrame)
+{
+    // Assemble the DataFetchContainer.
+    containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, PIXEL_FORMATS::eObjectDetection);
+
+    // Acquire lock on pool copy queue.
+    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    // Append frame fetch container to the schedule queue.
+    m_qLastGoodDetectionOverlayFramesCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.
     lkScheduler.unlock();
 
@@ -807,14 +866,12 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                 // Use either width of height for the neighborhood size.
                 int nNeighborhoodSize = std::min(stObject.pBoundingBox->width, stObject.pBoundingBox->height);
                 // Geolocate the object in the point cloud.
-                stObject.stGeolocatedPosition = geoloc::GeolocateBox(
+                geoops::Waypoint stGeolocation = geoloc::GeolocateBox(
                     m_cvPointCloud,
                     stCameraPose,
                     cv::Point(stObject.pBoundingBox->x + stObject.pBoundingBox->width / 2, stObject.pBoundingBox->y + stObject.pBoundingBox->height / 2),
                     nNeighborhoodSize);
 
-                // Since this is a object detection, set the object's waypoint type appropriately.
-                stObject.stGeolocatedPosition.eType = geoops::WaypointType::eObjectWaypoint;
                 // Depending on the class name of the model, set the object type.
                 if (stObject.szClassName == "mallet")
                 {
@@ -829,13 +886,43 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                     stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eRockPick;
                 }
 
-                // Calculate the geo measurement and print the distance to the object.
-                geoops::GeoMeasurement stMeasurement =
-                    geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stObject.stGeolocatedPosition.GetUTMCoordinate());
-                // Set the straight line distance to the object.
-                stObject.dStraightLineDistance = stMeasurement.dDistanceMeters;
-                // Use the rover heading and the azimuth angle to calculate the relative heading to the object.
-                stObject.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                // Calculate the yaw angle to the tag using the center point of the tag and the camera's field of view.
+                // This is a fallback in case the geolocation fails for some reason, we can still provide a relative angle to the tag.
+                // Get the center X pixel coordinate of the object's bounding box.
+                double dObjectCenterX = stObject.pBoundingBox->x + (stObject.pBoundingBox->width / 2.0);
+                // Get the center X pixel coordinate of the camera frame.
+                double dFrameCenterX = m_cvFrame.cols / 2.0;
+                // Calculate the offset in pixels from the center of the camera frame.
+                // (Positive offset = target is to the right, Negative = target is to the left)
+                double dPixelOffsetX = dObjectCenterX - dFrameCenterX;
+                // Calculate how many real-world degrees each pixel represents.
+                double dDegreesPerPixel = stObject.dHorizontalFOV / static_cast<double>(m_cvFrame.cols);
+                // Multiply the pixel offset by the degrees per pixel to get the relative yaw angle.
+                stObject.dYawAngle = dPixelOffsetX * dDegreesPerPixel;
+                // Explicitly set distance to 0.0 so the autonomy state machines know the depth map failed
+                // and will properly fall back to using this calculated dYawAngle.
+                stObject.dStraightLineDistance = 0.0;
+
+                // Check if the geolocation is valid. If it is overwrite the yaw angle and distance with the geolocation data.
+                if (stGeolocation != geoops::Waypoint())
+                {
+                    // Since this is a object detection, set the object's waypoint type appropriately.
+                    stGeolocation.eType = geoops::WaypointType::eObjectWaypoint;
+                    // Calculate the geo measurement and print the distance to the object.
+                    geoops::GeoMeasurement stMeasurement =
+                        geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stObject.stGeolocatedPosition.GetUTMCoordinate());
+
+                    // Check that the distance is in a reasonable range.
+                    if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
+                    {
+                        // Set the object's geolocation.
+                        stObject.stGeolocatedPosition = stGeolocation;
+                        // Use the rover heading and the azimuth angle to calculate the relative heading to the object.
+                        stObject.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                        // Set the straight line distance to the object.
+                        stObject.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                    }
+                }
             }
         }
     }

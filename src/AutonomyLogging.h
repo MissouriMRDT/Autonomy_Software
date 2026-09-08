@@ -115,7 +115,7 @@ namespace logging
         logging::g_eFileLogLevel    = bFileLevelChangePermitted ? static_cast<quill::LogLevel>(stPacket.vData[1]) : logging::g_eFileLogLevel;
 
         // Submit logger message.
-        LOG_INFO(logging::g_qSharedLogger, "Incoming SETLOGGINGLEVELS: [Console: {}, File: {}, RoveComm: {}]", stPacket.vData[0], stPacket.vData[1], stPacket.vData[2]);
+        LOG_INFO(logging::g_qSharedLogger, "Incoming SETLOGGINGLEVELS: [Console: {}, File: {}]", stPacket.vData[0], stPacket.vData[1]);
     };
 
     /////////////////////////////////////////

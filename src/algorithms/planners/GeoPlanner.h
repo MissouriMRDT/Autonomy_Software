@@ -12,7 +12,6 @@
 
 #include "../../handlers/LiDARHandler.h"
 #include "../../util/GeospatialOperations.hpp"
-#include "../../util/logging/PathTracer.hpp"
 
 /// \cond
 #include <RoveComm/RoveComm.h>
@@ -64,8 +63,7 @@ namespace pathplanners
                        size_t siMaxPlotPointsPerTile  = 10,
                        double dPenaltyScalingFactor   = 10.0,
                        double dPenaltyPower           = 2.0,
-                       double dPathWaypointTolerance  = 0.5,
-                       double dPlotWaypointTolerance  = 0.01);
+                       double dPathWaypointTolerance  = 0.5);
             ~GeoPlanner();
 
             std::vector<geoops::Waypoint> PlanPath(LiDARHandler* pLiDARHandler,
@@ -73,10 +71,10 @@ namespace pathplanners
                                                    const geoops::UTMCoordinate& stEnd,
                                                    double dSearchRadius         = 3.0,
                                                    double dMaxSearchTimeSeconds = 120.0,
-                                                   bool bPlotPath               = false,
                                                    double dCorridorPadding      = 100.0);
 
             void ClearGeoCache();
+            void UnloadLiDARTiles(double minX, double maxX, double minY, double maxY);
 
             ////////////////////////////////////
             // Setters.
@@ -219,7 +217,6 @@ namespace pathplanners
             void CheckAndLoadTile(int nTileX, int nTileY);
             void FillGridHoles();
             int FindNearestValidCell(int nStartIndex) const;
-            void PlotPathAndTerrain(const std::vector<geoops::Waypoint>& vPath) const;
             double EuclideanDistance(double dEasting1, double dNorthing1, double dEasting2, double dNorthing2) const;
 
             /******************************************************************************
@@ -310,7 +307,6 @@ namespace pathplanners
             double m_dPenaltyScalingFactor;      // Multiplier determining severity of avoidance behavior during A* traversal score checks.
             double m_dPenaltyPower;              // Exponential power applied to scores to make dangerous zones drastically more costly.
             double m_dPathWaypointTolerance;     // Tolerance radius encoded into resultant path waypoint structures.
-            double m_dPlotWaypointTolerance;     // Tolerance radius encoded into visual tracer waypoint parameters.
 
             // Request-specific variables configured during PlanPath
             double m_dSearchRadius;            // Contextual radius for KDTree legacy logic/bounding box padding base.
@@ -318,9 +314,8 @@ namespace pathplanners
             double m_dCorridorPadding;         // Corridor padding radius used to expand the bounding box logic.
 
             // Resource pointers and synchronization
-            LiDARHandler* m_pLiDARHandler;                                   // Pointer to the LiDARHandler instance for fetching geospatial data point clouds.
-            std::unique_ptr<logging::graphing::PathTracer> m_pPathTracer;    // Pointer to the path tracer for 3D trajectory visualization.
-            std::mutex m_muPathGenMutex;                                     // Mutex to protect concurrent path planning operations.
+            LiDARHandler* m_pLiDARHandler;    // Pointer to the LiDARHandler instance for fetching geospatial data point clouds.
+            std::mutex m_muPathGenMutex;      // Mutex to protect concurrent path planning operations.
 
             // Costmap Grid positional state
             double m_dGridOriginEasting;         // Bottom-left UTM easting bound of the generated grid.

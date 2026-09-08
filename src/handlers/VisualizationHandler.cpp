@@ -1193,6 +1193,11 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         <h3 id="settings-toggle" style="cursor: pointer; pointer-events: auto; margin: 0; border: none; padding: 0; user-select: none;">Settings &#9654;</h3>
         <div id="settings-content" style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
             <div class="control-group">
+                <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="cb-ground" checked> Lock Rover to Terrain Height
+                </label>
+            </div>
+            <div class="control-group">
                 <label>Load Radius (m) <span id="val-rad" class="val-disp">50</span></label>
                 <input type="range" id="sl-rad" min="10" max="200" value="50" step="10">
             </div>
@@ -1256,6 +1261,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     let cfgRadius = 50;
     let cfgTolerance = 10;
     let cfgMinScore = 0.0;
+    let cfgLockGround = true;
     let isFetchingMap = false;
     let isFollowing = false;
     let targetPos = new THREE.Vector3();
@@ -1301,6 +1307,73 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         13: { name: "Pick", color: "#ffee00" }         // Yellow
     };
 
+    // Terrain Height Sampler
+    function getTerrainHeight(rx, rz, defaultY) {
+        if (!currentPoints || !currentPoints.geometry || !currentPoints.geometry.attributes.position) return defaultY;
+        const positions = currentPoints.geometry.attributes.position.array;
+        let sumY = 0;
+        let count = 0;
+        const radiusSq = 2.25; // 1.5m radius for averaging terrain
+        
+        for (let i = 0; i < positions.length; i += 3) {
+            const dx = positions[i] - rx;
+            const dz = positions[i+2] - rz;
+            if (dx*dx + dz*dz < radiusSq) {
+                sumY += positions[i+1];
+                count++;
+            }
+        }
+        return count > 0 ? (sumY / count) : defaultY;
+    }
+
+    // Thick Line / InstancedMesh Renderer (Replaces Firefox-broken LineBasicMaterial)
+    function createThickPath(vertices, colors, radius, defaultColorHex) {
+        if (vertices.length < 6) return null;
+        
+        const numSegments = (vertices.length / 3) - 1;
+        const cylinderGeo = new THREE.CylinderGeometry(radius, radius, 1, 8, 1, false);
+        cylinderGeo.translate(0, 0.5, 0); 
+        cylinderGeo.rotateX(Math.PI / 2); 
+        
+        const mat = new THREE.MeshBasicMaterial();
+        if (!colors) mat.color.setHex(defaultColorHex);
+        
+        const mesh = new THREE.InstancedMesh(cylinderGeo, mat, numSegments);
+        const p1 = new THREE.Vector3();
+        const p2 = new THREE.Vector3();
+        const dummy = new THREE.Object3D();
+        const col = new THREE.Color();
+        
+        for (let i = 0; i < numSegments; i++) {
+            const idx = i * 3;
+            p1.set(vertices[idx], vertices[idx+1], vertices[idx+2]);
+            p2.set(vertices[idx+3], vertices[idx+4], vertices[idx+5]);
+            
+            const dist = p1.distanceTo(p2);
+            if (dist < 0.001) {
+                dummy.scale.set(0, 0, 0);
+                dummy.updateMatrix();
+                mesh.setMatrixAt(i, dummy.matrix);
+                continue;
+            }
+            
+            dummy.position.copy(p1);
+            dummy.lookAt(p2);
+            dummy.scale.set(1, 1, dist);
+            dummy.updateMatrix();
+            mesh.setMatrixAt(i, dummy.matrix);
+            
+            if (colors) {
+                col.setRGB(colors[idx], colors[idx+1], colors[idx+2]);
+                mesh.setColorAt(i, col);
+            }
+        }
+        
+        mesh.instanceMatrix.needsUpdate = true;
+        if (colors) mesh.instanceColor.needsUpdate = true;
+        return mesh;
+    }
+
     init();
     animate();
 
@@ -1320,8 +1393,10 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.maxDistance = 5000;
 
         const geometry = new THREE.BoxGeometry(1, 0.5, 1.5);
+        geometry.translate(0, 0.25, 0);
         const material = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true });
         roverMesh = new THREE.Mesh(geometry, material);
         scene.add(roverMesh);
@@ -1351,7 +1426,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         waypointGroup = new THREE.Group();
         scene.add(waypointGroup);
         
-        detectionGroup = new THREE.Group(); // New Group for detections
+        detectionGroup = new THREE.Group();
         scene.add(detectionGroup);
 
         const config = [
@@ -1389,6 +1464,16 @@ std::string VisualizationHandler::GetEmbeddedHtml()
             stateLegendDiv.appendChild(item);
         }
 
+        // Toggles & Inputs
+        const cbGround = document.getElementById('cb-ground');
+        if (cbGround) {
+            cbGround.addEventListener('change', (e) => {
+                cfgLockGround = e.target.checked;
+                if (cfgLockGround) {
+                    targetPos.y = getTerrainHeight(targetPos.x, targetPos.z, targetPos.y);
+                }
+            });
+        }
         document.getElementById('sl-rad').oninput = (e) => { 
             cfgRadius = parseInt(e.target.value); 
             document.getElementById('val-rad').innerText = cfgRadius;
@@ -1435,7 +1520,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         requestTelemetryLoop();
         setInterval(fetchPlannedPath, 2000); 
         setInterval(fetchWaypoints, 2000); 
-        setInterval(fetchDetections, 1000); // Poll detections every second
+        setInterval(fetchDetections, 1000); 
         setInterval(fetchDetectionsList, 5000);
         fetchMapSquare(0, 0);
     }
@@ -1508,7 +1593,6 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         if (panel) panel.style.width = '250px';
         if (header) header.style.display = 'block';
 
-        // Get the latest detection (assumed to be the last one in the array)
         const latestIndex = filenames.length - 1;
         const filename = filenames[latestIndex];
 
@@ -1591,7 +1675,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         const rz = view.getFloat32(8, true);
         const rh = view.getFloat32(12, true);
 
-        // Calculate Speed
+        // Calculate Speed using actual un-flattened 3D position
         const now = performance.now();
         const newPos = new THREE.Vector3(rx, ry, -rz);
         if (lastTelemetryTime > 0) {
@@ -1613,7 +1697,11 @@ std::string VisualizationHandler::GetEmbeddedHtml()
         updateArrow(leftArrow, leftPwr);
         updateArrow(rightArrow, rightPwr);
         
-        targetPos.set(rx, ry, -rz); 
+        let targetY = ry;
+        if (cfgLockGround) {
+            targetY = getTerrainHeight(rx, -rz, ry);
+        }
+        targetPos.set(rx, targetY, -rz); 
         targetHeading = -rh * (Math.PI / 180.0);
 
         checkBoundary(false);
@@ -1638,12 +1726,8 @@ std::string VisualizationHandler::GetEmbeddedHtml()
                 colors.push(c.r, c.g, c.b);
             }
             
-            const pathGeo = new THREE.BufferGeometry();
-            pathGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            pathGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 5 });
-            pathLine = new THREE.Line(pathGeo, mat); 
-            scene.add(pathLine);
+            pathLine = createThickPath(vertices, colors, 0.1, 0xffffff);
+            if (pathLine) scene.add(pathLine);
         }
     }
 
@@ -1683,10 +1767,8 @@ std::string VisualizationHandler::GetEmbeddedHtml()
                 pathDistance += p1.distanceTo(p2);
             }
 
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 6 }));
-            scene.add(plannedPathLine);
+            plannedPathLine = createThickPath(vertices, null, 0.1, 0xeeff00);
+            if (plannedPathLine) scene.add(plannedPathLine);
         }
     }
 
@@ -1930,7 +2012,7 @@ std::string VisualizationHandler::GetEmbeddedHtml()
     function animate() {
         requestAnimationFrame(animate);
         const now = performance.now();
-        const dt = (now - lastTime)/1000;
+        const dt = Math.min((now - lastTime) / 1000.0, 0.1);
         lastTime = now;
 
         prevRoverPos.copy(roverMesh.position);
@@ -2039,6 +2121,11 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     <div id="ui-layer">
         <h3 id="settings-toggle" style="cursor: pointer; pointer-events: auto; margin: 0; border: none; padding: 0; user-select: none;">Static Export &#9654;</h3>
         <div id="settings-content" style="display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px;">
+            <div class="control-group">
+                <label style="color: #ccc; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="cb-ground" checked> Lock Rover to Terrain Height
+                </label>
+            </div>
             <div class="control-group">
                 <label>Min Score <span id="val-score" class="val-disp">0.0</span></label>
                 <input type="range" id="sl-score" min="0.0" max="1.0" value="0.0" step="0.05">
@@ -2164,6 +2251,8 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
     let activeWaypoints = []; 
     
     let cfgMinScore = 0.0;
+    let cfgLockGround = true;
+    let lastTime = performance.now();
     
     // Define keys object for static view
     const keys = { w:false, a:false, s:false, d:false, q:false, e:false, shift:false };
@@ -2191,6 +2280,73 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         13: { name: "Pick", color: "#ffee00" }
     };
 
+    // Terrain Height Sampler
+    function getTerrainHeight(rx, rz, defaultY) {
+        if (!currentPoints || !currentPoints.geometry || !currentPoints.geometry.attributes.position) return defaultY;
+        const positions = currentPoints.geometry.attributes.position.array;
+        let sumY = 0;
+        let count = 0;
+        const radiusSq = 2.25; // 1.5m radius for averaging terrain
+        
+        for (let i = 0; i < positions.length; i += 3) {
+            const dx = positions[i] - rx;
+            const dz = positions[i+2] - rz;
+            if (dx*dx + dz*dz < radiusSq) {
+                sumY += positions[i+1];
+                count++;
+            }
+        }
+        return count > 0 ? (sumY / count) : defaultY;
+    }
+
+    // Thick Line / InstancedMesh Renderer (Replaces Firefox-broken LineBasicMaterial)
+    function createThickPath(vertices, colors, radius, defaultColorHex) {
+        if (vertices.length < 6) return null;
+        
+        const numSegments = (vertices.length / 3) - 1;
+        const cylinderGeo = new THREE.CylinderGeometry(radius, radius, 1, 8, 1, false);
+        cylinderGeo.translate(0, 0.5, 0); 
+        cylinderGeo.rotateX(Math.PI / 2); 
+        
+        const mat = new THREE.MeshBasicMaterial();
+        if (!colors) mat.color.setHex(defaultColorHex);
+        
+        const mesh = new THREE.InstancedMesh(cylinderGeo, mat, numSegments);
+        const p1 = new THREE.Vector3();
+        const p2 = new THREE.Vector3();
+        const dummy = new THREE.Object3D();
+        const col = new THREE.Color();
+        
+        for (let i = 0; i < numSegments; i++) {
+            const idx = i * 3;
+            p1.set(vertices[idx], vertices[idx+1], vertices[idx+2]);
+            p2.set(vertices[idx+3], vertices[idx+4], vertices[idx+5]);
+            
+            const dist = p1.distanceTo(p2);
+            if (dist < 0.001) {
+                dummy.scale.set(0, 0, 0);
+                dummy.updateMatrix();
+                mesh.setMatrixAt(i, dummy.matrix);
+                continue;
+            }
+            
+            dummy.position.copy(p1);
+            dummy.lookAt(p2);
+            dummy.scale.set(1, 1, dist);
+            dummy.updateMatrix();
+            mesh.setMatrixAt(i, dummy.matrix);
+            
+            if (colors) {
+                col.setRGB(colors[idx], colors[idx+1], colors[idx+2]);
+                mesh.setColorAt(i, col);
+            }
+        }
+        
+        mesh.instanceMatrix.needsUpdate = true;
+        if (colors) mesh.instanceColor.needsUpdate = true;
+        return mesh;
+    }
+
     init();
     animate();
 
@@ -2211,8 +2367,10 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.target.set(INIT_X, INIT_Y, -INIT_Z);
+        controls.maxDistance = 5000;
 
         const geometry = new THREE.BoxGeometry(1, 0.5, 1.5);
+        geometry.translate(0, 0.25, 0);
         const material = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true });
         roverMesh = new THREE.Mesh(geometry, material);
         roverMesh.position.set(INIT_X, INIT_Y, -INIT_Z);
@@ -2260,7 +2418,20 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
         loadStaticPlanned();
         loadStaticWaypoints();
         loadStaticDetections();
+        
+        // Setup initial locked height if checked
+        if (cfgLockGround) {
+            roverMesh.position.y = getTerrainHeight(INIT_X, -INIT_Z, INIT_Y);
+        }
 
+        // Toggles & Inputs
+        const cbGround = document.getElementById('cb-ground');
+        if (cbGround) {
+            cbGround.addEventListener('change', (e) => {
+                cfgLockGround = e.target.checked;
+                roverMesh.position.y = cfgLockGround ? getTerrainHeight(INIT_X, -INIT_Z, INIT_Y) : INIT_Y;
+            });
+        }
         document.getElementById('sl-score').oninput = (e) => { 
             cfgMinScore = parseFloat(e.target.value); 
             document.getElementById('val-score').innerText = cfgMinScore.toFixed(2);
@@ -2329,12 +2500,8 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
             colors.push(c.r, c.g, c.b);
         }
         if(vertices.length > 0) {
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 5 });
-            pathLine = new THREE.Line(geo, mat); 
-            scene.add(pathLine);
+            pathLine = createThickPath(vertices, colors, 0.1, 0xffffff);
+            if (pathLine) scene.add(pathLine);
         }
     }
 
@@ -2344,10 +2511,8 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
             vertices.push(RAW_PLANNED[i], RAW_PLANNED[i+1], -RAW_PLANNED[i+2]);
         }
         if(vertices.length > 0) {
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            plannedPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xeeff00, linewidth: 5 }));
-            scene.add(plannedPathLine);
+            plannedPathLine = createThickPath(vertices, null, 0.1, 0xeeff00);
+            if (plannedPathLine) scene.add(plannedPathLine);
         }
     }
 
@@ -2436,7 +2601,11 @@ std::string VisualizationHandler::GenerateStaticHtml(const std::vector<LiDARHand
 
     function animate() {
         requestAnimationFrame(animate);
-        const spd = (keys.shift?15:5)*0.016; 
+        const now = performance.now();
+        const dt = Math.min((now - lastTime) / 1000.0, 0.1);
+        lastTime = now;
+
+        const spd = (keys.shift?15:5)*dt; 
         const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y=0; fwd.normalize();
         const rgt = new THREE.Vector3().crossVectors(fwd, camera.up).normalize();
         if(keys.w) camera.position.addScaledVector(fwd, spd);

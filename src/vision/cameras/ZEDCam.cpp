@@ -272,46 +272,51 @@ void ZEDCam::ThreadedContinuousCode()
                 if (slReturnCode == sl::ERROR_CODE::SUCCESS)
                 {
                     // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been reconnected and reopened!", m_unCameraSerialNumber);
+                    LOG_WARNING(logging::g_qSharedLogger, "ZED stereo camera with serial number {} has been reconnected and reopened!", m_unCameraSerialNumber);
 
                     // Check if positional tracking was enabled.
                     if (m_bEnablePositionalTrackingFlag)
                     {
                         slReturnCode = this->EnablePositionalTracking();
-                    }
-                    else
-                    {
-                        // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger,
-                                  "After reopening ZED stereo camera with serial number {}, positional tracking failed to reinitialize. sl::ERROR_CODE is: {}",
-                                  m_unCameraSerialNumber,
-                                  sl::toString(slReturnCode).get());
+
+                        // Check if positional tracking was re-enabled successfully.
+                        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                        {
+                            // Submit logger message.
+                            LOG_ERROR(logging::g_qSharedLogger,
+                                      "After reopening ZED stereo camera with serial number {}, positional tracking failed to reinitialize. sl::ERROR_CODE is: {}",
+                                      m_unCameraSerialNumber,
+                                      sl::toString(slReturnCode).get());
+                        }
                     }
                     // Check if spatial mapping was enabled.
                     if (m_bEnableSpatialMappingFlag)
                     {
                         slReturnCode = this->EnableSpatialMapping();
-                    }
-                    else
-                    {
-                        // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger,
-                                  "After reopening ZED stereo camera with serial number {}, spatial mapping failed to reinitialize. sl::ERROR_CODE is: {}",
-                                  m_unCameraSerialNumber,
-                                  sl::toString(slReturnCode).get());
+                        // Check if spatial mapping was re-enabled successfully.
+                        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                        {
+                            // Submit logger message.
+                            LOG_ERROR(logging::g_qSharedLogger,
+                                      "After reopening ZED stereo camera with serial number {}, spatial mapping failed to reinitialize. sl::ERROR_CODE is: {}",
+                                      m_unCameraSerialNumber,
+                                      sl::toString(slReturnCode).get());
+                        }
                     }
                     // Check if object detection was enabled.
                     if (m_bEnableObjectDetectionFlag)
                     {
                         slReturnCode = this->EnableObjectDetection();
-                    }
-                    else
-                    {
-                        // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger,
-                                  "After reopening ZED stereo camera with serial number {}, object detection failed to reinitialize. sl::ERROR_CODE is: {}",
-                                  m_unCameraSerialNumber,
-                                  sl::toString(slReturnCode).get());
+
+                        // Check if object detection was re-enabled successfully.
+                        if (slReturnCode != sl::ERROR_CODE::SUCCESS)
+                        {
+                            // Submit logger message.
+                            LOG_ERROR(logging::g_qSharedLogger,
+                                      "After reopening ZED stereo camera with serial number {}, object detection failed to reinitialize. sl::ERROR_CODE is: {}",
+                                      m_unCameraSerialNumber,
+                                      sl::toString(slReturnCode).get());
+                        }
                     }
                 }
                 else

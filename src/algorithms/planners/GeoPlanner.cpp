@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "GeoPlanner.h"
+#include "../../AutonomyGlobals.h"
 #include "../../AutonomyNetworking.h"
 
 /******************************************************************************
@@ -39,7 +40,6 @@ namespace pathplanners
      * @param dPenaltyScalingFactor - Multiplier intensifying standard penalty math strictly during node score resolution.
      * @param dPenaltyPower - Exponential scaler applied universally to mathematically discourage steep or dangerous zones.
      * @param dPathWaypointTolerance - Native radius value embedded into actively returned planned telemetry sequence nodes.
-     * @param dPlotWaypointTolerance - Native radius value embedded into path tracer debug telemetry parameters natively.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2025-09-24
@@ -55,8 +55,7 @@ namespace pathplanners
                            size_t siMaxPlotPointsPerTile,
                            double dPenaltyScalingFactor,
                            double dPenaltyPower,
-                           double dPathWaypointTolerance,
-                           double dPlotWaypointTolerance)
+                           double dPathWaypointTolerance)
     {
         // Initialize member variables from constructor arguments.
         m_dTileSize               = dTileSize;
@@ -71,20 +70,12 @@ namespace pathplanners
         m_dPenaltyScalingFactor   = dPenaltyScalingFactor;
         m_dPenaltyPower           = dPenaltyPower;
         m_dPathWaypointTolerance  = dPathWaypointTolerance;
-        m_dPlotWaypointTolerance  = dPlotWaypointTolerance;
 
         // Initialize resource pointers and request-specific variables.
         m_pLiDARHandler         = nullptr;
         m_dSearchRadius         = 0.0;
         m_dMaxSearchTimeSeconds = 0.0;
         m_dCorridorPadding      = 0.0;
-
-        // Setup path tracer for 3D visualization.
-        m_pPathTracer = std::make_unique<logging::graphing::PathTracer>("GeoPlanner Path", false);
-
-        // Create path plotter visual layers.
-        m_pPathTracer->CreateDotLayer("TerrainPoints", "gray", false);
-        m_pPathTracer->CreatePathLayer("RoverPath", "red");
 
         // Bind RoveComm UDP Node network callbacks if available.
         if (network::g_pRoveCommUDPNode != nullptr)
@@ -116,7 +107,6 @@ namespace pathplanners
      * @param stEnd - The ultimate destination UTM geographic coordinate representation.
      * @param dSearchRadius - Padding base radius used to compute bounds.
      * @param dMaxSearchTimeSeconds - The absolute maximum CPU time in seconds allocated to search attempts.
-     * @param bPlotPath - Determines whether the path tracer visibly plots the result.
      * @param dCorridorPadding - The extended corridor buffer dimension appended dynamically outside raw bounds.
      * @return std::vector<geoops::Waypoint> - The sequentially planned traversal path configurations.
      *
@@ -128,7 +118,6 @@ namespace pathplanners
                                                        const geoops::UTMCoordinate& stEnd,
                                                        double dSearchRadius,
                                                        double dMaxSearchTimeSeconds,
-                                                       bool bPlotPath,
                                                        double dCorridorPadding)
     {
         // Acquire a thread mutex lock to prevent concurrent path planning operations from corrupting internal state.
@@ -186,16 +175,6 @@ namespace pathplanners
                    "GeoPlanner total end-to-end path routing executed within {:.6f} seconds rendering {} waypoints.",
                    dOverallDurationSeconds.count(),
                    vPath.size());
-
-        // Plot the telemetry path mapping visibly if requested.
-        if (bPlotPath && !vPath.empty())
-        {
-            this->PlotPathAndTerrain(vPath);
-        }
-        else if (bPlotPath && vPath.empty())
-        {
-            LOG_WARNING(logging::g_qSharedLogger, "GeoPlanner failed to configure waypoints. Plotting operation bypassed.");
-        }
 
         return vPath;
     }
@@ -376,6 +355,50 @@ namespace pathplanners
 
         // Dilate the existing valid cells to bridge structural void gaps in sparse clouds.
         this->FillGridHoles();
+
+        // Overlay dynamic obstacles from the WaypointHandler to ensure stuck state and object detection block paths dynamically in memory.
+        std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+
+        // Loop through the obstacles.
+        for (const geoops::Waypoint& stObstacle : vObstacles)
+        {
+            // Get obstacle UTM coordinate and radius.
+            geoops::UTMCoordinate stObsUTM = stObstacle.GetUTMCoordinate();
+            double dRadius                 = stObstacle.dRadius;
+
+            // Convert the obstacle's UTM center to grid array coordinates.
+            int nObsGridX = static_cast<int>((stObsUTM.dEasting - m_dGridOriginEasting) / m_dGridResolution);
+            int nObsGridY = static_cast<int>((stObsUTM.dNorthing - m_dGridOriginNorthing) / m_dGridResolution);
+
+            // Determine the bounding box of the obstacle in grid cells.
+            int nRadiusCells = static_cast<int>(std::ceil(dRadius / m_dGridResolution));
+
+            // Looping through the grid cells of the radius.
+            for (int nDx = -nRadiusCells; nDx <= nRadiusCells; ++nDx)
+            {
+                for (int nDy = -nRadiusCells; nDy <= nRadiusCells; ++nDy)
+                {
+                    // Increase the X and Y values.
+                    int nX = nObsGridX + nDx;
+                    int nY = nObsGridY + nDy;
+
+                    // Ensure the target indices are within valid 2D grid bounds.
+                    if (nX >= 0 && nX < m_nGridWidth && nY >= 0 && nY < m_nGridHeight)
+                    {
+                        // Make sure that we're checking within the radius with distance formula.
+                        double dDistSq = (nDx * m_dGridResolution) * (nDx * m_dGridResolution) + (nDy * m_dGridResolution) * (nDy * m_dGridResolution);
+
+                        // Check if the distance is less than radius squared.
+                        if (dDistSq <= (dRadius * dRadius))
+                        {
+                            // If so, set the grid index to a low trav score.
+                            int nIdx                    = GetGridIndex(nX, nY);
+                            m_vCostmap[nIdx].dTravScore = 0.01;
+                        }
+                    }
+                }
+            }
+        }
 
         // Calculate starting array indices based on geographic coordinate locations.
         int nStartX = static_cast<int>((stStart.dEasting - m_dGridOriginEasting) / m_dGridResolution);
@@ -706,6 +729,41 @@ namespace pathplanners
     }
 
     /******************************************************************************
+     * @brief Unload tile LiDAR data
+     *
+     * @param minX - Minimum x coordinate of tile range.
+     * @param maxX - Maximum x coordinate of tile range.
+     * @param minY - Minimum y coordinate of tile range.
+     * @param maxY - Maximum y coordinate of tile range.
+     *
+     * @author Sam Nolte (samnolte0302@gmail.com)
+     * @date 2025-03-01
+     ******************************************************************************/
+    void GeoPlanner::UnloadLiDARTiles(double minX, double maxX, double minY, double maxY)
+    {
+        int nMinTileX = static_cast<int>(std::floor(minX / m_dTileSize));
+        int nMinTileY = static_cast<int>(std::floor(minY / m_dTileSize));
+        int nMaxTileX = static_cast<int>(std::floor(maxX / m_dTileSize));
+        int nMaxTileY = static_cast<int>(std::floor(maxY / m_dTileSize));
+
+        std::list<TileKey> tileKeys;
+        for (int i = 0; i < nMaxTileX - nMinTileX + 1; ++i)
+            for (int j = 0; j < nMaxTileY - nMinTileY + 1; ++j)
+                tileKeys.push_back(TileKey{nMinTileX + i, nMinTileY + j});
+
+        for (std::list<TileKey>::iterator it = tileKeys.begin(); it != tileKeys.end(); ++it)
+        {
+            // Make sure tile is actually loaded
+            if (m_umTileMapCache.find(*it) == m_umTileMapCache.end())
+            {
+                continue;
+            }
+
+            m_umTileMapCache.erase(*it);
+        }
+    }
+
+    /******************************************************************************
      * @brief Expands outward concentrically from a target grid cell to locate the
      * nearest neighboring cell that contains valid and safe traversal structures.
      *
@@ -785,59 +843,6 @@ namespace pathplanners
 
         // Return the highest scoring viable cell found within the search limits, or -1 if no usable data exists.
         return nBestFallbackIdx;
-    }
-
-    /******************************************************************************
-     * @brief Visually processes the calculated waypoint path and the related
-     * terrain point clouds to plot them properly on the telemetry interfaces.
-     *
-     * @param vPath - The finalized sequence of waypoints representing the optimal path mapping.
-     *
-     * @author clayjay3 (claytonraycowen@gmail.com)
-     * @date 2025-09-25
-     ******************************************************************************/
-    void GeoPlanner::PlotPathAndTerrain(const std::vector<geoops::Waypoint>& vPath) const
-    {
-        // Clear the previous rendering history layers for terrain boundaries and path sequences.
-        m_pPathTracer->ClearLayer("TerrainPoints");
-        m_pPathTracer->ClearLayer("RoverPath");
-
-        // Determine the unique database tiles currently required to visually render the path.
-        std::unordered_set<TileKey, TileKeyHash, TileKeyEqual> usTilesToPlot;
-        for (const geoops::Waypoint& stWaypoint : vPath)
-        {
-            int nTileX = static_cast<int>(std::floor(stWaypoint.GetUTMCoordinate().dEasting / m_dTileSize));
-            int nTileY = static_cast<int>(std::floor(stWaypoint.GetUTMCoordinate().dNorthing / m_dTileSize));
-            usTilesToPlot.insert(TileKey{nTileX, nTileY});
-        }
-
-        // Iterate through the determined required tiles and plot their structural terrain limits.
-        for (const TileKey& stTileKey : usTilesToPlot)
-        {
-            std::unordered_map<TileKey, std::vector<LiDARHandler::PointRow>, TileKeyHash, TileKeyEqual>::const_iterator itCachedTile = m_umTileMapCache.find(stTileKey);
-            if (itCachedTile != m_umTileMapCache.end())
-            {
-                std::vector<geoops::Waypoint> vTerrainWaypoints;
-                const std::vector<LiDARHandler::PointRow>& vTilePoints = itCachedTile->second;
-
-                // Subsample the structural terrain arrays strictly to prevent overloading the visualizer application.
-                size_t siStep = (vTilePoints.size() > m_siMaxPlotPointsPerTile) ? vTilePoints.size() / m_siMaxPlotPointsPerTile : 1;
-
-                for (size_t siI = 0; siI < vTilePoints.size(); siI += siStep)
-                {
-                    const LiDARHandler::PointRow& stPoint = vTilePoints[siI];
-                    vTerrainWaypoints.emplace_back(
-                        geoops::UTMCoordinate(stPoint.dEasting, stPoint.dNorthing, std::stoi(stPoint.szZone.substr(0, 2)), (stPoint.dNorthing >= 0), stPoint.dAltitude),
-                        geoops::WaypointType::eNavigationWaypoint,
-                        m_dPlotWaypointTolerance,
-                        stPoint.nID);
-                }
-
-                m_pPathTracer->AddDots(vTerrainWaypoints, "TerrainPoints", 0);
-            }
-        }
-
-        m_pPathTracer->AddPathPoints(vPath, "RoverPath", 0);
     }
 
     /******************************************************************************

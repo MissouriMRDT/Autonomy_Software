@@ -185,8 +185,6 @@ External libraries and their corresponding type prefixes are listed below:
 | ZED SDK        | `sl`   | `sl::Mat slExampleZedMat`                    |
 | Quill          | `q`    | `quill::Config qConfig`                      |
 | GeographicLib  | `ge`   | `GeographicLib::Geodesic geExampleGeographicType` |
-| Tensorflow     | `tf`   | `tflite::Interpreter tfExampleTensorflowType` |
-| Libedgetpu     | `tpu`  | `edgetpu::EdgeTpuManager tpuExampleEdgeTPUType` |
 | Torch          | `tr`   | `torch::Tensor trExampleTorchType` |
 | WebRTC         | `rtc`  | `rtc::PeerConnection rtcExampleRTCType` |
 | JSON           | `jsn`  | `nlohmann::json jsnExampleJSONType` |

@@ -123,11 +123,9 @@ The easiest way to get started is by using our Docker environment. This environm
 - **GCC 10**
 - **OpenCV 4.11.0**
 - **PyTorch 2.2.2**
-- **TensorFlow 2.15.0**
 - **ZED SDK 4.1**
 - **Quill 8.1.0**
 - **Google Test 1.16.0**
-- **Abseil 20230802.1**
 - **GeographicLib 2.3**
 - **Git LFS**
 - **And more...**
@@ -150,22 +148,7 @@ If you prefer to set up the environment manually, make sure your system has the 
   - NVIDIA Jetson Devices with JetPack SDK (required for ARM64 platforms)
 
 - **Required Software**:
-  - CMake 3.24.3 or higher
-  - GCC 10 or higher (for compiling C++ code)
-  - Git 2.25 or higher
-  - Git LFS (Large File Storage) 2.13.0 or higher (for handling large files)
-  - Python 3.8 or higher (for scripting and utility purposes)
-  - Doxygen (for generating documentation)
-  - OpenCV 4.11.0 or higher (required for vision processing)
-  - CUDA Toolkit 12.2 or higher (or NVIDIA graphics card support)
-  - NVIDIA JetPack SDK (required for Jetson platforms)
-  - ZED SDK 4.1 or higher (for stereolabs cameras)
-  - PyTorch 2.2.2 or higher (for machine learning tasks)
-  - TensorFlow 2.15.0 or higher (for deep learning tasks)
-  - Quill 6.1.2 or higher (for logging)
-  - Google Test 1.16.0 (for testing)
-  - Abseil 20230802.1 (for additional utilities)
-  - GeographicLib 2.3 (for geospatial computations)
+  - Just use the devcontainer... :)
 
 Now that your system is set up, you can proceed with the installation and build instructions provided in the [INSTALL.md](INSTALL.md) file.
 
@@ -281,14 +264,6 @@ This project makes use of several open-source libraries and tools that help us a
   [PyTorch GitHub](https://github.com/pytorch/pytorch)  
   License: [BSD-3-Clause License](https://github.com/pytorch/pytorch/blob/main/LICENSE)
 
-- **TensorFlow Lite** - Lightweight version of TensorFlow for running machine learning models on mobile and embedded devices.  
-  [TensorFlow Lite](https://www.tensorflow.org/lite/guide)  
-  License: [Apache License 2.0](https://www.tensorflow.org/license)
-
-- **Libedgetpu** - Library for accessing Google’s Edge TPU for hardware-accelerated machine learning inference on embedded devices.  
-  [Libedgetpu](https://coral.ai/docs/reference/cpp/)  
-  License: [Apache License 2.0](https://github.com/google-coral/libedgetpu/blob/master/LICENSE)
-
 - **ZED SDK** - Software development kit for Stereolabs ZED cameras.  
   [Stereolabs ZED SDK](https://www.stereolabs.com/developers/)  
   License: [ZED SDK License](https://www.stereolabs.com/legal/sdk-eula/)
@@ -320,10 +295,6 @@ This project makes use of several open-source libraries and tools that help us a
 - **PointCloudLibrary** - PCL: A standalone, large scale, project for 2D/3D image and point cloud processing.
     [PCL](https://github.com/PointCloudLibrary/pcl)
     License: [BSD License](https://github.com/PointCloudLibrary/pcl/blob/master/LICENSE.txt)
-
-- **Abseil** - Collection of C++ libraries designed for performance and ease of use.  
-  [Abseil GitHub](https://github.com/abseil/abseil-cpp)  
-  License: [Apache License 2.0](https://github.com/abseil/abseil-cpp/blob/master/LICENSE)
 
 - **GeographicLib** - C++ library for geodesic and geographic computations.  
   [GeographicLib GitHub](https://github.com/geographiclib/geographiclib)  
