@@ -1,41 +1,73 @@
 # PID Controller
 
-The `PIDController` class (`src/algorithms/controllers/PIDController.h`) is a fundamental building block of the autonomy software's control logic. It encapsulates the principles of Proportional-Integral-Derivative control, with an added Feedforward component.
+The `PIDController` class (`src/algorithms/controllers/PIDController.h`) implements a Proportional-Integral-Derivative controller with Feedforward support, anti-windup limits, continuous input wraparound, output slew rate limiting, and output low-pass filtering.
 
-## Primary Uses
-The most common use of the PID Controller in the autonomy software is for **Heading Control**.
-When the rover needs to point towards a specific waypoint or an AR Tag, the `DifferentialDrive` kinematics use this PID controller to calculate exactly how much rotational effort (from -1.0 to 1.0) is needed to turn the rover based on the error between its current compass heading and the goal heading.
+---
 
-## Algorithm Breakdown
+## 1. Primary Use Cases
 
-The PID output is the sum of up to four components:
+The primary application in Autonomy Software is **Heading and Steering Control**:
+- When turning the rover toward a goal waypoint or orienting the chassis toward an ArUco marker, the difference between goal heading and current heading is evaluated as an error signal.
+- The PID controller outputs a normalized rotational effort $u \in [-1.0, 1.0]$ passed to the differential drive kinematics.
 
-1. **Proportional (P)**:
-   - `Output = Error * Kp`
-   - Adjusts the output directly in proportion to the current error. If the rover is very far off-target, it turns hard. If it's close, it turns gently.
-2. **Integral (I)**:
-   - `Output = Accumulated_Error * Ki`
-   - Accumulates past errors over time. This is critical for overcoming static friction on the rover's wheels (especially on grass or carpet), as a tiny proportional error might not generate enough motor power to actually move the chassis.
-3. **Derivative (D)**:
-   - `Output = Rate_Of_Change * Kd`
-   - Anticipates future error by measuring how fast the error is closing. This "dampens" the turn as the rover nears the target, preventing it from wildly overshooting.
-4. **Feedforward (FF)**:
-   - `Output = Target * Kff`
-   - Used for predictive control, providing a baseline output effort based purely on the setpoint rather than the error.
+---
 
-## Key Features & Configurations
+## 2. Mathematical Formulation
 
-The `PIDController` class provides several features necessary for real-world robotics:
+At discrete timestep $k$ with time delta $\Delta t = t_k - t_{k-1}$, the control signal $u(k)$ is computed as:
 
-- **Continuous Input Wraparound**: By calling `EnableContinuousInput(0.0, 360.0)`, the controller understands that an actual heading of `350` and a goal heading of `10` only has an error of `20` degrees, not `340` degrees.
-- **Integral Windup Protection**: `SetMaxIntegralEffort()` caps the maximum influence the I-term can have, preventing the rover from violently spinning out of control if it gets physically stuck for a few seconds.
-- **Output Ramp Rate**: `SetOutputRampRate()` prevents the controller from instantly spiking from 0.0 to 1.0 effort, which could blow a fuse on the motor controllers. It artificially forces the output to ramp up smoothly.
-- **Output Filtering**: `SetOutputFilter()` applies a low-pass filter to the output to smooth out high-frequency noise from the IMU.
+$$u(k) = u_P(k) + u_I(k) + u_D(k) + u_{FF}(k)$$
 
-## Tuning via Constants
-The PID gains for the main drive system are located in `AutonomyConstants.cpp`:
-- `DRIVE_PID_PROPORTIONAL`
-- `DRIVE_PID_INTEGRAL`
-- `DRIVE_PID_DERIVATIVE`
+### Component Breakdown
+1. **Proportional Term ($u_P$)**:
+   $$u_P(k) = K_p \cdot e(k)$$
+   Provides immediate corrective action proportional to instantaneous error $e(k) = r(k) - y(k)$ (where $r$ is the setpoint and $y$ is the process variable).
+2. **Integral Term ($u_I$)**:
+   $$u_I(k) = u_I(k-1) + K_i \cdot e(k) \cdot \Delta t$$
+   Accumulates steady-state error over time. This term is critical for overcoming static ground friction in skid-steer systems, where small proportional errors fail to produce enough torque to initiate turning.
+3. **Derivative Term ($u_D$)**:
+   $$u_D(k) = K_d \cdot \frac{e(k) - e(k-1)}{\Delta t}$$
+   Measures error rate of change to provide damping as the error approaches zero, counteracting overshoot and oscillation.
+4. **Feedforward Term ($u_{FF}$)**:
+   $$u_{FF}(k) = K_{ff} \cdot r(k)$$
+   Provides baseline output effort driven directly by the setpoint value rather than the error signal.
 
-*(Refer to the `Configuration and Tuning / Autonomy Constants` page for a guide on how to tune these values).*
+---
+
+## 3. Specialized Robotics Features
+
+The `PIDController` class includes several features designed for physical ground robots:
+
+### Continuous Input Wraparound
+Compass headings wrap from $360^\circ$ to $0^\circ$. Without handling, navigating from $355^\circ$ to $5^\circ$ would compute an error of $-350^\circ$, causing a full counter-clockwise rotation instead of a $10^\circ$ clockwise turn.
+- Calling `EnableContinuousInput(0.0, 360.0)` automatically detects the shortest angular distance across the boundary.
+
+### Integral Windup Prevention
+If the rover is physically obstructed, the integral term can accumulate unbounded error, causing massive overshoot or violent motor spin once the obstacle clears.
+- `SetMaxIntegralEffort(double dMaxEffort)` clamps the maximum contribution of $u_I$:
+  $$|u_I(k)| \le \text{constants::DRIVE\_PID\_MAX\_INTEGRAL\_TERM}$$
+
+### Output Slew Rate Limiting (Ramp Rate)
+Instantaneous step changes from $0.0$ to $1.0$ effort can strip motor gearbox teeth or trigger overcurrent cutoffs.
+- `SetOutputRampRate(double dMaxRatePerSecond)` limits the rate of change of the output:
+  $$|u(k) - u(k-1)| \le \text{constants::DRIVE\_PID\_MAX\_RAMP\_RATE} \cdot \Delta t$$
+
+### Output Low-Pass Filter
+Noisy IMU data can cause high-frequency derivative chatter.
+- `SetOutputFilter(double dFilterAlpha)` applies an exponential moving average to smooth output signals before passing them to motor drivers:
+  $$u_{\text{filtered}}(k) = \alpha \cdot u(k) + (1 - \alpha) \cdot u_{\text{filtered}}(k-1)$$
+
+---
+
+## 4. Tuning Parameters in `AutonomyConstants.cpp`
+
+| Constant Name | Type | Purpose | Tuning Directive |
+| :--- | :--- | :--- | :--- |
+| `DRIVE_PID_PROPORTIONAL` | `double` | $K_p$ gain | Increase for faster heading response; decrease if the rover oscillates around the setpoint. |
+| `DRIVE_PID_INTEGRAL` | `double` | $K_i$ gain | Increase if the rover stalls before finishing a turn; decrease if slow hunting oscillations occur. |
+| `DRIVE_PID_DERIVATIVE` | `double` | $K_d$ gain | Increase to damp overshoot; decrease if high-frequency jitter occurs due to network/actuation delay. |
+| `DRIVE_PID_FEEDFORWARD` | `double` | $K_{ff}$ gain | Baseline effort scaling; typically 0.0 for pure heading tracking. |
+| `DRIVE_PID_MAX_INTEGRAL_TERM` | `double` | Ceiling on $u_I$ | Clamps integral effort to prevent windup during extended stalls. |
+| `DRIVE_PID_MAX_RAMP_RATE` | `double` | Output slew limit | Caps maximum acceleration of commanded effort per second. |
+| `DRIVE_PID_OUTPUT_FILTER` | `double` | Filter factor $\alpha$ | Controls output smoothing against IMU noise. |
+| `DRIVE_PID_TOLERANCE` | `double` | Deadband tolerance | Error threshold within which the controller declares alignment achieved. |

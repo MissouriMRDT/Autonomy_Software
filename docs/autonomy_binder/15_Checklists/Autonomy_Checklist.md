@@ -1,89 +1,123 @@
-# Autonomy Pre-Flight Checklist
+# Autonomy Pre-Flight & Operations Checklist
 
-*This checklist covers all the critical steps required to build, test, and deploy the autonomy software onto the rover during a competition or major test session.*
-
-## Jetson Setup (On the Rover)
-
-- [ ] **Check out the correct branch.**
-  - `git checkout <branch-name>`
-- [ ] **Fetch and pull the latest code.**
-  - `git fetch`
-  - `git pull`
-- [ ] **Ensure that you have the correct constants set.**
-  - In `CMakeLists.txt`, make sure that `BUILD_SIM_MODE` is `OFF`.
-  - In `AutonomyConstants.cpp`, ensure that the correct database (.db) file is in the LiDAR database path: `LIDAR_HANDLER_DB_PATH`.
-  - Also ensure that the correct tag/object model paths are set: `TAGDETECT_TORCH_MODEL` and `OBJECTDETECT_TORCH_MODEL`.
-- [ ] **Build the code.**
-  - Remove the build directory if it exists through GUI or command line.
-  - `mkdir build && cd build`
-  - `cmake -DCMAKE_BUILD_TYPE=Release .. && make -j12`
-- [ ] **Test the code on the Jetson off-rover before putting it on-rover.**
-  - Plug a ZED or two in.
-  - Run the executable: `./Autonomy_Software`
-  - *(If the executable generated is `./Autonomy_Software_Sim`, change the `BUILD_SIM_MODE` value in `CMakeLists.txt` and rebuild).*
-- [ ] **Ensure that the ZEDs you plugged in successfully opened.**
-  - Check the console logs. If they did not open, restart the code or rebuild the container. You may also have to re-plug in the ZED cables.
-  - Type `lsusb` in the terminal to see if they populate. You should see **two** devices per ZED camera.
-- [ ] **Verify Framerates (FPS).**
-  - Press `f` in the terminal while the code is running. If the FPS output all looks good and stable, you are ready to test on-rover!
-  - *(You can test detection models directly on the Jetson with a ZED without the rover if you need to).*
-- [ ] **Turn off WiFi / Airplane Mode.**
-  - **MAKE SURE IT IS IN AIRPLANE MODE OR ELSE THE SOLAR FLARES WILL DECLARE OUR LOSS AT URC!** (Disconnect from external networks to prevent interference/packet loss).
-- [ ] **Turn off the Jetson and mount it physically on the rover.**
+This checklist defines the required engineering procedures for configuring, verifying, compiling, and operating the autonomy software during field trials and official University Rover Challenge (URC) competition runs.
 
 ---
 
-## Autonomy on Basestation Computer
+## 1. On-Rover Jetson Setup & Verification
 
-### Setup and Building
+### Codebase and Toolchain Verification
+- [ ] **Verify Git Branch**:
+  - `git status` (Confirm working directory is clean and checked out to the designated deployment branch).
+- [ ] **Fetch Latest Commits**:
+  - `git fetch origin && git pull`
+- [ ] **Verify Build System & Compiler Version**:
+  - `gcc --version` (Must strictly report GCC 10.x per CMake configuration rules).
+- [ ] **Verify Configuration Constants** in `src/AutonomyConstants.cpp`:
+  - `BUILD_SIM_MODE` is set to `OFF` in `CMakeLists.txt`.
+  - `LIDAR_HANDLER_DB_PATH` points to the valid DuckDB database tile file.
+  - `TAGDETECT_TORCH_MODEL` points to the verified TorchScript ArUco weights (`data/Models/best_tag.pt`).
+  - `OBJECTDETECT_TORCH_MODEL` points to the verified TorchScript mission object weights (`data/Models/best_object.pt`).
+  - Extrinsic offsets match the current physical camera and GPS mast placements.
 
-- [ ] **Connect to the Rover.**
-  - Open terminal and SSH into Jetson: `ssh pigeon@192.168.3.100`
-  - *(Password is `nandgate`)*
-- [ ] **Start the Dev Container (if not already running).**
-  - `cd Documents`
-  - `./Helpful_Run_Autonomy` (Docker setup script)
-- [ ] **Run the Autonomy Software.**
-  - `cd build`
-  - `./Autonomy_Software`
-- [ ] **(Optional) Open VSCode remotely to change code.**
-  - Connect via SSH in VSCode. You can edit code here, but it is recommended to run the executable from the standard SSH terminal.
-  - If you save code and get a permission error, run this command in the VSCode terminal: `sudo chown -R pigeon:pigeon ./Autonomy_Software`
-- [ ] **View Output / Logs.**
-  - After running autonomy, go to the `logs/` directory in VSCode to see the rover’s search patterns, paths, and recorded video feeds.
-- [ ] **Rebuilding after a quick fix.**
-  - If you need to rebuild code after editing, run `make -j12` in the terminal inside the `build` folder.
-  - If CMake errors occur, clean it: `rm -r build && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j12`
+### Compilation
+- [ ] **Clean Build Configuration**:
+  - `rm -rf build && mkdir build`
+  - `cmake -B build -DCMAKE_BUILD_TYPE=Release`
+  - Ensure CMake configuration prints `--   [ ]: Sim Mode: Disabled` and generates `Autonomy_Software` (not `Autonomy_Software_Sim`).
+- [ ] **Compile**:
+  - `make -C build -j$(nproc)`
+  - Confirm binary links without warnings or missing shared library errors.
 
-### Basestation API & GUI
-
-- [ ] **Open up the Autonomy layout from the GUI dropdown.**
-- [ ] **Input Waypoints.**
-  - In the "Waypoints" section, input the GPS coordinates, name, radius, and objective IDs.
-  - Use ID **`-2`** for a Mallet objective.
-  - Use ID **`-3`** for a Water Bottle objective.
-  - *(You can also right-click directly on the GUI map to drop a waypoint).*
-- [ ] **Start Autonomous Navigation.**
-  - To get the Rover to drive autonomously, click on the waypoint you want to navigate to in the queue, then click **"Add Leg"**.
-  - Ensure that the waypoint successfully appears in the Autonomy terminal output.
-  - Click the **Start** button once it does to transition out of `eIdle`.
-- [ ] **Manage the Queue.**
-  - You can delete waypoints by clearing the queue if a mistake is made or an abort is required.
-- [ ] **Monitor Success.**
-  - Once you see the Operator State indicator turn **Green** (and the Rover's LED strip flashes green), you know that the Rover has successfully navigated to the waypoint or detected the objective.
+### Bench Sensor Verification (Prior to Mounting)
+- [ ] **Check USB Device Tree**:
+  - Run `lsusb` in the terminal.
+  - Verify that each connected ZED 2i camera populates two distinct devices:
+    - Camera Video Interface (`ID 2b03:f880`)
+    - Sensor / IMU Microcontroller (`ID 2b03:f881`)
+- [ ] **Execute Standalone Smoke Test**:
+  - Launch executable: `./build/Autonomy_Software`
+  - Press `f`: Confirm camera capture rates and detector threads achieve steady 30 FPS.
+  - Press `s`: Confirm linear acceleration and gyro angular rates update dynamically when moving the camera.
+  - Press `t` and `m`: Confirm tag and object detector models are loaded onto the CUDA device without memory exhaustion.
+  - Press `q`: Confirm clean shutdown, database closure, and export of `visualization.html`.
+- [ ] **Network Interface Isolation**:
+  - Put the Jetson internal Wi-Fi adapter into Airplane Mode / Disabled state to prevent wireless interference with the 900 MHz and 5.8 GHz competition radio links.
 
 ---
 
-## Bug Fixing & General Knowledge
+## 2. Basestation Operations & Deployment
 
-- **Not detecting ZED or Bad positional tracking?**
-  - Unplug and securely re-plug the USB-C cord from the Jetson to the ZED camera. Restart the autonomy software.
-- **Where is the rover going / Why is it doing that?**
-  - Open up the `logs/` folder and read the latest `.log` file! Look for state transitions and `GeoPlanner` warnings.
-- **Is our heading off?**
-  - Press `p` in the SSH terminal while autonomy is running. Compare the printed Autonomy heading with the raw NAV component heading on the basestation.
-- **Are we seeing tags or objects?**
-  - Press `t` to dump AR tag detections to the terminal.
-  - Press `m` to dump Neural Network object detections to the terminal.
-- **Is the software lagging?**
-  - After `Autonomy_Software` is running, press `f` to view the FPS menu and verify that the detectors, cameras, and state machine are hitting their maximum iteration speeds.
+### Remote Session Launch
+- [ ] **Establish Secure Shell Session**:
+  - Open terminal on the basestation computer: `ssh pigeon@192.168.3.100` (Default password: `nandgate`).
+- [ ] **Launch Autonomy Process**:
+  - `cd ~/Documents/GitHub/Autonomy_Software`
+  - `./build/Autonomy_Software`
+- [ ] **Verify RoveComm Telemetry**:
+  - Confirm log message reports: `RoveComm UDP and TCP nodes successfully initialized.`
+  - Verify heartbeat packets populate in the Basestation GUI telemetry dashboard.
+
+---
+
+## 3. Mission Waypoint Injection & Leg Types
+
+Waypoints are queued into the autonomy system via the Basestation GUI or through direct RoveComm packets. Ensure the appropriate leg type and parameters are injected:
+
+### Leg Type Configurations
+
+1. **GNSS Position Leg (`ADDPOSITIONLEG`)**:
+   - **Command ID**: `11002`
+   - **Payload**: `[Latitude, Longitude, WaypointID]`
+   - Used for raw coordinate transit legs. The rover navigates until it enters `constants::NAVIGATING_REACHED_GOAL_RADIUS` (typically 1.5 m).
+
+2. **ArUco Marker Leg (`ADDMARKERLEG`)**:
+   - **Command ID**: `11003`
+   - **Payload**: `[Latitude, Longitude, MarkerID, SearchRadius]`
+   - **MarkerID Parameter**:
+     - `0`, `1`, `2`, or `3`: Directs the rover to search specifically for that numerical tag ID.
+     - `-1` (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ANY`): Rover accepts any detected ArUco marker.
+   - **SearchRadius**: Clamped between 0.0 m and 40.0 m. Specifies the Archimedean spiral search envelope upon reaching the GNSS post location.
+
+3. **Mission Object Leg (`ADDOBJECTLEG`)**:
+   - **Command ID**: `11004`
+   - **Payload**: `[Latitude, Longitude, ObjectID, SearchRadius]`
+   - **ObjectID Parameter**:
+     - `-2` (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::MALLET`): Orange mallet target.
+     - `-3` (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::WATERBOTTLE`): Water bottle target.
+     - `-4` (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ROCKPICK`): Geologist rock hammer target.
+   - **SearchRadius**: Clamped between 0.0 m and 40.0 m.
+
+---
+
+## 4. Autonomous Mission Execution Workflow
+
+- [ ] **Confirm Waypoint Queue Status**:
+  - Check terminal output: Confirm the incoming leg appears with correct coordinates, ID, and search radius.
+- [ ] **Initiate Autonomous Navigation**:
+  - On the Basestation GUI, click **Start Autonomy** (dispatches `eStartAutonomy` packet).
+  - Verify rover state machine transitions from `eIdle` to `eNavigating`.
+- [ ] **Monitor Multimedia Board Status Lights**:
+  - **Off**: Autonomy is stopped / idle.
+  - **Solid Red**: Autonomy is actively driving.
+  - **Flashing Green**: Rover has successfully navigated to the waypoint, detected the target tag, or completed object approach.
+  - **Solid Blue**: Teleoperation override active.
+- [ ] **Emergency Abort Protocol**:
+  - In the event of an imminent collision or boundary violation, click **Abort** on the Basestation GUI or press the physical wireless E-Stop.
+  - The state machine immediately clears motor commands via `DriveBoard::SendStop()` and returns to `eIdle`.
+
+---
+
+## 5. Post-Mission Data Archival
+
+- [ ] **Terminate Autonomy Session**:
+  - Press `q` in the active SSH terminal.
+- [ ] **Archive Run Artifacts**:
+  - Navigate to `logs/<YYYY-MM-DD_HH-MM-SS>/`.
+  - Verify generation of:
+    - `console_output.log` and `console_output.csv`
+    - `visualization.html` (Open locally in browser to inspect traversed route and 3D point cloud)
+    - `spatial_map.ply` (ZED stereoscopic mesh)
+    - Recorded video streams (`MainCam_Raw.mp4`, `MainCam_TagOverlay.mp4`, `MainCam_ObjectOverlay.mp4`)
+- [ ] **Log Trajectory Playback**:
+  - Run `python3 tools/logging/log_playback.py logs/<timestamp>/console_output.csv` to review controller tracking fidelity and telemetry timelines.

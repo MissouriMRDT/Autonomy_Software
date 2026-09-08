@@ -1,99 +1,117 @@
 # RoveComm Networking Protocol
 
-`RoveComm` is a custom, in-house communication protocol developed by the Mars Rover Design Team. It acts as the "nervous system" of the rover, facilitating all communication between the Autonomy Software (running on the Jetson/Main Computer), the hardware microcontrollers (Drive Board, Navigation Board, Multimedia Board), and the Basestation operators.
+`RoveComm` is a custom in-house application-layer communication protocol developed by the Mars Rover Design Team. It connects the Autonomy Software (executing on the Jetson computer), distributed embedded microcontrollers (Drive Board, Navigation Board, Multimedia Board), and the Basestation Command and Control (C2) console.
 
-It is included in this repository as an external git submodule (`external/rovecomm`).
+The protocol is included as a git submodule in `external/rovecomm`.
 
-## Architecture & Transport Layers
+---
 
-RoveComm supports two underlying transport protocols depending on the needs of the specific data stream:
+## 1. Transport Protocols: UDP vs TCP
 
-### 1. RoveComm UDP (User Datagram Protocol)
-- **Use Case**: High-frequency, continuous, loss-tolerant data.
-- **Examples**: Sending `DRIVELEFTRIGHT` motor commands at 60Hz, or receiving continuous GPS and IMU telemetry from the Navigation Board.
-- **Why**: If a UDP packet drops over the wireless network, the system doesn't waste time trying to retransmit it. It just waits for the next packet 16 milliseconds later.
-- **Initialization**: `network::g_pRoveCommUDPNode->InitUDPSocket(...)`
+RoveComm provides dual transport layers tailored to different telemetry requirements:
 
-### 2. RoveComm TCP (Transmission Control Protocol)
-- **Use Case**: Critical, one-time, guaranteed-delivery data.
-- **Examples**: Sending a new mission Waypoint list from the basestation, or sending an absolute State Machine override command.
-- **Why**: Ensures that critical configuration data arrives reliably and in the correct order.
-- **Initialization**: `network::g_pRoveCommTCPNode->InitTCPSocket(...)`
+### A. RoveComm UDP (User Datagram Protocol)
+- **Primary Use**: High-rate, periodic, loss-tolerant sensor and actuator telemetry.
+- **Examples**:
+  - `manifest::Core::COMMANDS["DRIVELEFTRIGHT"]` transmitted at 60 Hz to the motor controller.
+  - `manifest::Nav::TELEMETRY["GPSLATLON"]` and `["IMUDATA"]` streaming from the Navigation Board.
+  - Periodic lighting commands (`STATEDISPLAY`, `LEDRGB`).
+  - Log message streaming to the Basestation console.
+- **Behavior**: Socket transmission is non-blocking. If a wireless frame is dropped, subsequent packets overwrite the dropped data without retransmission delays.
+- **Binding**: Handled by `network::g_pRoveCommUDPNode` on port `manifest::General::ETHERNET_UDP_PORT` (default 11000).
 
-## The RoveComm Manifest
+### B. RoveComm TCP (Transmission Control Protocol)
+- **Primary Use**: Low-rate, mission-critical, guaranteed-delivery commands.
+- **Examples**:
+  - Mission leg injections (`ADDPOSITIONLEG`, `ADDMARKERLEG`, `ADDOBJECTLEG`).
+  - Queue clearing commands (`CLEARWAYPOINTS`).
+  - Runtime logging level reconfigurations (`SETLOGGINGLEVELS`).
+- **Behavior**: Uses stream-based delivery with kernel-level acknowledgments and ordered sequencing.
+- **Binding**: Handled by `network::g_pRoveCommTCPNode` bound to `constants::ROVECOMM_TCP_INTERFACE_IP` and `manifest::General::ETHERNET_TCP_PORT` (default 11000).
 
-To ensure that the C++ Autonomy Software, the Python Basestation, and the C++ Microcontrollers all agree on *what* a piece of data means, the protocol uses the **RoveComm Manifest**.
+---
 
-The manifest (`RoveCommManifest.h` / `manifest.json`) defines every possible packet type in the system. It maps a human-readable string (like `"DRIVELEFTRIGHT"`) to:
-1. **Data ID (`unDataId`)**: A unique 16-bit integer identifying the command.
-2. **Data Count (`unDataCount`)**: How many elements are expected in the array (e.g., 2 for Left and Right powers).
-3. **Data Type (`eDataType`)**: The type of the elements (e.g., `FLOAT_T`, `INT32_T`).
+## 2. The RoveComm Manifest
 
-*Note: The `RoveCommManifest.h` file is auto-generated. Do not edit it manually. Instead, edit the upstream `manifest.json`.*
+To maintain compatibility between C++ embedded firmware, C++ autonomy software, and Python base station GUI software, all message definitions are centralized in `RoveCommManifest.h` (generated from `manifest.json`).
 
-## Packet Structure
+Each manifest entry defines three fields:
+1. **`DATA_ID`**: A unique 16-bit unsigned integer identifier.
+2. **`DATA_COUNT`**: Expected number of array elements in the payload.
+3. **`DATA_TYPE`**: Primitive data type identifier:
+   - `UINT8_T`, `INT8_T`
+   - `UINT16_T`, `INT16_T`
+   - `UINT32_T`, `INT32_T`
+   - `FLOAT_T` (32-bit IEEE 754)
+   - `DOUBLE_T` (64-bit IEEE 754)
+   - `CHAR_T`
 
-Data is packaged into the templated `RoveCommPacket<T>` struct before being sent over the network:
+---
+
+## 3. Packet Structure: `RoveCommPacket<T>`
+
+Network payloads are encapsulated within the templated `RoveCommPacket<T>` struct:
 
 ```cpp
 template<typename T>
 struct RoveCommPacket
 {
-    uint16_t unDataId;            // From Manifest
-    uint16_t unDataCount;         // From Manifest
-    manifest::DataTypes eDataType; // From Manifest
-    std::vector<T> vData;         // The actual payload array
+    uint16_t unDataId;            // Message ID from manifest
+    uint16_t unDataCount;         // Array element count
+    manifest::DataTypes eDataType; // Data type enum
+    std::vector<T> vData;         // Payload vector
 };
 ```
-When transmitted, `RoveComm` uses specific macros (`htonll`, `ntohll`) to handle endianness conversions, ensuring that data is packed correctly regardless of the CPU architecture (ARM vs x86).
 
-## Sending Data
+When transmitted, network byte order conversions (`htonll`, `ntohll`) ensure consistent endianness across x86_64 host machines and ARM64 Jetson architectures.
 
-To send data, you populate a `RoveCommPacket` struct and call the `SendUDPPacket` or `SendTCPPacket` method.
+---
 
-Example from `DriveBoard.cpp`:
+## 4. Sending Telemetry and Commands
+
+To transmit a packet, instantiate `RoveCommPacket<T>`, set the manifest parameters, populate `vData`, and dispatch via the node pointer:
+
 ```cpp
+// Example: Sending motor powers over UDP (from DriveBoard.cpp)
 rovecomm::RoveCommPacket<float> stPacket;
 stPacket.unDataId    = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_ID;
 stPacket.unDataCount = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_COUNT;
 stPacket.eDataType   = manifest::Core::COMMANDS.find("DRIVELEFTRIGHT")->second.DATA_TYPE;
 
-// Attach the payload
-stPacket.vData.emplace_back(leftDrivePower);
-stPacket.vData.emplace_back(rightDrivePower);
+stPacket.vData.emplace_back(fLeftTrackPower);
+stPacket.vData.emplace_back(fRightTrackPower);
 
-// Send over the network
-network::g_pRoveCommUDPNode->SendUDPPacket(stPacket, "192.168.1.130", constants::ROVECOMM_OUTGOING_UDP_PORT);
-```
-
-## Receiving Data via Callbacks
-
-Instead of writing a massive, blocking `switch` statement to handle incoming data, `RoveComm` uses an asynchronous Callback architecture.
-
-When the autonomy software boots up (in `main.cpp` or inside driver constructors), it registers callback functions tied to specific Data IDs.
-
-Example from `DriveBoard.h`:
-```cpp
-// 1. Define the callback lambda
-const std::function<void(const rovecomm::RoveCommPacket<float>&, const sockaddr_in&)> SetMaxSpeedCallback =
-    [this](const rovecomm::RoveCommPacket<float>& stPacket, const sockaddr_in& stdAddr)
-{
-    // Handle the incoming speed multiplier
-    float multiplier = stPacket.vData[0];
-    this->SetMaxDriveEffort(multiplier);
-};
-
-// 2. Register it with the UDP Node
-network::g_pRoveCommUDPNode->AddUDPCallback<float>(
-    SetMaxSpeedCallback,
-    manifest::Core::COMMANDS.find("SETMAXSPEED")->second.DATA_ID
+// Transmit to the Core board IP
+network::g_pRoveCommUDPNode->SendUDPPacket(
+    stPacket,
+    "192.168.1.130",
+    constants::ROVECOMM_OUTGOING_UDP_PORT
 );
 ```
 
-Because `RoveCommUDP` inherits from `AutonomyThread`, it runs in the background. When a UDP packet hits the socket, the thread decodes the packet header, checks if the `unDataId` matches any registered callbacks, and executes the attached lambda function automatically.
+---
 
-## Pub/Sub Architecture
+## 5. Asynchronous Callbacks
 
-To prevent microcontrollers from spamming the network with telemetry data when no one is listening, the `RoveComm` protocol supports a rudimentary Publish/Subscribe model.
+Incoming messages are processed asynchronously using callback handlers registered with the UDP or TCP node:
 
-When Autonomy starts up, the `NavigationBoard` driver sends a specific `SUBSCRIBE_DATA_ID` packet to the NavBoard. Only then does the NavBoard begin streaming its `GPSLATLON` packets back to the Jetson's IP address.
+```cpp
+// 1. Define callback lambda
+const std::function<void(const rovecomm::RoveCommPacket<double>&, const sockaddr_in&)> AddPositionLegCallback =
+    [this](const rovecomm::RoveCommPacket<double>& stPacket, const sockaddr_in& stdAddr)
+{
+    double dLat = stPacket.vData[0];
+    double dLon = stPacket.vData[1];
+    int nLegID  = static_cast<int>(stPacket.vData[2]);
+
+    this->AddWaypoint(geoops::GPSCoordinate(dLat, dLon), geoops::WaypointType::eNavigationWaypoint, 0.0, nLegID);
+};
+
+// 2. Register callback on the UDP node
+network::g_pRoveCommUDPNode->AddUDPCallback<double>(
+    AddPositionLegCallback,
+    manifest::Autonomy::COMMANDS.find("ADDPOSITIONLEG")->second.DATA_ID
+);
+```
+
+Because `RoveCommUDP` runs on its own background thread, incoming socket packets are unpacked, matched to their `DATA_ID`, and dispatched to their registered callbacks automatically without polling.

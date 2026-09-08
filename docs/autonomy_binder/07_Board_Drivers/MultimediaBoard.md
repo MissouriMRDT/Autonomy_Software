@@ -1,30 +1,53 @@
 # Multimedia Board Driver
 
-The `MultimediaBoard` acts as the primary communication link from the autonomy software to the humans observing the robot. It is responsible for controlling LED light strips, screens, or other visual indicators on the rover.
+The `MultimediaBoard` driver (`src/drivers/MultimediaBoard.h` & `MultimediaBoard.cpp`) manages the rover's visual signaling hardware, controlling high-intensity LED light strips and indicators to communicate operational status to judges and operators.
 
-## Primary Responsibilities
-1. **Visual Status Indications**: It translates the internal status of the autonomy software into distinct LED colors or lighting states so that judges, operators, or bystanders can instantly understand what the robot is doing.
-2. **Custom RGB Commands**: It provides an interface for sending explicit Hex or integer RGB values directly to the LED controllers.
+---
 
-## Algorithm Explanation
+## 1. Primary Responsibilities
 
-### 1. State-Based Lighting (`SendLightingState`)
-The core functionality of this driver revolves around the `MultimediaBoardLightingState` enum. Rather than manually typing RGB codes throughout the state machine, developers pass this enum to `SendLightingState()`, which internally maps the state to specific colors and creates the RoveComm packets.
+1. **State-Driven Lighting**: Translates high-level autonomy states into competition-compliant LED colors.
+2. **Dual Telemetry and Command Transmission**: Dispatches both a Basestation telemetry packet (`manifest::Autonomy::TELEMETRY["STATEDISPLAY"]`) and a hardware microcontroller command packet (`manifest::Core::COMMANDS["STATEDISPLAY"]`).
+3. **Direct RGB Control**: Provides low-level interfaces (`SendRGB()`) to command custom hexadecimal or RGB values directly.
 
-- `eOff`: Sends `[0, 0, 0]` to turn the LED panels off.
-- `eTeleOp`: Sends the standard blue color `[0, 0, 255]` to indicate the rover is being manually driven.
-- `eAutonomy`: Sends the standard red color `[255, 0, 0]` to clearly indicate that the rover is operating autonomously (a critical safety indicator during competitions).
-- `eReachedGoal`: Sends a flashing green command `[0, 255, 0]` to signal that the rover has successfully completed a navigation waypoint or found an objective.
+---
 
-### 2. Network Transmission
-The class constructs a `LEDRGB` RoveComm packet with an array of uint8 values (Red, Green, Blue). Because lighting commands aren't as high-priority or high-frequency as motor commands, these packets are sent over UDP and only when the state actively changes to avoid flooding the network.
+## 2. Operational Lighting States
 
-## Inputs and Outputs
-- **Inputs**:
-  - `MultimediaBoardLightingState` enums triggered by the `StateMachineHandler`.
-  - Custom `RGB` struct objects.
-- **Outputs**:
-  - `LEDRGB`: A RoveComm UDP packet sent to the physical multimedia/core board.
+Lighting behavior is governed by the `MultimediaBoardLightingState` enumeration:
 
-## Usage in State Machine
-When the autonomy software transitions from `eIdle` to `eNavigating`, it calls `SendLightingState(MultimediaBoardLightingState::eAutonomy)`. When the `eVerifyingPosition` state succeeds, it might call `eReachedGoal`. If a catastrophic failure occurs or the software is shut down, it transitions back to `eOff` or `eTeleOp`.
+| Enum State | Commanded Color | Associated Robot Status |
+| :--- | :--- | :--- |
+| `eOff` | Black / Off `[0, 0, 0]` | System shutdown, idle standby, or unpowered LEDs. |
+| `eAutonomy` | **Solid Red** | Autonomy state machine active and in control of chassis movement. |
+| `eTeleOp` | **Solid Blue** | Manual teleoperation active; operator joystick override. |
+| `eReachedGoal` | **Flashing Green** | Target waypoint reached, ArUco post verified, or prop detected. |
+| `eCustom` | User-defined RGB | Diagnostic test patterns or custom animations. |
+
+---
+
+## 3. Network Transmission Protocol
+
+When `SendLightingState()` is called:
+1. `stTelemPacket` is constructed with Data ID `manifest::Autonomy::TELEMETRY["STATEDISPLAY"]`, notifying the Basestation GUI to update on-screen indicators.
+2. `stCorePacket` is constructed with Data ID `manifest::Core::COMMANDS["STATEDISPLAY"]`, instructing the physical Core microcontroller to toggle LED driver relays or WS2812B strips.
+3. Packets are transmitted over UDP via `network::g_pRoveCommUDPNode`. Because lighting commands represent discrete state changes rather than continuous control loops, transmission occurs only on state transitions to conserve network bandwidth.
+
+---
+
+## 4. Public Interface Summary
+
+```cpp
+enum class MultimediaBoardLightingState
+{
+    eOff,
+    eTeleOp,
+    eAutonomy,
+    eReachedGoal,
+    eCustom
+};
+
+void SendLightingState(MultimediaBoardLightingState eState);
+void SendRGB(const RGB& stRGB);
+MultimediaBoardLightingState GetCurrentLightingState() const;
+```

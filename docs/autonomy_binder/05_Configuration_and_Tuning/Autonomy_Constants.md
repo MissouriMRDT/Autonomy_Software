@@ -1,87 +1,181 @@
-# Autonomy Constants Tuning Guide
+# Autonomy Constants Reference & Tuning Guide
 
-This is the master guide for tunable parameters within the autonomy software. All constants are defined in `src/AutonomyConstants.cpp`. Changing these values requires a recompile.
+This document serves as the exhaustive engineering reference for configurable constants within the autonomy software. All constants are declared in `src/AutonomyConstants.h` and defined in `src/AutonomyConstants.cpp`. Modifying any value requires recompilation.
 
-Because this file is extensive, it is broken down into logical sections matching the structure of the source code.
+---
 
-## 1. General & Logging Constants
+## 1. General & System Constants
 
-| Constant Name | What it does / Why it exists | Tuning Guide (If / Then) |
-| :--- | :--- | :--- |
-| `MODE_SIM` | Toggles RoveComm and Cameras to use local simulator data instead of physical hardware. | **If true**: Connects to localhost Webots/Unreal Engine. **If false**: Connects to physical rover hardware. |
-| `BATTERY_MINIMUM_CELL_VOLTAGE` | The minimum battery cell voltage (default 3.2V) before autonomy forcefully enters the Idle state to prevent lipo damage. | **If increased**: Shuts down earlier, saving battery health but reducing runtime. **If decreased**: Risky; might damage the battery. |
-| `BATTERY_CHECKS_ENABLED` | Toggles whether autonomy actually monitors the PMS currents for shutdown. | Leave **true** on the physical rover, **false** in testing environments without PMS. |
-| `CONSOLE_DEFAULT_LEVEL` <br> `FILE_DEFAULT_LEVEL` <br> `ROVECOMM_DEFAULT_LEVEL` | Sets the default Quill logging verbosity (e.g., `Info`, `Debug`, `TraceL3`) for different streams. | **If increased to Trace**: Generates massive log files, useful for deep debugging. **If decreased to Info/Warning**: Cleaner output for competition. |
+| Constant Name | Type | Typical Value | Engineering Purpose & Tuning Effect |
+| :--- | :---: | :---: | :--- |
+| `MODE_SIM` | `bool` | `false` | When true, activates simulated camera WebRTC pipelines and simulator network sockets. Set to false for hardware deployment on the physical rover. |
+| `SIM_IP_ADDRESS` | `std::string` | `"127.0.0.1"` | IP address for connecting to the Unreal Engine RoveSoSimulator instance. |
+| `SIM_WEBSOCKET_PORT` | `uint` | `8080` | WebRTC signaling port for simulator pixel streaming. |
+| `SIM_WEBRTC_QP` | `uint` | `20` | Quantization parameter for WebRTC video decompression. Lower values yield higher image fidelity. |
+| `BATTERY_MINIMUM_CELL_VOLTAGE` | `double` | `3.2` | Minimum allowable LiPo cell voltage (V). If battery voltage falls below this threshold and checks are enabled, the state machine transitions to `IdleState`. |
+| `BATTERY_CHECKS_ENABLED` | `bool` | `true` | Enables or disables battery monitoring failsafes. Set to false in lab environments lacking PMS telemetry. |
+| `LOGGING_OUTPUT_PATH_ABSOLUTE` | `std::string` | `"../logs/"` | Base directory on the filesystem where session log folders and recordings are written. |
+| `CONSOLE_MIN_LEVEL` | `quill::LogLevel` | `Debug` | Absolute minimum permissible log level for the console sink. Restricts `SETLOGGINGLEVELS` changes from muting vital diagnostics. |
+| `FILE_MIN_LEVEL` | `quill::LogLevel` | `Debug` | Absolute minimum permissible log level for file sinks (`.log` and `.csv`). |
+| `CONSOLE_DEFAULT_LEVEL` | `quill::LogLevel` | `Notice` | Initial console verbosity at program launch. Recommended `Notice` or `Info` for competition to prevent terminal saturation. |
+| `FILE_DEFAULT_LEVEL` | `quill::LogLevel` | `Debug` | Initial file verbosity at launch. Captures full diagnostic details to disk. |
+| `ROVECOMM_OUTGOING_UDP_PORT` | `int` | `11000` | Target UDP port for outgoing telemetry packets dispatched across the rover network. |
+| `ROVECOMM_OUTGOING_TCP_PORT` | `int` | `11000` | Target TCP port for reliable packet transmission. |
+| `ROVECOMM_TCP_INTERFACE_IP` | `std::string` | `"0.0.0.0"` | Network interface IP bound by the local RoveComm TCP listener socket. |
+
+---
 
 ## 2. Drive & Kinematics Constants
 
-| Constant Name | What it does / Why it exists | Tuning Guide (If / Then) |
-| :--- | :--- | :--- |
-| `DRIVE_MAX_SAFE_POWER` | An absolute cap (0.0 to 1.0) on motor effort across all states. Used as a hard safety feature. | **If increased**: Rover drives faster overall. **If decreased**: Limits top speed, making the rover safer in confined testing areas. |
-| `DRIVE_PID_PROPORTIONAL` | The 'P' term for heading correction. Applies turn power directly proportional to the heading error. | **If increased**: Snappier turns, but may oscillate/overshoot the target heading. **If decreased**: Sluggish turning, might not overcome static friction. |
-| `DRIVE_PID_INTEGRAL` | The 'I' term. Accumulates error over time to help the rover overcome friction or stalling. | **If increased**: Helps push past friction on carpet/grass, but too high causes massive oscillation. **If decreased**: Rover might stall on small heading errors. |
-| `DRIVE_PID_DERIVATIVE` | The 'D' term. Dampens the turning speed as the error approaches zero to prevent overshoot. | **If increased**: Prevents overshooting, but too high causes jittering due to network/actuator latency. |
-| `DRIVE_PID_MAX_INTEGRAL_TERM` | The maximum effort (0.0 to 1.0) the Integral term is allowed to contribute. Prevents "integral windup". | **If increased**: Allows the I-term to push harder against massive resistance. |
-| `DRIVE_SQUARE_CONTROL_INPUTS` | Toggles squaring the inputs in the differential drive inverse kinematics. | **If true**: Makes fine inputs (at low speeds) smoother, but the rover feels less immediately responsive. |
-| `DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED` | Allows the curvature drive model to point-turn when forward speed is zero. | Leave **true** to allow the rover to spin in place like a tank. |
+| Constant Name | Type | Typical Value | Engineering Purpose & Tuning Effect |
+| :--- | :---: | :---: | :--- |
+| `DRIVE_MAX_POWER` | `float` | `1.0` | Absolute software ceiling for motor effort scalar. |
+| `DRIVE_MIN_POWER` | `float` | `-1.0` | Absolute software floor for motor effort scalar. |
+| `DRIVE_MAX_SAFE_POWER` | `float` | `0.7` | Global safety clamp applied across all autonomous states to limit peak speeds during testing. |
+| `DRIVE_PID_PROPORTIONAL` | `double` | `0.008` | Proportional gain $K_p$ for closed-loop heading correction. Increases responsiveness to angular heading errors. |
+| `DRIVE_PID_INTEGRAL` | `double` | `0.0001` | Integral gain $K_i$ for steady-state heading error accumulation to overcome surface scrubbing friction. |
+| `DRIVE_PID_DERIVATIVE` | `double` | `0.001` | Derivative gain $K_d$ to dampen angular velocity and mitigate overshoot when approaching the setpoint heading. |
+| `DRIVE_PID_FEEDFORWARD` | `double` | `0.0` | Feedforward gain $K_{ff}$ for heading control. |
+| `DRIVE_PID_MAX_ERROR` | `double` | `180.0` | Maximum angular error (degrees) fed into the PID controller calculation. |
+| `DRIVE_PID_MAX_INTEGRAL_TERM` | `double` | `0.2` | Anti-windup clamping threshold on the accumulated integral term. |
+| `DRIVE_PID_MAX_RAMP_RATE` | `double` | `0.05` | Slew rate limiter restricting maximum change in PID output per second to prevent aggressive motor current spikes. |
+| `DRIVE_PID_OUTPUT_FILTER` | `double` | `0.1` | Low-pass filter smoothing coefficient applied to the controller output. |
+| `DRIVE_PID_TOLERANCE` | `double` | `1.5` | Heading error tolerance band (degrees) within which heading error is treated as zero. |
+| `DRIVE_PID_OUTPUT_REVERSED` | `bool` | `false` | Reverses polarity of PID controller output if motor cabling is inverted. |
+| `DRIVE_SQUARE_CONTROL_INPUTS` | `bool` | `false` | Applies parabolic scaling ($x \cdot |x|$) to throttle commands to enhance fine control at low velocities. |
+| `DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED` | `bool` | `true` | Allows zero-radius point turns when forward throttle is zero. |
 
-## 3. Drive Board Multipliers (Inclinometer Constraints)
+---
 
-These constants dynamically scale back motor effort when the rover detects it is driving on steep terrain.
+## 3. Inclinometer Damping Multipliers
 
-| Constant Name | What it does / Why it exists | Tuning Guide (If / Then) |
-| :--- | :--- | :--- |
-| `DRIVE_BOARD_MIN_SLOPE` | The minimum slope (degrees) before the damping multiplier activates. | **If decreased**: Starts slowing the rover down on shallower hills. |
-| `DRIVE_BOARD_MAX_SLOPE` | The maximum slope (degrees) where damping reaches its absolute maximum effect. | **If increased**: Allows the rover to drive at full power up steeper inclines before max damping hits. |
-| `DRIVE_BOARD_MIN_DAMP` | The minimum speed multiplier (e.g., 0.5 = 50% max speed) applied when at the max slope. | **If decreased**: Rover drives even slower on steep hills to prevent tipping. |
-| `DRIVE_BOARD_ROLL_WEIGHT` <br> `DRIVE_BOARD_PITCH_WEIGHT` | The percentage of importance given to the Roll (side-to-side) vs Pitch (front-to-back) axes. | Roll is usually weighted higher (e.g., 0.6) because rovers are more susceptible to barrel-rolling than back-flipping. |
+Dynamically down-scales motor throttle as terrain slope steepens to prevent high-speed rollover incidents:
 
-## 4. Vision & Perception Constants
+| Constant Name | Type | Typical Value | Engineering Purpose & Tuning Effect |
+| :--- | :---: | :---: | :--- |
+| `DRIVE_BOARD_MIN_SLOPE` | `float` | `10.0` | Slope angle (degrees) below which no damping is applied ($D = 1.0$). |
+| `DRIVE_BOARD_MAX_SLOPE` | `float` | `30.0` | Slope angle (degrees) at which damping reaches maximum severity ($D = D_{\text{min}}$). |
+| `DRIVE_BOARD_MIN_DAMP` | `float` | `0.4` | Minimum motor power multiplier (40% throttle) permitted at or beyond `MAX_SLOPE`. |
+| `DRIVE_BOARD_MAX_DAMP` | `float` | `1.0` | Maximum motor power multiplier (100% throttle) applied when terrain is flat. |
+| `DRIVE_BOARD_ROLL_WEIGHT` | `float` | `0.6` | Weight assigned to roll axis tilt. Weighted higher because lateral rollovers occur at lower angles than pitch rollovers. |
+| `DRIVE_BOARD_PITCH_WEIGHT` | `float` | `0.4` | Weight assigned to pitch axis tilt. |
+| `DRIVE_BOARD_YAW_WEIGHT` | `float` | `0.0` | Weight assigned to yaw axis tilt (typically zero). |
 
-### ZED Camera (Main & Rear)
-| Constant Name | What it does / Why it exists | Tuning Guide (If / Then) |
-| :--- | :--- | :--- |
-| `ZED_MAINCAM_RESOLUTION` | Sets the internal processing resolution for the ZED SDK (e.g., `HD720`, `HD1080`). | **If increased**: Better long-range detection, drastically lower FPS. **If decreased**: Fast FPS, but poor long-range visibility. |
-| `ZED_MAINCAM_FPS` | The requested hardware framerate for the camera. | Keep at 30 or 60. Note: SDK processing will likely bottleneck this anyway. |
-| `ZED_MAINCAM_DEPTH_MODE` | The algorithm used for stereoscopic depth calculation (e.g., `ULTRA`, `NEURAL`). | `NEURAL` is highly accurate but requires heavy GPU usage. `ULTRA` is a good fallback. |
-| `ZED_MAINCAM_USE_HALF_PRECISION_DEPTH` | Uses 16-bit floats instead of 32-bit for the depth map matrix. | **If true**: Uses half the RAM and bandwidth, highly recommended for Jetson architectures. |
-| `ZED_MAINCAM_EASTING_OFFSET` (etc.) | Positional offset of the camera relative to the center of the rover. | Crucial for accurate `Geolocate` math. Update if the camera is physically moved on the chassis. |
+---
 
-### Detectors (ArUco & YOLO)
-| Constant Name | What it does / Why it exists | Tuning Guide (If / Then) |
-| :--- | :--- | :--- |
-| `BBOX_MIN_LIFETIME_THRESHOLD` | Seconds an object must be tracked before it is considered a valid, "real" detection. | **If increased**: Eliminates false positives, but delays state machine reactions. **If decreased**: Fast reaction, but might track random visual noise. |
-| `TAGDETECT_MAINCAM_ENABLE_TORCH` | Enables the YOLO PyTorch model to run alongside traditional ArUco. | **If true**: Better detection of blurry/far tags. Requires GPU. |
-| `TAGDETECT_MAINCAM_TORCH_CONFIDENCE` | Minimum probability score (0.0-1.0) for YOLO to accept an AR tag detection. | **If increased**: Strict detections only. **If decreased**: More detections, but more false positives. |
-| `OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE` | Minimum probability score for YOLO to accept an object (mallet/bottle) detection. | Same as above. |
-| `TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION` | Enables newer OpenCV ArUco 3 strategies. | Usually leave `true` for performance unless using very old OpenCV versions. |
+## 4. Video Recording Handler Constants
 
-## 5. State Machine Constants
+| Constant Name | Type | Typical Value | Engineering Purpose & Tuning Effect |
+| :--- | :---: | :---: | :--- |
+| `RECORDER_FPS` | `int` | `15` | Framerate limit for encoding `.mp4` video files to disk. |
+| `ZED_MAINCAM_ENABLE_RECORDING` | `bool` | `true` | Toggles raw video recording from the forward ZED camera. |
+| `ZED_REARCAM_ENABLE_RECORDING` | `bool` | `true` | Toggles raw video recording from the rear ZED camera. |
+| `TAGDETECT_MAINCAM_ENABLE_RECORDING` | `bool` | `true` | Toggles ArUco overlay frame recording from the forward detector. |
+| `TAGDETECT_REARCAM_ENABLE_RECORDING` | `bool` | `false` | Toggles ArUco overlay frame recording from the rear detector. |
+| `OBJECTDETECT_MAINCAM_ENABLE_RECORDING` | `bool` | `true` | Toggles YOLO overlay frame recording from the forward detector. |
+| `OBJECTDETECT_REARCAM_ENABLE_RECORDING` | `bool` | `false` | Toggles YOLO overlay frame recording from the rear detector. |
 
-| Constant Name | What it does / Why it exists | Tuning Guide (If / Then) |
-| :--- | :--- | :--- |
-| `STATEMACHINE_MAX_IPS` | The maximum iterations per second for the State Machine logic loop. | Keep around 60. Too high wastes CPU polling sensors; too low causes sluggish behavior. |
-| `STATEMACHINE_ZED_REALIGN_THRESHOLD` | The error threshold (meters) between visual odometry and GPS before forcing a camera realign. | **If decreased**: Realigns constantly, causing stuttering. **If increased**: Allows the robot to drift further before correcting its internal map. |
-| `APPROACH_MARKER_PROXIMITY_THRESHOLD` | How close (meters) the rover must be to the tag to consider the approach complete. | **If increased**: Stops further away from the tag. |
-| `SEARCH_ANGULAR_STEP_DEGREES` | The angle increment for generating spiral search patterns. | **If increased**: Generates a sparser, wider spiral. **If decreased**: Generates a tighter, denser spiral that takes longer to drive. |
-| `NAVIGATING_MOTOR_POWER` | Speed used when actively navigating toward a waypoint. | Usually set higher (e.g., 90% of max safe power) for fast traversal. |
-| `NAVIGATING_REACHED_GOAL_RADIUS` | The radius (in meters) around a waypoint that counts as a "success". | **If increased**: Waypoints are cleared earlier (sloppier pathing). **If decreased**: Rover tries to hit the exact spot (might circle infinitely). |
-| `NAVIGATING_VERIFY_POSITION` | Toggles whether the rover stops at the end of a nav sequence to average GPS data and confirm it actually arrived. | **If true**: More accurate final positioning, but takes `NAVIGATING_VERIFY_SAMPLE_TIME` seconds longer to finish. |
-| `STUCK_CHECK_ROT_THRESH` <br> `STUCK_CHECK_VEL_THRESH` | The minimum angular/linear velocities required for the rover to be considered "moving". | If the rover is commanded to move but velocity stays below these thresholds for a set time, `eStuck` state triggers. |
-| `REVERSE_MOTOR_POWER` <br> `REVERSE_DISTANCE` | How fast and how far the rover drives backward during an `eReversing` state sequence. | Tune based on how aggressively the rover tends to overshoot goals. |
+---
 
-## 6. Algorithm Constants (A* & GeoPlanner)
+## 5. Camera & Perception Hardware Constants
 
-| Constant Name | What it does / Why it exists | Tuning Guide (If / Then) |
-| :--- | :--- | :--- |
-| `ASTAR_NODE_SIZE` | The physical size (in meters) of a single grid square in the A* world map. | **If increased**: Pathfinding is computationally much faster, but the rover can't plan through narrow gaps. **If decreased**: High resolution planning, but massively spikes CPU usage on long routes. |
-| `ASTAR_AVOIDANCE_MULTIPLIER` | Multiplier for marking extra nodes around detected objects as impassable obstacles. | **If increased**: Rover gives obstacles a much wider berth. **If decreased**: Rover cuts close to rocks/walls, risking physical collision. |
-| `ASTAR_MAX_SEARCH_GRID` | Maximum size of the search grid in meters. | Keeps the algorithm from expanding to infinity if the goal is completely blocked. |
-| `STANLEY_CROSSTRACK_CONTROL_GAIN` | (If using Stanley Controller) Determines how reactive the rover is to cross-track errors. | **If increased**: Rover aggressively snaps back to the path line. **If decreased**: Rover smoothly/lazily drifts back to the path. |
+### ZED Camera SDK Parameters
+- `ZED_BASE_RESOLUTION`: `sl::RESOLUTION::HD720` (1280x720).
+- `ZED_MEASURE_UNITS`: `sl::UNIT::METER`.
+- `ZED_COORD_SYSTEM`: `sl::COORDINATE_SYSTEM::LEFT_HANDED_Y_UP`.
+- `ZED_DEPTH_MODE`: `sl::DEPTH_MODE::NEURAL` (High accuracy neural stereo matching).
+- `ZED_DEFAULT_MINIMUM_DISTANCE`: `0.3f` (Clamps depth below 30 cm to prevent lens distortion artifacts).
+- `ZED_DEFAULT_MAXIMUM_DISTANCE`: `25.0f` (Maximum usable range in meters).
+- `ZED_DEFAULT_FLOOR_PLANE_ERROR`: `0.15f` (Floor plane detection tolerance in meters).
+- `ZED_DEPTH_STABILIZATION`: `1` (Enables temporal smoothing of depth point clouds).
 
-## 7. Driver Constants
+### Physical Extrinsic Offsets
+- Forward ZED Camera:
+  - `ZED_MAINCAM_EASTING_OFFSET`: `0.0` m
+  - `ZED_MAINCAM_NORTHING_OFFSET`: `0.35` m (Camera mounted 35 cm forward of chassis center)
+  - `ZED_MAINCAM_ALTITUDE_OFFSET`: `0.65` m (Camera mounted 65 cm above ground level)
+  - Quaternion rotation offsets: `X = 0.0, Y = 0.0, Z = 0.0, W = 1.0`
+- Rear ZED Camera:
+  - `MODE_REAR_ZED`: `true`
+  - `ZED_REARCAM_NORTHING_OFFSET`: `-0.35` m (Camera mounted 35 cm behind chassis center)
+  - `ZED_REARCAM_ALTITUDE_OFFSET`: `0.65` m
+  - Quaternion rotation offsets: `X = 0.0, Y = 1.0, Z = 0.0, W = 0.0` (180 degree yaw rotation)
 
-| Constant Name | What it does / Why it exists | Tuning Guide (If / Then) |
-| :--- | :--- | :--- |
-| `NAVBOARD_MAX_GPS_DATA_AGE` | The maximum age (seconds) of GPS data before the system starts throwing warnings. | If this throws, your RoveComm connection to the Navigation Board is likely dropping packets. |
-| `NAVBOARD_EASTING_OFFSET` (etc.) | Positional offset of the GPS antenna relative to the center of the rover. | Crucial for exact global positioning. Update if the antenna is physically moved on the chassis. |
+---
+
+## 6. Vision Detection & Tracking Constants
+
+| Constant Name | Type | Typical Value | Engineering Purpose & Tuning Effect |
+| :--- | :---: | :---: | :--- |
+| `BBOX_MIN_LIFETIME_THRESHOLD` | `double` | `0.3` | Minimum duration (seconds) a detection must persist before confirmation. Filters single-frame visual noise. |
+| `BBOX_MIN_SCREEN_PERCENTAGE` | `double` | `0.0005` | Minimum screen area fraction required to track an object bounding box. |
+| `BBOX_TRACKER_LOST_TIMEOUT` | `double` | `1.0` | Maximum time (seconds) a lost tracker will extrapolate position before deregistration. |
+| `BBOX_TRACKER_MAX_TRACK_TIME` | `double` | `30.0` | Maximum lifespan (seconds) of a continuous bounding box track before mandatory re-detection. |
+| `BBOX_TRACKER_IOU_MATCH_THRESHOLD` | `double` | `0.3` | Intersection-over-Union threshold for associating new neural inferences with active trackers. |
+| `TAGDETECT_TORCH_MODEL` | `std::string` | `"data/Models/best_tag.pt"` | TorchScript weight path for YOLO ArUco detection model. |
+| `OBJECTDETECT_TORCH_MODEL` | `std::string` | `"data/Models/best_object.pt"` | TorchScript weight path for YOLO competition object model. |
+| `TAGDETECT_MAINCAM_TORCH_CONFIDENCE` | `float` | `0.55` | Confidence score cutoff for ArUco tag neural detections. |
+| `TAGDETECT_MAINCAM_TORCH_NMS_THRESH` | `float` | `0.45` | Non-Maximum Suppression IoU threshold for tag bounding boxes. |
+| `OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE` | `float` | `0.60` | Confidence cutoff for Mallet, Water Bottle, and Rock Pick detections. |
+| `OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH` | `float` | `0.45` | Non-Maximum Suppression IoU threshold for object bounding boxes. |
+| `ARUCO_TAG_SIDE_LENGTH` | `float` | `0.20` | Physical edge length of competition ArUco tags (meters). Set to 0.20 m per URC rules. |
+
+---
+
+## 7. State Machine Execution Constants
+
+| Constant Name | Type | Typical Value | Engineering Purpose & Tuning Effect |
+| :--- | :---: | :---: | :--- |
+| `STATEMACHINE_MAX_IPS` | `int` | `60` | Loop execution rate ceiling (Hz) for the core state machine thread. |
+| `STATEMACHINE_ZED_REALIGN_THRESHOLD` | `double` | `1.5` | Discrepancy (meters) between visual odometry and GPS before triggering visual realignment. |
+| `NAVIGATING_MOTOR_POWER` | `double` | `0.6` | Base motor power scalar while in `NavigatingState`. |
+| `NAVIGATING_REACHED_GOAL_RADIUS` | `double` | `1.5` | Arrival tolerance radius (meters) around a target navigation waypoint. |
+| `NAVIGATING_VERIFY_POSITION` | `bool` | `true` | When true, stops rover at waypoint and averages GPS samples to verify arrival. |
+| `NAVIGATING_VERIFY_SAMPLE_TIME` | `double` | `2.0` | Duration (seconds) rover samples GPS to confirm arrival at waypoint. |
+| `NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS` | `bool` | `true` | Toggles linear speed deceleration as rover closes within waypoint arrival radius. |
+| `APPROACH_MARKER_MOTOR_POWER` | `double` | `0.35` | Motor power scalar while actively homing in on an ArUco post. |
+| `APPROACH_MARKER_PROXIMITY_THRESHOLD` | `double` | `1.0` | Target standoff distance (meters) for completing marker approach phase. |
+| `APPROACH_MARKER_LOST_GIVE_UP_TIME` | `double` | `5.0` | Maximum time (seconds) marker can remain lost before falling back to search patterns. |
+| `APPROACH_OBJECT_MOTOR_POWER` | `double` | `0.30` | Motor power scalar while closing distance to a mission object. |
+| `APPROACH_OBJECT_PROXIMITY_THRESHOLD` | `double` | `0.8` | Target standoff distance (meters) for completing object approach phase. |
+| `APPROACH_OBJECT_REQUIRED_TIME_HIT_RATE` | `double` | `0.5` | Required fraction of detection frames needed to maintain active homing state. |
+| `SEARCH_MOTOR_POWER` | `double` | `0.40` | Motor power scalar while tracing spiral or snake search patterns. |
+| `SEARCH_ANGULAR_STEP_DEGREES` | `double` | `15.0` | Angular step size (degrees) for computing Archimedean spiral search trajectory waypoints. |
+| `SEARCH_SPIRAL_SPACING` | `double` | `2.0` | Radial distance (meters) between concentric arms of the spiral pattern. |
+| `SEARCH_ZIGZAG_SPACING` | `double` | `3.0` | Track separation distance (meters) for zigzag search geometry. |
+| `REVERSE_MOTOR_POWER` | `double` | `-0.35` | Motor effort scalar applied during `ReversingState`. |
+| `REVERSE_DISTANCE` | `double` | `1.5` | Total linear distance (meters) traversed backward during recovery maneuvers. |
+| `REVERSE_TIMEOUT_PER_METER` | `double` | `4.0` | Time allowance (seconds/meter) before reversing maneuver aborts due to stall. |
+| `STUCK_SAME_POINT_PROXIMITY` | `double` | `0.5` | Spatial radius (meters) within which the rover is flagged as stuck if progress halts. |
+| `STUCK_HEADING_ALIGN_TIMEOUT` | `double` | `8.0` | Maximum time (seconds) allotted to turn toward recovery headings in `StuckState`. |
+
+---
+
+## 8. Path Planning & Controller Constants
+
+| Constant Name | Type | Typical Value | Engineering Purpose & Tuning Effect |
+| :--- | :---: | :---: | :--- |
+| `GEOPLANNER_TILE_SIZE` | `double` | `50.0` | Edge length (meters) of spatial tiles cached from DuckDB terrain database. |
+| `ASTAR_AVOIDANCE_MULTIPLIER` | `double` | `2.5` | Multiplier inflating obstacle boundaries in the 2.5D costmap during A* search. |
+| `ASTAR_MAX_SEARCH_GRID` | `double` | `150.0` | Maximum dimension (meters) of local search window to cap computational complexity. |
+| `ASTAR_MAX_SEARCH_TIME` | `double` | `0.5` | Maximum execution time (seconds) before A* yields best available partial path. |
+| `ASTAR_NODE_SIZE` | `double` | `0.25` | Spatial grid cell resolution (meters) for A* nodes. |
+| `STANLEY_CROSSTRACK_CONTROL_GAIN` | `double` | `0.8` | Gain coefficient $k$ scaling lateral deviation correction in the Stanley controller. |
+| `STANLEY_WHEELBASE` | `double` | `1.2` | Effective kinematic wheelbase length (meters) between front and rear axle centers. |
+| `STANLEY_ANGULAR_VELOCITY_LIMIT` | `double` | `1.5` | Maximum permissible yaw angular rate (rad/s) computed by the Stanley controller. |
+| `STANLEY_PREDICTION_HORIZON` | `int` | `5` | Lookahead steps $N$ simulated by `UnicycleModel` forward projection. |
+| `STANLEY_PREDICTION_TIME_STEP` | `double` | `0.1` | Integration time step $dt$ (seconds) for kinematic unicycle trajectory simulation. |
+| `STANLEY_MIN_STABLE_SPEED` | `double` | `0.15` | Minimum velocity threshold (m/s) in Stanley denominator to prevent division by zero. |
+| `CLOSE_RANGE_PENALTY` | `double` | `0.5` | Speed damping scalar applied by Pure Pursuit when within close range of path terminators. |
+
+---
+
+## 9. Navigation Board Driver Constants
+
+| Constant Name | Type | Typical Value | Engineering Purpose & Tuning Effect |
+| :--- | :---: | :---: | :--- |
+| `NAVBOARD_MAX_GPS_DATA_AGE` | `double` | `2.0` | Maximum acceptable age (seconds) of GPS packets before data is marked stale. |
+| `NAVBOARD_MAX_COMPASS_DATA_AGE` | `double` | `1.0` | Maximum acceptable age (seconds) of compass packets before data is marked stale. |
+| `NAVBOARD_EASTING_OFFSET` | `double` | `0.0` | GPS antenna physical mounting offset in Easting axis relative to rover center. |
+| `NAVBOARD_NORTHING_OFFSET` | `double` | `-0.20` | GPS antenna mounting offset in Northing axis (meters). |
+| `NAVBOARD_ALTITUDE_OFFSET` | `double` | `0.85` | GPS antenna mounting offset in Altitude axis above ground plane (meters). |

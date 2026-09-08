@@ -1,15 +1,44 @@
 # Tag Detection Handler
 
-The `TagDetectionHandler` manages all instances of AR Tag (Fiducial Marker) detectors running across different camera feeds.
+The `TagDetectionHandler` (`src/handlers/TagDetectionHandler.h` & `TagDetectionHandler.cpp`) orchestrates all ArUco marker detection pipelines across active camera feeds.
 
-## Primary Responsibilities
-1. **Detector Aggregation**: It initializes a `TagDetector` object for each camera (e.g., Main Camera, Rear Camera).
-2. **Algorithm Fusion**: It configures each detector to use both traditional OpenCV ArUco marker detection AND custom-trained YOLO tag detection (via PyTorch/TensorFlow).
-3. **Debug Overlays**: Provides a method (`RequestDetectionOverlayFrame`) to get an image matrix with bounding boxes and distances drawn over the tags, which is useful for the web UI or debugging.
+---
 
-## Architecture & Threading
-- **Multithreading**: Each `TagDetector` spawned by this handler inherits from `AutonomyThread` and runs continuously in the background. It fetches the latest frame from the `CameraHandler`, runs the ArUco and YOLO models, and caches the results.
-- **Recording**: Like the `CameraHandler`, this handler can spin up a `RecordingHandler` to explicitly record frames *with* the detection bounding boxes drawn on them, saving them to the `logs/` directory.
+## 1. Primary Responsibilities
 
-## Usage
-The `ApproachingMarkerState` constantly queries this handler to get the current pixel location, estimated distance, and yaw angle of the target tag to feed into the drive PID controller.
+1. **Detector Lifecycle Management**: Instantiates and initializes `TagDetector` worker threads for assigned cameras (`eHeadMainCam`, `eRearCam`).
+2. **Dual-Model Fusion**: Configures detectors to run classical OpenCV ArUco decoding in parallel with LibTorch YOLO marker candidate detection.
+3. **Debug Overlay Streaming**: Generates annotated image frames (`RequestDetectionOverlayFrame()`) containing marker bounding boxes, coordinate axes, IDs, and estimated distances for transmission to the Basestation GUI or WebRTC stream.
+4. **Synchronized Video Recording**: Houses an internal `RecordingHandler` configured in `RecordingType::eTagDetectionHandler` mode to save annotated detection feeds to disk.
+
+---
+
+## 2. Managed Detectors
+
+The handler provides access to detectors via the `TagDetectors` enumeration:
+- **`TagDetectors::eHeadMainCam`**: Primary detector analyzing frames from the forward mast camera.
+- **`TagDetectors::eRearCam`**: Secondary detector monitoring the rear camera feed when enabled.
+
+---
+
+## 3. Concurrency and Integration
+
+- Each `TagDetector` runs as an independent `AutonomyThread<void>`.
+- Frame pulling from `CameraHandler` is asynchronous.
+- Detections are cached thread-safely in `tagdetectutils::ArucoTag` structs with creation timestamps, enabling `TagDetectionChecker` to evaluate lifetime persistence before triggering state machine transitions.
+
+---
+
+## 4. Usage Example
+
+```cpp
+// Initialization in main.cpp
+globals::g_pTagDetectionHandler = new TagDetectionHandler();
+globals::g_pTagDetectionHandler->StartAllDetectors();
+globals::g_pTagDetectionHandler->StartRecording();
+
+// Querying detection overlay for UI streaming:
+cv::Mat cvAnnotatedFrame = globals::g_pTagDetectionHandler->RequestDetectionOverlayFrame(
+    TagDetectionHandler::TagDetectors::eHeadMainCam
+);
+```

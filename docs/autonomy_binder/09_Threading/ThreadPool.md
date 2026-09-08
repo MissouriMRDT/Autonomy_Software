@@ -1,50 +1,51 @@
 # Thread Pools
 
-While `AutonomyThread` handles single continuous background loops, the autonomy software also frequently needs to execute highly parallelized "burst" workloads. For example:
-- A single camera frame arrives, and we need to copy it into 5 different memory buffers for 5 different detector threads.
-- A search pattern needs to quickly calculate 100 different ray-casts against a LiDAR point cloud.
+While `AutonomyThread` oversees single persistent background worker loops, the Autonomy Software also requires mechanisms to execute parallelized burst workloads across multiple CPU cores without thread allocation latency.
 
-To handle these scenarios, the codebase heavily utilizes **Thread Pools**.
+---
 
-## The Implementation: `BS::thread_pool`
-Instead of manually spawning `std::thread` objects every time a parallel task is needed (which incurs massive OS overhead for thread creation/destruction), we use the lightweight, modern C++ library `BS::thread_pool` (Barak Shoshany).
+## 1. Engine: `BS::thread_pool`
 
-A Thread Pool creates a fixed number of threads *once* at startup. These threads sit idle until a "task" is pushed to the pool's queue. The threads wake up, execute the tasks as fast as possible in parallel, and go back to sleep.
+The codebase utilizes the **Barak Shoshany C++ Thread Pool library** (`BS::thread_pool`), included under `external/threadpool/include/BS_thread_pool.hpp`.
 
-## Thread Pools inside `AutonomyThread`
+### Benefits Over Dynamic Thread Creation
+- **Pre-Allocated Worker Threads**: Spawns worker threads once during object initialization.
+- **Zero OS Thread Creation Overhead**: Tasks are submitted into a concurrent priority queue, and idle workers immediately claim and execute them.
+- **Priority Scheduling**: Tasks can be assigned priorities (`BS::pr::lowest` to `BS::pr::highest`) to ensure time-critical computations bypass routine jobs.
 
-The `AutonomyThread` interface doesn't just manage one main loop thread; it actually instantiates a `BS::thread_pool` internally specifically for parallelizing tasks *within* your class.
+---
 
-### 1. `PooledLinearCode()`
-This is the second pure virtual method in the interface (alongside `ThreadedContinuousCode()`). It is designed to be the payload for parallel execution.
+## 2. Integrated Pool Methods in `AutonomyThread`
 
-### 2. `RunPool()` vs `RunDetachedPool()`
-Inside your continuous loop, you can call these protected methods to dispatch work to your internal pool:
-- **`RunPool(int nTasks, int nThreads)`**: Queues `nTasks` to run `PooledLinearCode()`. It returns `std::future` objects so you can retrieve results (via `GetPoolResults()`).
-- **`RunDetachedPool(int nTasks, int nThreads)`**: Queues the tasks but ignores the return values. This is slightly faster because it doesn't bother managing `std::future` objects. It is a "fire and forget" method.
+Every class derived from `AutonomyThread<T>` contains an embedded `BS::thread_pool`. It exposes several protected methods for dispatching parallel work:
 
-### 3. Loop Parallelization (`ParallelizeLoop`)
-If you have a massive `for` loop that is chewing up CPU time, you can use the `ParallelizeLoop` utility provided by `AutonomyThread`:
+### A. Batch Execution
+- **`RunPool(int nTasks, int nThreads, AutonomyThreadPriority ePriority)`**: Submits `nTasks` to execute `PooledLinearCode()`. It returns a vector of `std::future<T>`, allowing the caller to collect return values via `GetPoolResults()`.
+- **`RunDetachedPool(int nTasks, int nThreads, AutonomyThreadPriority ePriority)`**: Submits `nTasks` as fire-and-forget executions, bypassing future synchronization for minimal latency.
+
+### B. Dynamic Task Submission
+- **`SubmitTaskToPool(Func&& task, Args&&... args)`**: Queues an arbitrary lambda or function pointer to the pool, returning an `std::future` representing its eventual completion.
+- **`SubmitDetachedTaskToPool(Func&& task, Args&&... args)`**: Queues an arbitrary function without allocating a future object.
+
+### C. Loop Parallelization (`ParallelizeLoop`)
+Splits large iterative loops across available CPU cores:
 
 ```cpp
-// Instead of this:
-for(int i = 0; i < 10000; i++) {
-    ProcessPixel(i);
-}
-
-// Do this:
-this->ParallelizeLoop(4, 10000, [this](const int start, const int end) {
-    for(int i = start; i < end; i++) {
-        ProcessPixel(i);
+// Distributes 10,000 iterations across 4 worker threads
+this->ParallelizeLoop(4, 10000, [this](const int nStart, const int nEnd) {
+    for (int i = nStart; i < nEnd; ++i)
+    {
+        ProcessDataPoint(i);
     }
 });
 ```
-This automatically divides the 10,000 iterations into 4 chunks and processes them simultaneously across 4 threads.
 
-## Example: Camera Frame Copying
-The most prominent use of Thread Pools in the codebase is in `ZEDCam.cpp` and `BasicCam.cpp`.
-When a camera reads a frame from the hardware, it needs to provide that frame to the Object Detector, the Tag Detector, and the UI Streamer.
+---
 
-If one of those detectors is lagging, a simple mutex lock would cause the camera thread to freeze, dropping frames. Instead, the Camera class queues a `PooledLinearCode` task for *every active subscriber*. The internal `BS::thread_pool` wakes up and copies the OpenCV matrix into the subscriber's buffer simultaneously. This ensures the camera is instantly ready to pull the next frame from the hardware without blocking.
+## 3. Real-World Application: Multi-Subscriber Frame Copying
 
-*Note: You configure the size of these pools in `AutonomyConstants.cpp` using variables like `ZED_MAINCAM_FRAME_RETRIEVAL_THREADS`.*
+The primary consumer of thread pooling in the software is camera buffer distribution (`ZEDCam.cpp` and `BasicCam.cpp`):
+1. A physical camera frame is captured on the camera capture thread.
+2. Multiple consumer threads (`TagDetector`, `ObjectDetector`, `SimpleWebServer` video streamer) require independent copies of the frame matrix.
+3. If the camera thread copied frames sequentially, a slow consumer would block subsequent hardware frame grabs.
+4. Instead, the camera pushes a copy task for each active subscriber into its thread pool. Workers execute the matrix copies simultaneously in parallel, allowing the hardware capture loop to immediately fetch the next frame.

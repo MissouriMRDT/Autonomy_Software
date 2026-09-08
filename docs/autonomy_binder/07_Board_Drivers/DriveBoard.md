@@ -1,38 +1,71 @@
 # Drive Board Driver
 
-The `DriveBoard` class acts as the bridge between the autonomy software's kinematics calculations and the physical motor controllers on the rover.
+The `DriveBoard` class (`src/drivers/DriveBoard.h` & `DriveBoard.cpp`) converts high-level speed and steering requests into physical motor powers and transmits them over RoveComm to the Core board microcontroller.
 
-## Primary Responsibilities
-1. **Kinematics Calculation**: It takes in high-level commands (e.g., a target speed and a target heading) and translates them into left and right track power percentages using Differential Drive inverse kinematics.
-2. **Network Transmission**: It formats these left and right track powers into a UDP RoveComm packet (`DRIVELEFTRIGHT`) and sends it over the ethernet network to the physical Core/Drive board microcontroller.
-3. **Safety and Multipliers**: It handles hardware-level constraints, such as limiting the maximum drive effort on steep slopes based on inclinometer data.
+---
 
-## Algorithm Explanation
+## 1. Primary Responsibilities
 
-### 1. Kinematics (`CalculateMove`)
-The State Machine or Path Planner typically provides a `GoalSpeed` and a `GoalHeading`. The `DriveBoard` calculates the necessary wheel speeds using the `DifferentialDrive` namespace.
+1. **Kinematics Processing**: Accepts linear speed and heading requests and calculates left and right track power percentages using Differential Drive inverse kinematics.
+2. **Network Transmission**: Formats track powers into RoveComm UDP `DRIVELEFTRIGHT` packets and transmits them to the Core microcontroller.
+3. **Terrain Slope Damping**: Intercepts pitch and roll telemetry from the rover's inclinometer to attenuate motor power on steep inclines, preventing tip-overs.
+4. **Master Throttle Regulation**: Listens for Basestation `SETMAXSPEED` commands, scaling output powers across $[0.0, 1.0]$.
+5. **Emergency Stop Command**: Provides `SendStop()` to immediately command $0.0$ power across both tracks.
 
-- A PID controller first calculates a turn/rotation effort based on the error between the `GoalHeading` and the `ActualHeading`.
-- This rotation effort is passed into either an **Arcade Drive** or **Curvature Drive** inverse kinematics model.
-- *Arcade Drive* simply adds the turn effort to one side and subtracts it from the other.
-- *Curvature Drive* uses the turn effort to dictate the curvature of the robot's arc, which makes driving at high speeds significantly more stable.
+---
 
-### 2. Variable Drive Effort (`VariableDriveEffort`)
-The rover uses an inclinometer to determine its current pitch and roll on the terrain. The `DriveBoard` actively monitors these values (received via RoveComm from the Core board) to calculate a damping multiplier.
-- If the rover is on a slope steeper than `DRIVE_BOARD_MAX_SLOPE`, the multiplier drops to `DRIVE_BOARD_MIN_DAMP` (e.g., 50%).
-- This safety mechanism forces the rover to drive slower on treacherous hills, preventing it from flipping over backward or barrel-rolling.
+## 2. Kinematics Pipeline (`CalculateMove`)
 
-### 3. RoveComm Callbacks (`SetMaxSpeedCallback`)
-The driver registers a callback on the UDP RoveComm node to listen for a `SETMAXSPEED` packet. This allows an external operator (using a basestation GUI) to dynamically adjust the global `DriveEffortMultiplier` from 0.0 to 1.0, effectively acting as a master throttle for the entire autonomy system.
+```cpp
+void DriveBoard::CalculateMove(double dSpeed, double dGoalHeading, double dActualHeading);
+```
 
-## Inputs and Outputs
-- **Inputs**:
-  - `dGoalSpeed`: Requested forward/backward speed (-1.0 to 1.0).
-  - `dGoalHeading`: The compass angle the rover should point towards.
-  - `dActualHeading`: The current compass angle of the rover.
-  - `RoveComm`: Inclinometer pitch/roll packets.
-- **Outputs**:
-  - `DRIVELEFTRIGHT`: A RoveComm UDP packet sent to the `Core` board containing two floats representing the left and right motor powers.
+The calculation follows three sequential steps:
+1. **Heading Error and PID Effort**:
+   Computes the angular delta:
+   $$\theta_{\text{error}} = \theta_{\text{goal}} - \theta_{\text{actual}}$$
+   The internal PID controller (`DRIVE_PID_*`) calculates a normalized rotational turn effort:
+   $$\omega = \text{PID.Calculate}(\theta_{\text{error}}) \in [-1.0, 1.0]$$
+2. **Differential Drive Inverse Kinematics**:
+   Depending on configuration, the forward speed $v$ and turn effort $\omega$ are evaluated using:
+   - **Arcade Drive**:
+     $$\text{Left} = v + \omega, \quad \text{Right} = v - \omega$$
+   - **Curvature Drive**:
+     Scales turning sensitivity inversely with forward velocity to prevent dynamic rollovers at high speeds. Point-turning is permitted when forward speed is near zero.
+   - Powers are normalized so neither track exceeds $\pm 1.0$, with optional input squaring (`DRIVE_SQUARE_CONTROL_INPUTS`).
+3. **Terrain Damping Multiplier**:
+   Multiplies raw track powers by `VariableDriveEffort()` and the global `m_dMaxDriveEffort` multiplier:
+   $$P_{\text{final}} = P_{\text{raw}} \cdot \text{Damp}_{\text{slope}} \cdot \text{Multiplier}_{\text{throttle}}$$
+   Final outputs are clamped to `constants::DRIVE_MAX_SAFE_POWER`.
 
-## Usage in State Machine
-Virtually all moving states (e.g., `NavigatingState`, `ApproachingMarkerState`, `SearchPatternState`) will call `globals::g_pDriveBoard->CalculateMove(...)` to generate the correct kinematics, and then immediately call `globals::g_pDriveBoard->SendDrive(...)` to dispatch the command to the physical motors.
+---
+
+## 3. Inclinometer Safety Damping (`VariableDriveEffort`)
+
+The driver registers a RoveComm callback listening for `manifest::Core::TELEMETRY["INCLINOMETERDATA"]`:
+- Extracts chassis `Pitch` and `Roll` in degrees.
+- Computes effective slope angle $\phi$:
+  $$\phi = w_{\text{roll}} \cdot |\text{Roll}| + w_{\text{pitch}} \cdot |\text{Pitch}|$$
+  where weights are defined by `constants::DRIVE_BOARD_ROLL_WEIGHT` and `constants::DRIVE_BOARD_PITCH_WEIGHT`.
+- If $\phi \le \text{constants::DRIVE\_BOARD\_MIN\_SLOPE}$ ($10^\circ$), damping factor is $1.0$.
+- If $\phi \ge \text{constants::DRIVE\_BOARD\_MAX\_SLOPE}$ ($30^\circ$), damping factor clamps to `constants::DRIVE_BOARD_MIN_DAMP` ($0.50$).
+- Between these limits, linear interpolation smoothly decreases drive power.
+
+---
+
+## 4. Public Interface Summary
+
+```cpp
+// Kinematics and Movement
+void CalculateMove(double dSpeed, double dGoalHeading, double dActualHeading);
+void SendDrive();
+void SendStop();
+
+// Power Inspection & Setters
+diffdrive::DrivePowers GetDrivePowers() const;
+void SetMaxDriveEffort(const double dMaxDriveEffort);
+double GetMaxDriveEffort() const;
+
+// Differential Drive Mode Selection
+void SetDifferentialControlMethod(diffdrive::DifferentialControlMethod eMethod);
+```

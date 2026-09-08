@@ -1,21 +1,55 @@
 # Camera Handler
 
-The `CameraHandler` is a centralized manager for all video feeds used by the autonomy software, including ZED stereoscopic cameras and basic USB webcams.
+The `CameraHandler` class (`src/handlers/CameraHandler.h` & `CameraHandler.cpp`) manages camera hardware lifecycle, initializes camera worker threads, provides centralized access to video feeds, and controls asynchronous video recording.
 
-## Primary Responsibilities
-1. **Device Initialization**: Automatically detects and initializes the physical cameras (e.g., ZED Front, ZED Rear) or hooks into virtual cameras (if `BUILD_SIM_MODE` is enabled).
-2. **Centralized Access**: Acts as a global registry (`globals::g_pCameraHandler`) where other subsystems (like Object Detection or Tag Detection) can request pointers to specific camera streams.
-3. **Recording Management**: Internally spawns a `RecordingHandler` thread to save raw RGB or depth frames directly to the disk for later debugging and simulation replay.
+---
 
-## Architecture & Threading
-- **Object Aggregation**: It stores `std::shared_ptr<ZEDCamera>` and `std::shared_ptr<BasicCamera>`.
-- **`AutonomyThread` Implementation**: Each camera instantiated by this handler runs on its own background thread (inheriting from `AutonomyThread<void>`). The camera continuously polls the physical hardware for new frames as fast as the hardware allows, decoupling the frame acquisition from the slower neural network inferences.
-- **Thread Pool Utilization**: To prevent bottlenecks when copying massive image matrices (`cv::Mat`), the cameras utilize a thread pool to dispatch frame copy requests asynchronously.
+## 1. Primary Responsibilities
 
-## Usage
-When the program starts, `StartAllCameras()` is called.
-Later, if a detector needs an image:
+1. **Hardware Detection and Configuration**: Detects, instantiates, and starts camera objects based on compilation flags (`BUILD_SIM_MODE`) and configuration settings (`MODE_REAR_ZED`).
+2. **Global Feed Registry**: Exposes thread-safe getters (`GetZED()`, `GetBasicCam()`) accessible via `globals::g_pCameraHandler` to allow detector handlers to retrieve shared pointers to active camera streams.
+3. **Simulation Abstraction**: Automatically instantiates `SIMZEDCam` (WebRTC / LibDataChannel) when `BUILD_SIM_MODE` is enabled, or physical `ZEDCam` (ZED SDK 4.x) when running on physical hardware.
+4. **Recording Coordination**: Spawns an internal `RecordingHandler` instance to write raw camera feeds to disk without blocking computer vision processing.
+
+---
+
+## 2. Managed Cameras
+
+The handler manages cameras designated by `ZEDCamName` and `BasicCamName` enumerations:
+
+- **`ZEDCamName::eHeadMainCam`**: The forward-facing ZED 2i stereoscopic camera mounted on the rover mast. Used as the primary feed for ArUco tag detection, YOLO object detection, visual odometry, and 3D geolocation.
+- **`ZEDCamName::eRearCam`**: An optional rear-facing ZED stereoscopic camera (enabled when `constants::MODE_REAR_ZED` is true). Used for reversing maneuvers and rear situational awareness.
+- **`BasicCamName`**: Extensible interface for standard V4L2 USB cameras or virtual simulation webcams (`BasicCam` / `SIMBasicCam`).
+
+---
+
+## 3. Concurrency and Integration
+
+- Each camera managed by `CameraHandler` inherits from `AutonomyThread<void>`.
+- Frame acquisition runs on an independent background thread at the hardware framerate (30 or 60 FPS).
+- Downstream modules request data using future-based asynchronous methods (`RequestFrameCopy()`, `RequestDepthCopy()`, `RequestPointCloudCopy()`, `RequestSensorsCopy()`), preventing downstream inference latency from stalling hardware capture.
+
+---
+
+## 4. Usage Example
+
 ```cpp
+// Startup sequence (in main.cpp)
+globals::g_pCameraHandler = new CameraHandler();
+globals::g_pCameraHandler->StartAllCameras();
+globals::g_pCameraHandler->StartRecording();
+
+// Accessing cameras in downstream modules:
 std::shared_ptr<ZEDCamera> pMainCam = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
-cv::Mat cvCurrentFrame = pMainCam->RequestFrameCopy();
+
+// Asynchronously request color frame and point cloud
+cv::Mat cvFrame;
+cv::Mat cvPointCloud;
+std::future<bool> fuFrame = pMainCam->RequestFrameCopy(cvFrame);
+std::future<bool> fuCloud = pMainCam->RequestPointCloudCopy(cvPointCloud);
+
+if (fuFrame.get() && fuCloud.get())
+{
+    // Execute computer vision and 3D geolocation
+}
 ```
