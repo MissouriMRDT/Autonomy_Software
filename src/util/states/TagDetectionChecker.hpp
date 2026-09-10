@@ -54,8 +54,8 @@ namespace statemachine
         // Request tags from each detector.
         for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
         {
-            // Check if this tag detector is ready.
-            if (vTagDetectors[siIdx]->GetIsReady())
+            // Check if this tag detector is non-null and ready.
+            if (vTagDetectors[siIdx] != nullptr && vTagDetectors[siIdx]->GetIsReady())
             {
                 // Request detected Aruco tags from detector.
                 vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
@@ -70,15 +70,16 @@ namespace statemachine
             // Only check the buffer if the detector was ready and actually spawned a future
             if (vSpawnedFuture[siIdx])
             {
-                // Wait for the correct future to finish
-                vDetectedArucoTagsFuture[nFutureIdx].get();
-                nFutureIdx++;
-
-                // Loop through the detected tags using the correct buffer index (siIdx)
-                for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
+                // Wait for the correct future to finish before buffer can be destroyed
+                if (vDetectedArucoTagsFuture[nFutureIdx].valid() && vDetectedArucoTagsFuture[nFutureIdx].get())
                 {
-                    vDetectedArucoTags.emplace_back(tTag);
+                    // Loop through the detected tags using the correct buffer index (siIdx)
+                    for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
+                    {
+                        vDetectedArucoTags.emplace_back(tTag);
+                    }
                 }
+                nFutureIdx++;
             }
         }
     }

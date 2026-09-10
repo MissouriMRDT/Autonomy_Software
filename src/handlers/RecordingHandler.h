@@ -53,6 +53,7 @@ class RecordingHandler : public AutonomyThread<void>
 
         RecordingHandler(RecordingMode eRecordingMode);
         ~RecordingHandler();
+        void StopRecording();
 
         /////////////////////////////////////////
         // Mutators.

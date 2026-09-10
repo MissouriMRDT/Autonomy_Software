@@ -250,7 +250,7 @@ namespace constants
     const bool TAGDETECT_MAINCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_MAINCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_MAINCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
-    const bool TAGDETECT_MAINCAM_ENABLE_TRACKING        = true;                             // Whether or not to use the tracking algorithm to track tags.
+    const bool TAGDETECT_MAINCAM_ENABLE_TRACKING        = false;                            // Whether or not to use the tracking algorithm to track tags.
     const int TAGDETECT_MAINCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_MAINCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
     const float TAGDETECT_MAINCAM_TORCH_CONFIDENCE      = 0.6f;                             // The minimum confidence to consider a viable AR tag detection.
@@ -263,7 +263,7 @@ namespace constants
     const bool TAGDETECT_REARCAM_DETECT_INVERTED_MARKER = true;                             // Whether or not to detector upside-down tags.
     const int TAGDETECT_REARCAM_MARKER_BORDER_BITS      = 1;                                // This number of bits on the border. A bit is one unit square of the tag.
     const bool TAGDETECT_REARCAM_USE_ARUCO3_DETECTION   = true;                             // Whether or not to use the newer and faster Aruco detection strategy.
-    const bool TAGDETECT_REARCAM_ENABLE_TRACKING        = true;                             // Whether or not to use the tracking algorithm to track tags.
+    const bool TAGDETECT_REARCAM_ENABLE_TRACKING        = false;                            // Whether or not to use the tracking algorithm to track tags.
     const int TAGDETECT_REARCAM_MAX_FPS                 = 30;                               // The max iterations per second of the tag detector.
     const bool TAGDETECT_REARCAM_ENABLE_TORCH           = true;                             // Whether or not to use pytorch detection on top of ArUco.
     const float TAGDETECT_REARCAM_TORCH_CONFIDENCE      = 0.6f;                             // The minimum confidence to consider a viable AR tag detection.
@@ -300,9 +300,8 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SDELC.db";    // The path to the LiDAR database file.
-
-    ///////////////////////////////////////////////////////////////////////////
+    const std::string LIDAR_HANDLER_DB_PATH =
+        MODE_SIM ? "../data/LiDAR/data/databases/SIM_Flat.db" : "../data/LiDAR/data/databases/SDELC.db";    // The path to the LiDAR database file.
 
     ///////////////////////////////////////////////////////////////////////////
     //// Visualization Handler Adjustments.
@@ -407,7 +406,7 @@ namespace constants
     const bool NAVIGATING_VERIFY_POSITION                 = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME            = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
     const bool NAVIGATING_ENABLE_STUCK_DETECT             = true;     // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
-    const bool NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS = false;    // Whether or not to slow down to search pattern speeds when within the waypoint radius.
+    const bool NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS = true;     // Whether or not to slow down to search pattern speeds when within the waypoint radius.
     const double NAVIGATING_STUCK_CHECK_INTERVAL          = 2.0;      // Period in seconds between consecutive checks of if the rover's rotating.
     const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS    = 3;        // Max number of failed checks of the rover's rotation before next attempt.
     const double NAVIGATING_STUCK_CHECK_ROT_THRESH        = 10.0;     // Minimum angular velocity required to consider the rover as actively rotating.

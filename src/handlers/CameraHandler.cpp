@@ -173,8 +173,7 @@ void CameraHandler::StartRecording()
 void CameraHandler::StopAllCameras()
 {
     // Stop recording handler.
-    m_pRecordingHandler->RequestStop();
-    m_pRecordingHandler->Join();
+    m_pRecordingHandler->StopRecording();
 
     // Stop main ZED cam.
     m_pMainCam->RequestStop();
@@ -199,8 +198,7 @@ void CameraHandler::StopAllCameras()
 void CameraHandler::StopRecording()
 {
     // Stop recording handler.
-    m_pRecordingHandler->RequestStop();
-    m_pRecordingHandler->Join();
+    m_pRecordingHandler->StopRecording();
 }
 
 /******************************************************************************

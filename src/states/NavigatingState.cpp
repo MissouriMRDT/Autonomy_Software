@@ -215,7 +215,10 @@ namespace statemachine
         /* --- Navigate to goal waypoint --- */
         ///////////////////////////////////////
         // Check if we are at the goal waypoint.
-        if (stGoalWaypointMeasurement.dDistanceMeters > constants::NAVIGATING_REACHED_GOAL_RADIUS)
+        bool bReachedGoal = (stGoalWaypointMeasurement.dDistanceMeters <= constants::NAVIGATING_REACHED_GOAL_RADIUS) ||
+                            (m_pStanleyController->GetIsAtEndOfPath() &&
+                             stGoalWaypointMeasurement.dDistanceMeters <= std::max(constants::NAVIGATING_REACHED_GOAL_RADIUS * 1.75, 3.5));
+        if (!bReachedGoal)
         {
             // Default to normal navigating speed.
             double dNavigatingSpeed = constants::NAVIGATING_MOTOR_POWER;
@@ -417,36 +420,51 @@ namespace statemachine
             }
             case Event::eNewWaypoint:
             {
-                // Check if the next goal waypoint equals the current one.
-                if (m_stGoalWaypoint == globals::g_pWaypointHandler->PeekNextWaypoint())
+                // Submit logger message.
+                LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
+
+                // Reset radius toggle for the new waypoint
+                m_bWithinWaypointRadius = false;
+
+                // Get and store new goal waypoint.
+                m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
+                // Plan a new path using the GeoPlanner from current pose.
+                geoops::RoverPose stCurrentPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+                m_vPathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
+                                                                      stCurrentPose.GetUTMCoordinate(),
+                                                                      m_stGoalWaypoint.GetUTMCoordinate());
+                // Add the path to the waypoint handler for reference by other states or handlers.
+                globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
+                // Set the path of the stanley controller.
+                m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+
+                // Get all obstacles from the obstacle handler.
+                std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
+
+                // Check if the path is empty.
+                if (m_vPathCoordinates.empty())
                 {
-                    // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Reusing current Waypoint.");
-                }
-                else
-                {
-                    // Submit logger message.
-                    LOG_INFO(logging::g_qSharedLogger, "NavigatingState: Handling New Waypoint event.");
-
-                    // Reset radius toggle for the new waypoint
-                    m_bWithinWaypointRadius = false;
-
-                    // Get and store new goal waypoint.
-                    m_stGoalWaypoint = globals::g_pWaypointHandler->PeekNextWaypoint();
-                    // Plan a new path using the GeoPlanner.
-                    m_vPathCoordinates = globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler,
-                                                                          globals::g_pStateMachineHandler->SmartRetrieveRoverPose().GetUTMCoordinate(),
-                                                                          m_stGoalWaypoint.GetUTMCoordinate());
-                    // Add the path to the waypoint handler for reference by other states or handlers.
-                    globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
-                    // Set the path of the stanley controller.
-                    m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-
-                    // Get all obstacles from the obstacle handler.
-                    std::vector<geoops::Waypoint> vObstacles = globals::g_pWaypointHandler->GetAllObstacles();
-
-                    // Check if the path is empty. If it is, go to idle state.
-                    if (m_vPathCoordinates.empty())
+                    geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(stCurrentPose.GetUTMCoordinate(), m_stGoalWaypoint.GetUTMCoordinate());
+                    if (stMeasurement.dDistanceMeters <= constants::NAVIGATING_REACHED_GOAL_RADIUS)
+                    {
+                        LOG_NOTICE(logging::g_qSharedLogger,
+                                   "NavigatingState: Rover is already at goal waypoint position ({:.2f}m). Transitioning to arrival handler...",
+                                   stMeasurement.dDistanceMeters);
+                        if (m_stGoalWaypoint.eType == geoops::WaypointType::eTagWaypoint ||
+                            m_stGoalWaypoint.eType == geoops::WaypointType::eObjectWaypoint ||
+                            m_stGoalWaypoint.eType == geoops::WaypointType::eMalletWaypoint ||
+                            m_stGoalWaypoint.eType == geoops::WaypointType::eWaterBottleWaypoint ||
+                            m_stGoalWaypoint.eType == geoops::WaypointType::eRockPickWaypoint)
+                        {
+                            eNextState = States::eSearchPattern;
+                        }
+                        else
+                        {
+                            globals::g_pWaypointHandler->PopNextWaypoint();
+                            eNextState = States::eIdle;
+                        }
+                    }
+                    else
                     {
                         LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Planned path is empty! Transitioning to Idle State.");
                         eNextState = States::eIdle;

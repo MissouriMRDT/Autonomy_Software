@@ -88,7 +88,7 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_bQueueTogglesAlreadyReset = false;
 
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
-    m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
+    m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);
     m_cvDepthImage   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC1);
     m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC1);
     m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
@@ -311,20 +311,22 @@ void SIMZEDCam::ThreadedContinuousCode()
     {
         // Acquire a lock on the WebRTC mutex.
         std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
-        // Estimate the depth measure from the depth image.
-        this->EstimateDepthMeasure(m_cvDepthImage, m_cvDepthMeasure);
-        // Check if the depth image is empty.
-        if (m_cvDepthImage.empty())
+        // Check if the depth image is not empty before processing.
+        if (!m_cvDepthImage.empty())
+        {
+            // Estimate the depth measure from the depth image.
+            this->EstimateDepthMeasure(m_cvDepthImage, m_cvDepthMeasure);
+            // Release lock.
+            lkWebRTC2.unlock();
+
+            // Calculate the point cloud from the estimated depth measure.
+            this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
+        }
+        else
         {
             // Release lock.
             lkWebRTC2.unlock();
-            return;
         }
-        // Release lock.
-        lkWebRTC2.unlock();
-
-        // Calculate the point cloud from the estimated depth measure.
-        this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
     }
 
     // Acquire a shared_lock on the frame copy queue.
@@ -404,7 +406,18 @@ void SIMZEDCam::PooledLinearCode()
         // Determine which frame should be copied.
         switch (stContainer.eFrameType)
         {
-            case PIXEL_FORMATS::eBGRA: *(stContainer.pFrame) = m_cvFrame.clone(); break;
+            case PIXEL_FORMATS::eBGRA:
+            {
+                if (m_cvFrame.channels() == 3)
+                {
+                    cv::cvtColor(m_cvFrame, *(stContainer.pFrame), cv::COLOR_BGR2BGRA);
+                }
+                else
+                {
+                    *(stContainer.pFrame) = m_cvFrame.clone();
+                }
+                break;
+            }
             case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = m_cvDepthImage.clone(); break;
             case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = m_cvDepthMeasure.clone(); break;
             case PIXEL_FORMATS::eXYZ: *(stContainer.pFrame) = m_cvPointCloud.clone(); break;
@@ -805,7 +818,7 @@ void SIMZEDCam::SetPositionalPose(const double dX, const double dY, const double
  ******************************************************************************/
 bool SIMZEDCam::GetCameraIsOpen()
 {
-    return m_pRGBStream->GetIsConnected() && m_pDepthImageStream->GetIsConnected() && this->GetThreadState() == AutonomyThreadState::eRunning;
+    return m_pRGBStream != nullptr && m_pRGBStream->GetIsConnected() && this->GetThreadState() == AutonomyThreadState::eRunning;
 }
 
 /******************************************************************************

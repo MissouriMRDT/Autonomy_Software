@@ -49,6 +49,7 @@ namespace controllers
         m_nPredictionHorizon               = nPredictionHorizon;
         m_dPredictionTimeStep              = dPredictionTimeStep;
         m_nCurrentReferencePathTargetIndex = 0;
+        m_bReachedEndOfPath                = false;
         m_UnicycleModel                    = UnicycleModel(0.0, 0.0, 0.0);
     }
 
@@ -129,9 +130,10 @@ namespace controllers
             if (dNormalDistance >= 1.0)
             {
                 // We have reached or passed the end.
+                m_bReachedEndOfPath = true;
                 // Calculate heading to the last point to ensure we turn around if we overshot.
                 double dHeadingToLastWaypoint = geoops::CalculateGeoMeasurement(stRoverPos, stLastPoint).dStartRelativeBearing;
-                return DriveVector{dHeadingToLastWaypoint, 1.0};
+                return DriveVector{dHeadingToLastWaypoint, dMaxSpeed};
             }
         }
 
@@ -251,6 +253,7 @@ namespace controllers
     {
         // Reset the current target index.
         m_nCurrentReferencePathTargetIndex = 0;
+        m_bReachedEndOfPath                = false;
         // Reset the bicycle model.
         m_UnicycleModel.ResetState();
 
@@ -379,6 +382,16 @@ namespace controllers
     double PredictiveStanleyController::GetReferencePathTargetIndex() const
     {
         return m_nCurrentReferencePathTargetIndex;
+    }
+
+    /******************************************************************************
+     * @brief Accessor to determine if the controller has reached or passed the end of the path.
+     *
+     * @return bool - True if the rover has reached or passed the final segment.
+     ******************************************************************************/
+    bool PredictiveStanleyController::GetIsAtEndOfPath() const
+    {
+        return m_bReachedEndOfPath;
     }
 
     /******************************************************************************

@@ -55,7 +55,7 @@ namespace statemachine
         for (size_t siIdx = 0; siIdx < siNumObjectDetectors; ++siIdx)
         {
             // Check if this object detector is ready.
-            if (vObjectDetectors[siIdx]->GetIsReady())
+            if (vObjectDetectors[siIdx] != nullptr && vObjectDetectors[siIdx]->GetIsReady())
             {
                 // Request detected objects from detector.
                 vDetectedObjectsFuture.emplace_back(vObjectDetectors[siIdx]->RequestDetectedObjects(vDetectedObjectBuffers[siIdx]));
@@ -72,15 +72,16 @@ namespace statemachine
             // Only check the buffer if the detector was ready and actually spawned a future
             if (vSpawnedFuture[siIdx])
             {
-                // Wait for the correct future to finish
-                vDetectedObjectsFuture[nFutureIdx].get();
-                nFutureIdx++;
-
-                // Loop through the detected objects and add them to the vDetectedObjects vector.
-                for (const objectdetectutils::Object& tObject : vDetectedObjectBuffers[siIdx])
+                // Wait for the correct future to finish before buffer can be destroyed
+                if (vDetectedObjectsFuture[nFutureIdx].valid() && vDetectedObjectsFuture[nFutureIdx].get())
                 {
-                    vDetectedObjects.emplace_back(tObject);
+                    // Loop through the detected objects and add them to the vDetectedObjects vector.
+                    for (const objectdetectutils::Object& tObject : vDetectedObjectBuffers[siIdx])
+                    {
+                        vDetectedObjects.emplace_back(tObject);
+                    }
                 }
+                nFutureIdx++;
             }
         }
     }

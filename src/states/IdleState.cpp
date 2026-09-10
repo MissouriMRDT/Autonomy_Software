@@ -61,7 +61,9 @@ namespace statemachine
      ******************************************************************************/
     IdleState::IdleState() : State(States::eIdle)
     {
-        LOG_INFO(logging::g_qConsoleLogger, "Entering State: {}", ToString());
+        LOG_NOTICE(logging::g_qSharedLogger, "==================================================");
+        LOG_NOTICE(logging::g_qSharedLogger, "Entering State: Idle. Autonomy ready for commands!");
+        LOG_NOTICE(logging::g_qSharedLogger, "==================================================");
 
         m_bInitialized = false;
 

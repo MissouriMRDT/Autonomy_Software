@@ -47,8 +47,13 @@ namespace torchtag
                                                         const float fMinObjectConfidence = 0.40f,
                                                         const float fNMSThreshold        = 0.60f)
     {
-        // Check if the input frame is in RGB format.
-        if (cvFrame.channels() != 3)
+        // Check if the input frame is in RGB format (or convert if 4-channel BGRA).
+        cv::Mat cvInputFrame = cvFrame;
+        if (!cvInputFrame.empty() && cvInputFrame.channels() == 4)
+        {
+            cv::cvtColor(cvInputFrame, cvInputFrame, cv::COLOR_BGRA2BGR);
+        }
+        else if (cvInputFrame.channels() != 3)
         {
             // Submit logger message.
             LOG_ERROR(logging::g_qSharedLogger, "Detect() requires a RGB image.");
@@ -62,7 +67,7 @@ namespace torchtag
         if (trPyTorchDetector.IsReadyForInference())
         {
             // Run inference on YOLO model with current image.
-            std::vector<yolomodel::Detection> vOutputTensorTags = trPyTorchDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
+            std::vector<yolomodel::Detection> vOutputTensorTags = trPyTorchDetector.Inference(cvInputFrame, fMinObjectConfidence, fNMSThreshold);
 
             // Repackage detections into tags.
             for (const yolomodel::Detection& stTagDetection : vOutputTensorTags)
@@ -102,6 +107,12 @@ namespace torchtag
      ******************************************************************************/
     inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<tagdetectutils::ArucoTag>& vDetectedTags)
     {
+        // If frame has 4 channels, convert to 3-channel BGR.
+        if (!cvDetectionsFrame.empty() && cvDetectionsFrame.channels() == 4)
+        {
+            cv::cvtColor(cvDetectionsFrame, cvDetectionsFrame, cv::COLOR_BGRA2BGR);
+        }
+
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {

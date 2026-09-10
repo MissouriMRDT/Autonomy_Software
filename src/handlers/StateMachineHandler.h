@@ -111,8 +111,10 @@ class StateMachineHandler : private AutonomyThread<void>
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Incoming Packet: Abort Autonomy!");
 
-            // Signal statemachine handler with stop event.
-            this->HandleEvent(statemachine::Event::eAbort, true);
+            // Signal statemachine handler with stop event without saving state.
+            this->HandleEvent(statemachine::Event::eAbort, false);
+            // Clear any previously saved states to ensure clean restart.
+            this->ClearSavedStates();
         };
 
         /******************************************************************************
@@ -129,27 +131,10 @@ class StateMachineHandler : private AutonomyThread<void>
             (void) stPacket;
             (void) stdAddr;
 
-            /*
-                The clear waypoints command will clear all waypoints in the WaypointHandler, but it also clears all saved states in the StateMachineHandler
-                to prevent any conflicts when restarting autonomy with previously saved states that may have waypoints associated with them.
-                However, we only want to delete our saved states if we are currently in IdleState.
-            */
-
-            // Check if the current state is IdleState.
-            if (this->GetCurrentState() == statemachine::States::eIdle)
-            {
-                // Submit logger message.
-                LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Deleting all saved states in StateMachineHandler...");
-                // Clear the saved states.
-                this->ClearSavedStates();
-            }
-            else
-            {
-                // Submit logger message.
-                LOG_WARNING(logging::g_qSharedLogger,
-                            "Incoming Clear Waypoints packet: Cannot clear saved states in StateMachineHandler unless in Idle state. Current state is {}.",
-                            static_cast<int>(this->GetCurrentState()));
-            }
+            // Submit logger message.
+            LOG_NOTICE(logging::g_qSharedLogger, "Incoming Clear Waypoints packet: Deleting all saved states in StateMachineHandler...");
+            // Clear the saved states.
+            this->ClearSavedStates();
         };
 
         /******************************************************************************

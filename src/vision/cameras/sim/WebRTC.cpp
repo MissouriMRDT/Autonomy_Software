@@ -134,10 +134,12 @@ void WebRTC::CloseConnection()
         m_pWebSocket->close();
     }
 
-    // Wait for all connections to close.
-    while ((m_pVideoTrack1 && !m_pVideoTrack1->isClosed()) || (m_pDataChannel && !m_pDataChannel->isClosed()) || (m_pWebSocket && !m_pWebSocket->isClosed()))
+    // Wait for all connections to close with a 2-second timeout to prevent deadlocks on shutdown.
+    int nWaitMs = 0;
+    while (((m_pVideoTrack1 && !m_pVideoTrack1->isClosed()) || (m_pDataChannel && !m_pDataChannel->isClosed()) || (m_pWebSocket && !m_pWebSocket->isClosed())) && nWaitMs < 2000)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        nWaitMs += 100;
     }
     LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} Connections closed.", m_szStreamerID);
 }
@@ -333,6 +335,18 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                         {
                             LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Streamer list does not contain 'ids' field!", m_szStreamerID);
                         }
+                    }
+                    else if (szType == "ping")
+                    {
+                        // Reply to signalling server keepalive ping with pong to maintain connection.
+                        nlohmann::json jsnPong;
+                        jsnPong["type"] = "pong";
+                        if (jsnMessage.contains("time"))
+                        {
+                            jsnPong["time"] = jsnMessage["time"];
+                        }
+                        m_pWebSocket->send(jsnPong.dump());
+                        LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Replied to 'ping' with 'pong'.", m_szStreamerID);
                     }
                     else
                     {
@@ -683,8 +697,8 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
  ******************************************************************************/
 bool WebRTC::InitializeH264Decoder()
 {
-    // Configure logging level from FFMPEG library.
-    av_log_set_level(AV_LOG_DEBUG);
+    // Configure logging level from FFMPEG library to suppress slice/debug spew.
+    av_log_set_level(AV_LOG_ERROR);
 
     // Find the H264 decoder
     const AVCodec* avCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
@@ -763,8 +777,18 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         // Get the error message.
         char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "WebRTC camera {} FFMPEG send_packet failed. Error: {} {}", m_szStreamerID, nReturnCode, aErrorBuffer);
+        // Rate-limit the warning to once every 3 seconds so terminal is not spammed before keyframe arrives.
+        static auto tmLastWarn = std::chrono::steady_clock::now();
+        auto tmNow = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(tmNow - tmLastWarn).count() >= 3)
+        {
+            LOG_WARNING(logging::g_qSharedLogger, "WebRTC camera {} FFMPEG send_packet failed. Error: {} {}", m_szStreamerID, nReturnCode, aErrorBuffer);
+            tmLastWarn = tmNow;
+        }
+        else
+        {
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} FFMPEG send_packet failed. Error: {} {}", m_szStreamerID, nReturnCode, aErrorBuffer);
+        }
         // Request a new keyframe from the video track.
         this->RequestKeyFrame();
 

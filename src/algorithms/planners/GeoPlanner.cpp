@@ -590,6 +590,23 @@ namespace pathplanners
     {
         std::vector<geoops::Waypoint> vPath;
 
+        // Handle case where start and end are in the same grid cell (rover already at destination)
+        if (m_nStartIndex == m_nEndIndex && m_nStartIndex != -1)
+        {
+            int nX, nY;
+            GetGridCoords(m_nStartIndex, nX, nY);
+
+            const GridCell& stCell = m_vCostmap[m_nStartIndex];
+            double dEasting  = m_dGridOriginEasting + (nX * m_dGridResolution);
+            double dNorthing = m_dGridOriginNorthing + (nY * m_dGridResolution);
+
+            vPath.emplace_back(geoops::UTMCoordinate(dEasting, dNorthing, stCell.nZone, stCell.bInNorthernHemisphere, stCell.dAltitude),
+                               geoops::WaypointType::eNavigationWaypoint,
+                               m_dPathWaypointTolerance,
+                               stCell.nClosestPointID);
+            return vPath;
+        }
+
         // Verify that the final path integration chain was actually established to the end node.
         if (m_vPredecessors[m_nEndIndex] == -1)
         {

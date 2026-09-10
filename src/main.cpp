@@ -48,24 +48,9 @@ struct termios g_stOriginalTermSettings;
  ******************************************************************************/
 void SignalHandler(int nSignal)
 {
-    // Check signal type.
-    if (nSignal == SIGINT || nSignal == SIGTERM)
-    {
-        // Submit logger message.
-        LOG_INFO(logging::g_qSharedLogger, "Ctrl+C or SIGTERM received. Cleaning up...");
-
-        // Update stop signal.
-        bMainStop = true;
-    }
-    // The SIGQUIT signal can be sent to the terminal by pressing CNTL+\.
-    else if (nSignal == SIGQUIT)
-    {
-        // Submit logger message.
-        LOG_INFO(logging::g_qSharedLogger, "Quit signal key pressed. Cleaning up...");
-
-        // Update stop signal.
-        bMainStop = true;
-    }
+    (void)nSignal;
+    // Set stop signal safely.
+    bMainStop = true;
 }
 
 /******************************************************************************
@@ -218,13 +203,17 @@ int main()
         globals::g_pObjectDetectionHandler = new ObjectDetectionHandler();
         globals::g_pStateMachineHandler    = new StateMachineHandler();
 
-        // // Open the LiDAR database.
+        // Open the LiDAR database.
         if (!globals::g_pLiDARHandler->OpenDB(constants::LIDAR_HANDLER_DB_PATH))
         {
-            // Submit logger message.
-            LOG_ERROR(logging::g_qSharedLogger, "Failed to open LiDAR database.");
-            // Stop main loop.
-            bMainStop = true;
+            LOG_WARNING(logging::g_qSharedLogger, "Failed to open LiDAR database at {}. Attempting fallback to Flat_SIM.db...", constants::LIDAR_HANDLER_DB_PATH);
+            if (!globals::g_pLiDARHandler->OpenDB("../data/LiDAR/data/databases/Flat_SIM.db"))
+            {
+                // Submit logger message.
+                LOG_ERROR(logging::g_qSharedLogger, "Failed to open LiDAR database.");
+                // Stop main loop.
+                bMainStop = true;
+            }
         }
 
         // Initialize GeoPlanner and VizHandler
@@ -243,6 +232,11 @@ int main()
         globals::g_pStateMachineHandler->StartStateMachine();
         // Start the visualization handler.
         pVisualizationHandler->Start();
+
+        LOG_NOTICE(logging::g_qSharedLogger, "\n==================================================");
+        LOG_NOTICE(logging::g_qSharedLogger, "Autonomy initialization complete! System is IDLE.");
+        LOG_NOTICE(logging::g_qSharedLogger, "Press 'h' for help, or send waypoints via RoveComm.");
+        LOG_NOTICE(logging::g_qSharedLogger, "==================================================\n");
 
         /////////////////////////////////////////
         // Declare local variables used in main loop.
@@ -306,7 +300,10 @@ int main()
                 ssize_t nBytesRead   = read(STDIN_FILENO, &chTerminalInput, 1);
                 if (nBytesRead <= 0)
                 {
-                    LOG_WARNING(logging::g_qSharedLogger, "Failed to read from terminal input.");
+                    if (isatty(STDIN_FILENO) && nBytesRead < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+                    {
+                        LOG_WARNING(logging::g_qSharedLogger, "Failed to read from terminal input.");
+                    }
                 }
                 else
                 {

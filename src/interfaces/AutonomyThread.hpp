@@ -639,6 +639,13 @@ class AutonomyThread
          ******************************************************************************/
         void RunThread(std::atomic_bool& bStopThread)
         {
+            // Thread has begun executing on worker. Mark as running and notify Start().
+            if (m_eThreadState != AutonomyThreadState::eStopping)
+            {
+                m_eThreadState = AutonomyThreadState::eRunning;
+                m_cdThreadRunningCondition.notify_all();
+            }
+
             // Declare instance variables.
             std::chrono::_V2::system_clock::time_point tmStartTime;
 
@@ -652,8 +659,19 @@ class AutonomyThread
                     tmStartTime = std::chrono::high_resolution_clock::now();
                 }
 
-                // Call method containing user code.
-                this->ThreadedContinuousCode();
+                // Call method containing user code with exception handling.
+                try
+                {
+                    this->ThreadedContinuousCode();
+                }
+                catch (const std::exception& e)
+                {
+                    std::cerr << "[AutonomyThread EXCEPTION in ThreadedContinuousCode (" << m_szThreadUUID << ")]: " << e.what() << std::endl;
+                }
+                catch (...)
+                {
+                    std::cerr << "[AutonomyThread UNKNOWN EXCEPTION in ThreadedContinuousCode (" << m_szThreadUUID << ")]" << std::endl;
+                }
 
                 // Check if max IPS limit has been set.
                 if (m_nMainThreadMaxIterationPerSecond > 0)
@@ -670,15 +688,6 @@ class AutonomyThread
                         // Make this thread sleep for the remaining time.
                         std::this_thread::sleep_for(std::chrono::microseconds(nSleepTime));
                     }
-                }
-
-                // Check if thread state needs to be updated.
-                if (m_eThreadState != AutonomyThreadState::eRunning && m_eThreadState != AutonomyThreadState::eStopping)
-                {
-                    // Update thread state to running.
-                    m_eThreadState = AutonomyThreadState::eRunning;
-                    // Notify waiting start method that thread is now running.
-                    m_cdThreadRunningCondition.notify_all();
                 }
 
                 // Call iteration per second tracking tick.

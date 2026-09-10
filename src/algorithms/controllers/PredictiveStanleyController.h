@@ -81,6 +81,7 @@ namespace controllers
             double GetControlGain() const;
             double GetAngularVelocityLimit() const;
             double GetReferencePathTargetIndex() const;
+            bool GetIsAtEndOfPath() const;
 
         private:
             /////////////////////////////////////////
@@ -99,6 +100,7 @@ namespace controllers
             int m_nPredictionHorizon;
             double m_dPredictionTimeStep;
             int m_nCurrentReferencePathTargetIndex;
+            bool m_bReachedEndOfPath;
             std::vector<geoops::Waypoint> m_vReferencePath;
     };
 }    // namespace controllers

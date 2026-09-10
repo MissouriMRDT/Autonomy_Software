@@ -15,6 +15,7 @@
 #include "../../AutonomyConstants.h"
 
 /// \cond
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <opencv2/opencv.hpp>
 #include <torch/script.h>
@@ -215,9 +216,8 @@ namespace yolomodel
                     if (!torch::cuda::is_available() && m_trDevice == torch::kCUDA)
                     {
                         // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger, "CUDA device is not available, falling back to CPU.");
+                        LOG_WARNING(logging::g_qSharedLogger, "CUDA device is not available, falling back to CPU.");
                         m_trDevice = torch::kCPU;
-                        return;
                     }
                     else
                     {
@@ -245,6 +245,23 @@ namespace yolomodel
                         // Submit the config json as a debug message.
                         LOG_DEBUG(logging::g_qSharedLogger, "Model config: {}", jConfig.dump(4));
 
+                        // If device is CUDA, verify that CUDA execution actually works (e.g. no missing kernel image for device architecture)
+                        if (m_trDevice == torch::kCUDA)
+                        {
+                            try
+                            {
+                                torch::Tensor trTest = torch::zeros({1, 3, m_cvModelInputSize.height, m_cvModelInputSize.width}, torch::kCUDA);
+                                m_trModel.forward({trTest});
+                            }
+                            catch (const std::exception& e)
+                            {
+                                LOG_WARNING(logging::g_qSharedLogger, "CUDA execution unavailable on device architecture; falling back to CPU for YOLO model.");
+                                m_trDevice = torch::kCPU;
+                                m_trModel  = torch::jit::load(szModelPath, m_trDevice, trExtraConfigFiles);
+                                m_trModel.eval();
+                            }
+                        }
+
                         // Check if the model is empty.
                         if (m_trModel.get_methods().empty())
                         {
@@ -256,7 +273,7 @@ namespace yolomodel
                         {
                             // Get the device of the model.
                             torch::Device model_device = m_trModel.buffers().begin().operator->().device();
-                            if (model_device != m_trDevice)
+                            if (model_device.type() != m_trDevice.type())
                             {
                                 LOG_ERROR(logging::g_qSharedLogger, "Model did not move to the expected device! Model is on: {}", model_device.str());
                                 return;
@@ -272,7 +289,7 @@ namespace yolomodel
                         // Set flag saying we are ready for inference.
                         m_bReady = true;
                     }
-                    catch (const c10::Error& trError)
+                    catch (const std::exception& trError)
                     {
                         LOG_ERROR(logging::g_qSharedLogger, "Error loading model: {}", trError.what());
                     }
@@ -309,6 +326,11 @@ namespace yolomodel
                 {
                     // Force single-threaded execution (if acceptable for your workload)
                     torch::set_num_threads(1);
+                    // Disable gradient calculation during inference.
+                    torch::NoGradGuard trNoGrad;
+                    // Synchronize inference across threads for this model instance.
+                    std::lock_guard<std::mutex> lgLock(m_muInferenceMutex);
+
                     // Create instance variables.
                     std::vector<Detection> vObjects;
 
@@ -323,9 +345,14 @@ namespace yolomodel
                     {
                         trOutputTensor = m_trModel.forward(vInputs).toTensor();
                     }
-                    catch (const c10::Error& trError)
+                    catch (const std::exception& trError)
                     {
                         LOG_ERROR(logging::g_qSharedLogger, "Error running inference: {}", trError.what());
+                        return vObjects;
+                    }
+                    catch (...)
+                    {
+                        LOG_ERROR(logging::g_qSharedLogger, "Unknown error running inference.");
                         return vObjects;
                     }
 
@@ -419,8 +446,11 @@ namespace yolomodel
 
                     // Convert OpenCV mat to a tensor.
                     torch::Tensor trTensorImage = torch::from_blob(cvResizedImage.data, {1, cvResizedImage.rows, cvResizedImage.cols, 3}, torch::kFloat);
-                    trTensorImage               = trTensorImage.permute({0, 3, 1, 2});    // Convert to CxHxW format.
-                    trTensorImage               = trTensorImage.to(trDevice);             // Move tensor to the specified hardware device.
+                    trTensorImage               = trTensorImage.permute({0, 3, 1, 2}).clone();    // Convert to CxHxW format and clone into owned contiguous memory.
+                    if (trDevice != torch::kCPU)
+                    {
+                        trTensorImage = trTensorImage.to(trDevice);             // Move tensor to the specified hardware device.
+                    }
 
                     return trTensorImage;
                 }
@@ -639,6 +669,7 @@ namespace yolomodel
                 std::string m_szModelTask;
                 cv::Size m_cvModelInputSize;
                 std::vector<std::string> m_vClassLabels;
+                std::mutex m_muInferenceMutex;
         };
     }    // namespace pytorch
 }    // namespace yolomodel

@@ -87,18 +87,26 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2023-12-26
  ******************************************************************************/
-RecordingHandler::~RecordingHandler()
+void RecordingHandler::StopRecording()
 {
     // Signal and wait for recording thread to stop.
     this->RequestStop();
     this->Join();
 
-    // Loop through and close video writers.
-    for (cv::VideoWriter cvCameraWriter : m_vCameraWriters)
+    // Loop through and close video writers by reference so files are finalized on disk.
+    for (cv::VideoWriter& cvCameraWriter : m_vCameraWriters)
     {
         // Release video writer.
-        cvCameraWriter.release();
+        if (cvCameraWriter.isOpened())
+        {
+            cvCameraWriter.release();
+        }
     }
+}
+
+RecordingHandler::~RecordingHandler()
+{
+    this->StopRecording();
 }
 
 /******************************************************************************
@@ -211,11 +219,18 @@ void RecordingHandler::UpdateRecordableCameras()
                 // Construct the full output path.
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
+                // Check if resolution is valid before attempting to open.
+                cv::Size cvResolution = pBasicCamera->GetPropResolution();
+                if (cvResolution.width <= 0 || cvResolution.height <= 0)
+                {
+                    continue;
+                }
+
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nCamera - 1].open(szFullOutputPath.string(),
                                                                         cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                         constants::RECORDER_FPS,
-                                                                        pBasicCamera->GetPropResolution());
+                                                                        cvResolution);
 
                 // Check writer opened status.
                 if (!bWriterOpened)
@@ -224,6 +239,7 @@ void RecordingHandler::UpdateRecordableCameras()
                     LOG_WARNING(logging::g_qSharedLogger,
                                 "RecordingHandler: Failed to open cv::VideoWriter for basic camera at path/index {}",
                                 pBasicCamera->GetCameraLocation());
+                    m_vRecordingToggles[nCamera - 1] = false;
                 }
             }
         }
@@ -278,11 +294,18 @@ void RecordingHandler::UpdateRecordableCameras()
                 // Construct the full output path.
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
+                // Check if resolution is valid before attempting to open.
+                cv::Size cvResolution = pZEDCamera->GetPropResolution();
+                if (cvResolution.width <= 0 || cvResolution.height <= 0)
+                {
+                    continue;
+                }
+
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nCamera + nIndexOffset].open(szFullOutputPath,
                                                                                    cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                                    constants::RECORDER_FPS,
-                                                                                   pZEDCamera->GetPropResolution());
+                                                                                   cvResolution);
 
                 // Check writer opened status.
                 if (!bWriterOpened)
@@ -291,6 +314,7 @@ void RecordingHandler::UpdateRecordableCameras()
                     LOG_WARNING(logging::g_qSharedLogger,
                                 "RecordingHandler: Failed to open cv::VideoWriter for ZED camera with serial {}",
                                 pZEDCamera->GetCameraSerial());
+                    m_vRecordingToggles[nCamera + nIndexOffset] = false;
                 }
             }
         }
@@ -350,8 +374,8 @@ void RecordingHandler::RequestAndWriteCameraFrames()
             // Check if the camera at the current index is a BasicCam or ZEDCam.
             if (m_vBasicCameras[nIter] != nullptr)
             {
-                // Wait for future to be fulfilled.
-                if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+                // Wait for future to be fulfilled with timeout to prevent deadlocks.
+                if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
                 {
                     // Check if this is a grayscale or color image.
                     if (m_vFrames[nIter].channels() == 1)
@@ -375,8 +399,8 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                 // Check if the camera is setup to use CPU or GPU mats.
                 if (m_vZEDCameras[nIter]->GetUsingGPUMem())
                 {
-                    // Wait for future to be fulfilled.
-                    if (m_vFrameFutures[nIter].get() && !m_vGPUFrames[nIter].empty())
+                    // Wait for future to be fulfilled with timeout to prevent deadlocks.
+                    if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vGPUFrames[nIter].empty())
                     {
                         // Download GPU mat frame to normal mat.
                         m_vGPUFrames[nIter].download(m_vFrames[nIter]);
@@ -400,8 +424,8 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                 }
                 else
                 {
-                    // Wait for future to be fulfilled.
-                    if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+                    // Wait for future to be fulfilled with timeout to prevent deadlocks.
+                    if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
                     {
                         // Check if this is a grayscale or color image.
                         if (m_vFrames[nIter].channels() == 1)
@@ -475,11 +499,18 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 // Construct the full output path.
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
+                // Check if resolution is valid before attempting to open.
+                cv::Size cvResolution = pTagDetector->GetProcessFrameResolution();
+                if (cvResolution.width <= 0 || cvResolution.height <= 0)
+                {
+                    continue;
+                }
+
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nDetector - 1].open(szFullOutputPath.string(),
                                                                           cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                           constants::RECORDER_FPS,
-                                                                          pTagDetector->GetProcessFrameResolution());
+                                                                          cvResolution);
 
                 // Check writer opened status.
                 if (!bWriterOpened)
@@ -488,6 +519,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                     LOG_WARNING(logging::g_qSharedLogger,
                                 "RecordingHandler: Failed to open cv::VideoWriter for tag detector using camera {}",
                                 pTagDetector->GetCameraName());
+                    m_vRecordingToggles[nDetector - 1] = false;
                 }
             }
         }
@@ -526,8 +558,8 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
         // Check if recording for the camera at this index is enabled and tag detector is not null.
         if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
         {
-            // Wait for future to be fulfilled.
-            if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+            // Wait for future to be fulfilled with timeout to prevent deadlocks.
+            if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
             {
                 // Check if this is a grayscale or color image.
                 if (m_vFrames[nIter].channels() == 1)
@@ -602,19 +634,27 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
                 // Construct the full output path.
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
+                // Check if resolution is valid before attempting to open.
+                cv::Size cvResolution = pObjectDetector->GetProcessFrameResolution();
+                if (cvResolution.width <= 0 || cvResolution.height <= 0)
+                {
+                    continue;
+                }
+
                 // Open writer.
                 bool bWriterOpened = m_vCameraWriters[nDetector - 1].open(szFullOutputPath.string(),
                                                                           cv::VideoWriter::fourcc('H', '2', '6', '4'),
                                                                           constants::RECORDER_FPS,
-                                                                          pObjectDetector->GetProcessFrameResolution());
+                                                                          cvResolution);
 
                 // Check writer opened status.
                 if (!bWriterOpened)
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger,
-                                "RecordingHandler: Failed to open cv::VideoWriter for tag detector using camera {}",
+                                "RecordingHandler: Failed to open cv::VideoWriter for object detector using camera {}",
                                 pObjectDetector->GetCameraName());
+                    m_vRecordingToggles[nDetector - 1] = false;
                 }
             }
         }
@@ -653,8 +693,8 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
         // Check if recording for the camera at this index is enabled and tag detector is not null.
         if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
         {
-            // Wait for future to be fulfilled.
-            if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+            // Wait for future to be fulfilled with timeout to prevent deadlocks.
+            if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
             {
                 // Check if this is a grayscale or color image.
                 if (m_vFrames[nIter].channels() == 1)

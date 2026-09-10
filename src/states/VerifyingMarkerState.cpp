@@ -120,20 +120,32 @@ namespace statemachine
         }
         else
         {
-            // Check the tags distance.
-            if (stBestArucoTag.nID != -1 && stBestArucoTag.dStraightLineDistance > constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+            // Check the tags distance. If ArUco is detected, prioritize it over auxiliary Torch detection.
+            if (stBestArucoTag.nID != -1)
             {
-                // Tag is too far away, trigger verify failed event.
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: ArUco tag detected but too far away. Triggering verify failed event.");
-                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
-                return;
+                if (stBestArucoTag.dStraightLineDistance > constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+                {
+                    // Tag is too far away, trigger verify failed event.
+                    LOG_INFO(logging::g_qSharedLogger,
+                             "VerifyingMarkerState: ArUco tag detected but too far away ({:.2f}m > {:.2f}m). Triggering verify failed event.",
+                             stBestArucoTag.dStraightLineDistance,
+                             constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                    return;
+                }
             }
-            else if (stBestTorchTag.dConfidence > 0.0 && stBestTorchTag.dStraightLineDistance > constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+            else if (stBestTorchTag.dConfidence > 0.0)
             {
-                // Tag is too far away, trigger verify failed event.
-                LOG_INFO(logging::g_qSharedLogger, "VerifyingMarkerState: Torch tag detected but too far away. Triggering verify failed event.");
-                globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
-                return;
+                if (stBestTorchTag.dStraightLineDistance > constants::APPROACH_MARKER_PROXIMITY_THRESHOLD)
+                {
+                    // Tag is too far away, trigger verify failed event.
+                    LOG_INFO(logging::g_qSharedLogger,
+                             "VerifyingMarkerState: Torch tag detected but too far away ({:.2f}m > {:.2f}m). Triggering verify failed event.",
+                             stBestTorchTag.dStraightLineDistance,
+                             constants::APPROACH_MARKER_PROXIMITY_THRESHOLD);
+                    globals::g_pStateMachineHandler->HandleEvent(Event::eVerifyingFailed);
+                    return;
+                }
             }
 
             // Update time last seen.

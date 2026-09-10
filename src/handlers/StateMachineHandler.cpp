@@ -202,7 +202,7 @@ void StateMachineHandler::StartStateMachine()
     Start();
 
     // Submit logger message.
-    LOG_INFO(logging::g_qSharedLogger, "Started State Machine.");
+    LOG_INFO(logging::g_qSharedLogger, "Started State Machine successfully.");
 }
 
 /******************************************************************************

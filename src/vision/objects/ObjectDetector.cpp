@@ -149,19 +149,6 @@ void ObjectDetector::ThreadedContinuousCode()
         {
             // Set camera opened toggle.
             m_bCameraIsOpened = false;
-
-            // If camera's not open on first iteration of thread, it's probably not present, so stop.
-            if (this->GetThreadState() == AutonomyThreadState::eStarting)
-            {
-                // Shutdown threads for this ZEDCam.
-                this->RequestStop();
-
-                // Submit logger message.
-                LOG_CRITICAL(logging::g_qSharedLogger,
-                             "ObjectDetector start was attempted for ZED camera with serial number {}, but camera never properly opened or it has been closed/rebooted! "
-                             "This object detector will now stop.",
-                             std::dynamic_pointer_cast<ZEDCamera>(m_pCamera)->GetCameraSerial());
-            }
         }
         else
         {
@@ -176,18 +163,6 @@ void ObjectDetector::ThreadedContinuousCode()
         {
             // Set camera opened toggle.
             m_bCameraIsOpened = false;
-
-            // If camera's not open on first iteration of thread, it's probably not present, so stop.
-            if (this->GetThreadState() == AutonomyThreadState::eStarting)
-            {
-                // Shutdown threads for this BasicCam.
-                this->RequestStop();
-
-                // Submit logger message.
-                LOG_CRITICAL(logging::g_qSharedLogger,
-                             "ObjectDetector start was attempted for BasicCam at {}, but camera never properly opened or it has become disconnected!",
-                             std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->GetCameraLocation());
-            }
         }
         else
         {
@@ -229,25 +204,28 @@ void ObjectDetector::ThreadedContinuousCode()
             fuRegularFrameCopyStatus = std::dynamic_pointer_cast<BasicCamera>(m_pCamera)->RequestFrameCopy(m_cvFrame);
         }
 
-        // Safe polling wrapper to prevent deadlocks.
-        bool bCloudReady = !bRequestingPointCloud;    // True by default if we don't need a point cloud
-        bool bFrameReady = false;
+        // Safe polling wrapper to prevent deadlocks (max ~100ms).
+        bool bCloudReady  = !bRequestingPointCloud;    // True by default if we don't need a point cloud
+        bool bFrameReady  = false;
+        int nPollAttempts = 0;
 
         // Keep polling as long as the thread hasn't been asked to stop.
-        while (this->GetThreadState() == AutonomyThreadState::eRunning)
+        while ((this->GetThreadState() == AutonomyThreadState::eRunning || this->GetThreadState() == AutonomyThreadState::eStarting) && nPollAttempts < 20)
         {
-            if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+            if (!bCloudReady && fuPointCloudCopyStatus.wait_for(std::chrono::milliseconds(5)) == std::future_status::ready)
                 bCloudReady = true;
 
-            if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready)
+            if (!bFrameReady && fuRegularFrameCopyStatus.wait_for(std::chrono::milliseconds(5)) == std::future_status::ready)
                 bFrameReady = true;
 
             if (bCloudReady && bFrameReady)
                 break;
+
+            nPollAttempts++;
         }
 
         // If the thread is shutting down, break out of the loop gracefully
-        if (this->GetThreadState() != AutonomyThreadState::eRunning)
+        if (this->GetThreadState() == AutonomyThreadState::eStopping || this->GetThreadState() == AutonomyThreadState::eStopped)
         {
             return;
         }
@@ -257,7 +235,7 @@ void ObjectDetector::ThreadedContinuousCode()
         {
             if (m_bUsingGpuMats)
             {
-                if (fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
+                if (bCloudReady && bFrameReady && fuPointCloudCopyStatus.get() && fuRegularFrameCopyStatus.get())
                 {
                     // Download mat from GPU memory.
                     m_cvGPUPointCloud.download(m_cvPointCloud);
@@ -272,15 +250,46 @@ void ObjectDetector::ThreadedContinuousCode()
             }
             else
             {
-                if (!fuPointCloudCopyStatus.get())
-                    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
-                if (!fuRegularFrameCopyStatus.get())
+                bool bPointCloudSuccess = false;
+                if (bRequestingPointCloud)
+                {
+                    if (bCloudReady)
+                    {
+                        bPointCloudSuccess = fuPointCloudCopyStatus.get();
+                    }
+                    else if (fuPointCloudCopyStatus.valid())
+                    {
+                        fuPointCloudCopyStatus.wait();
+                        bPointCloudSuccess = fuPointCloudCopyStatus.get();
+                    }
+
+                    if (!bPointCloudSuccess)
+                    {
+                        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud from ZEDCam!");
+                        m_cvPointCloud.release();
+                    }
+                }
+
+                bool bFrameSuccess = false;
+                if (bFrameReady)
+                {
+                    bFrameSuccess = fuRegularFrameCopyStatus.get();
+                }
+                else if (fuRegularFrameCopyStatus.valid())
+                {
+                    fuRegularFrameCopyStatus.wait();
+                    bFrameSuccess = fuRegularFrameCopyStatus.get();
+                }
+
+                if (!bFrameSuccess)
+                {
                     LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get regular frame from ZEDCam!");
+                }
             }
         }
         else
         {
-            if (!fuRegularFrameCopyStatus.get())
+            if (!bFrameReady || !fuRegularFrameCopyStatus.get())
             {
                 LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
             }
@@ -289,11 +298,31 @@ void ObjectDetector::ThreadedContinuousCode()
         /////////////////////////////////////////
         // Actual detection logic goes here.
         /////////////////////////////////////////
-        // Check if the frame is empty.
-        if (m_cvFrame.empty())
+        // Ensure frame is converted to 3-channel BGR if it has 4 channels (BGRA)
+        if (!m_cvFrame.empty() && m_cvFrame.channels() == 4)
         {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+            cv::cvtColor(m_cvFrame, m_cvFrame, cv::COLOR_BGRA2BGR);
+        }
+
+        // Check if the frame is empty or not ready.
+        if (!bFrameReady || m_cvFrame.empty())
+        {
+            // Submit logger message if frame was ready but empty.
+            if (bFrameReady && m_cvFrame.empty())
+            {
+                LOG_WARNING(logging::g_qSharedLogger, "Frame from camera is empty!");
+            }
+
+            // Fulfill any pending copy schedule requests with current/empty data so callers waiting on futures are not starved
+            std::shared_lock<std::shared_mutex> lkSchedulers(m_muPoolScheduleMutex);
+            if (!m_qDetectionOverlayFramesCopySchedule.empty() || !m_qLastGoodDetectionOverlayFramesCopySchedule.empty() || !m_qDetectedObjectCopySchedule.empty())
+            {
+                size_t siQueueLength = m_qDetectionOverlayFramesCopySchedule.size() + m_qLastGoodDetectionOverlayFramesCopySchedule.size() + m_qDetectedObjectCopySchedule.size();
+                this->RunDetachedPool(siQueueLength, m_nNumDetectedObjectsRetrievalThreads);
+                this->JoinPool();
+                lkSchedulers.unlock();
+            }
+
             return;
         }
 
@@ -328,14 +357,17 @@ void ObjectDetector::ThreadedContinuousCode()
         // Merge the newly detected objects with the pre-existing detected objects.
         this->UpdateDetectedObjects(m_vNewlyDetectedObjects);
 
-        // Draw object overlays onto normal image.
-        torchobject::DrawDetections(m_cvDetectionOverlayFrame, m_vDetectedObjects);
-
-        // Check if the detected objects vector is not empty.
-        if (!m_vDetectedObjects.empty())
+        // Draw object overlays onto normal image under shared read lock.
         {
-            // It's not empty so we should have a valid overlay frame with detections drawn on it.
-            m_cvLastGoodOverlayFrame = m_cvDetectionOverlayFrame.clone();
+            std::shared_lock<std::shared_mutex> lkObject(m_muArucoDataCopyMutex);
+            torchobject::DrawDetections(m_cvDetectionOverlayFrame, m_vDetectedObjects);
+
+            // Check if the detected objects vector is not empty.
+            if (!m_vDetectedObjects.empty())
+            {
+                // It's not empty so we should have a valid overlay frame with detections drawn on it.
+                m_cvLastGoodOverlayFrame = m_cvDetectionOverlayFrame.clone();
+            }
         }
         /////////////////////////////////////////////////////////////////////////////////////
     }
@@ -352,6 +384,12 @@ void ObjectDetector::ThreadedContinuousCode()
         this->JoinPool();
         // Release lock on frame copy queue.
         lkSchedulers.unlock();
+    }
+
+    // Sleep briefly if camera is not yet opened to prevent busy spinning while waiting for connection
+    if (!m_bCameraIsOpened)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 }
 
@@ -430,11 +468,12 @@ void ObjectDetector::PooledLinearCode()
         containers::DataFetchContainer<std::vector<objectdetectutils::Object>> stContainer = m_qDetectedObjectCopySchedule.front();
         // Pop out of queue.
         m_qDetectedObjectCopySchedule.pop();
+
+        // Copy the detected objects to the target location while holding the lock
+        *stContainer.pData = m_vDetectedObjects;
+
         // Release lock.
         lkObjectQueue.unlock();
-
-        // Copy the detected objects to the target location
-        *stContainer.pData = m_vDetectedObjects;
 
         // Signal future that the frame has been successfully retrieved.
         stContainer.pCopiedDataStatus->set_value(true);
@@ -458,9 +497,11 @@ std::future<bool> ObjectDetector::RequestDetectionOverlayFrame(cv::Mat& cvFrame)
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkQueue(m_muDetectionOverlayCopyMutex);
     // Append frame fetch container to the schedule queue.
     m_qDetectionOverlayFramesCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
+    // Release locks on the frame schedule queue.
+    lkQueue.unlock();
     lkScheduler.unlock();
 
     // Return the future from the promise stored in the container.
@@ -484,9 +525,11 @@ std::future<bool> ObjectDetector::RequestLastGoodDetectionOverlayFrame(cv::Mat& 
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkQueue(m_muLastGoodDetectionOverlayCopyMutex);
     // Append frame fetch container to the schedule queue.
     m_qLastGoodDetectionOverlayFramesCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
+    // Release locks on the frame schedule queue.
+    lkQueue.unlock();
     lkScheduler.unlock();
 
     // Return the future from the promise stored in the container.
@@ -510,9 +553,11 @@ std::future<bool> ObjectDetector::RequestDetectedObjects(std::vector<objectdetec
 
     // Acquire lock on pool copy queue.
     std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkQueue(m_muArucoDataCopyMutex);
     // Append frame fetch container to the schedule queue.
     m_qDetectedObjectCopySchedule.push(stContainer);
-    // Release lock on the frame schedule queue.
+    // Release locks on the frame schedule queue.
+    lkQueue.unlock();
     lkScheduler.unlock();
 
     // Return the future from the promise stored in the container.
@@ -743,6 +788,9 @@ cv::Size ObjectDetector::GetProcessFrameResolution() const
  ******************************************************************************/
 void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object>& vNewlyDetectedObjects)
 {
+    // Acquire unique lock on m_vDetectedObjects while updating.
+    std::unique_lock<std::shared_mutex> lkObject(m_muArucoDataCopyMutex);
+
     // Check if tracking is enabled.
     if (m_bEnableTracking)
     {

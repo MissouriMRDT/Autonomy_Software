@@ -115,8 +115,7 @@ void ObjectDetectionHandler::StartRecording()
 void ObjectDetectionHandler::StopAllDetectors()
 {
     // Stop recording handler.
-    m_pRecordingHandler->RequestStop();
-    m_pRecordingHandler->Join();
+    m_pRecordingHandler->StopRecording();
 
     // Stop ZED maincam detector.
     m_pObjectDetectorMainCam->RequestStop();
@@ -137,8 +136,7 @@ void ObjectDetectionHandler::StopAllDetectors()
 void ObjectDetectionHandler::StopRecording()
 {
     // Stop recording handler.
-    m_pRecordingHandler->RequestStop();
-    m_pRecordingHandler->Join();
+    m_pRecordingHandler->StopRecording();
 }
 
 /******************************************************************************

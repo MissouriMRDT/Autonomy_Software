@@ -125,8 +125,7 @@ void TagDetectionHandler::StartRecording()
 void TagDetectionHandler::StopAllDetectors()
 {
     // Stop recording handler.
-    m_pRecordingHandler->RequestStop();
-    m_pRecordingHandler->Join();
+    m_pRecordingHandler->StopRecording();
 
     // Stop main ZED detectors.
     m_pTagDetectorMainCam->RequestStop();
@@ -147,8 +146,7 @@ void TagDetectionHandler::StopAllDetectors()
 void TagDetectionHandler::StopRecording()
 {
     // Stop recording handler.
-    m_pRecordingHandler->RequestStop();
-    m_pRecordingHandler->Join();
+    m_pRecordingHandler->StopRecording();
 }
 
 /******************************************************************************

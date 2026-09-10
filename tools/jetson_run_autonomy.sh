@@ -21,7 +21,7 @@
 #   ./run_autonomy_docker.sh
 #
 # Image Source:
-#   ghcr.io/missourimrdt/autonomy-jetpack:2025-04-19-04-17-28
+#   ghcr.io/missourimrdt/autonomy-jammy:2026-05-01-15-42-01
 #
 # Author: MRDT Autonomy Team
 # -----------------------------------------------------------------------------
@@ -34,4 +34,4 @@ docker run -it --rm --runtime=nvidia --network=host --privileged \
 -v /mnt/wslg:/mnt/wslg \
 -v /tmp/.X11-unix:/tmp/.X11-unix \
 -v ../../Autonomy_Software:/opt/Autonomy_Software \
-ghcr.io/missourimrdt/autonomy-jetpack:2026-05-01-15-42-01 /usr/bin/fish
+ghcr.io/missourimrdt/autonomy-jammy:2026-05-01-15-42-01 /usr/bin/fish

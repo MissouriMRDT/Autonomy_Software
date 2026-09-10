@@ -137,6 +137,12 @@ namespace arucotag
      ******************************************************************************/
     inline void DrawDetections(cv::Mat& cvDetectionsFrame, const std::vector<tagdetectutils::ArucoTag>& vDetectedTags)
     {
+        // If frame has 4 channels, convert to 3-channel BGR.
+        if (!cvDetectionsFrame.empty() && cvDetectionsFrame.channels() == 4)
+        {
+            cv::cvtColor(cvDetectionsFrame, cvDetectionsFrame, cv::COLOR_BGRA2BGR);
+        }
+
         // Check if the given frame is a 1 or 3 channel image. (not BGRA)
         if (!cvDetectionsFrame.empty() && (cvDetectionsFrame.channels() == 1 || cvDetectionsFrame.channels() == 3))
         {
