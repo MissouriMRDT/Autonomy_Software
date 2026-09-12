@@ -972,10 +972,10 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                     stGeolocation.eType = geoops::WaypointType::eObjectWaypoint;
                     // Calculate the geo measurement and print the distance to the object.
                     geoops::GeoMeasurement stMeasurement =
-                        geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stObject.stGeolocatedPosition.GetUTMCoordinate());
+                        geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stGeolocation.GetUTMCoordinate());
 
-                    // Check that the distance is in a reasonable range.
-                    if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
+                    // Check that the distance is in a reasonable range (below the 19.5m ceiling).
+                    if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 19.5)
                     {
                         // Set the object's geolocation.
                         stObject.stGeolocatedPosition = stGeolocation;

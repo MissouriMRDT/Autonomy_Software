@@ -213,17 +213,29 @@ namespace tagdetectutils
      ******************************************************************************/
     inline void EstimatePoseFromCameraFrame(ArucoTag& stTag)
     {
+        if (stTag.cvImageResolution.width <= 0 || stTag.pBoundingBox == nullptr)
+        {
+            return;
+        }
+
         // Use camera field of view and camera frame size to determine tag angle in degrees from center of camera.
-        double dDegreesPerPixel = stTag.dHorizontalFOV / stTag.cvImageResolution.width;
+        double dDegreesPerPixel = stTag.dHorizontalFOV / static_cast<double>(stTag.cvImageResolution.width);
         // Find tag error in pixels from center of image.
-        double dTagErrorX = (stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2) - (stTag.cvImageResolution.width / 2);
+        double dTagErrorX = (stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2.0) - (stTag.cvImageResolution.width / 2.0);
         // Find angle error.
         double dTagAngleX = dTagErrorX * dDegreesPerPixel;
         // Reassign yaw and distance to tag.
         stTag.dYawAngle = dTagAngleX;
 
-        // For the distance, we'll just use the screen percentage of the tag.
-        stTag.dStraightLineDistance = (stTag.pBoundingBox->area() / (stTag.cvImageResolution.width * stTag.cvImageResolution.height)) * 100.0;
+        // Compute physical distance from known tag side length (0.20m) and camera focal length.
+        const double dPhysicalTagSize = 0.20;
+        double dHFOVRad               = stTag.dHorizontalFOV * (CV_PI / 180.0);
+        double dFx                    = (stTag.cvImageResolution.width / 2.0) / std::tan(dHFOVRad / 2.0);
+        double dTagPixelSize          = std::max(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
+        double dForwardZ              = (dPhysicalTagSize * dFx) / std::max(1.0, dTagPixelSize);
+        double dLateralX              = (dTagErrorX / dFx) * dForwardZ;
+
+        stTag.dStraightLineDistance   = std::sqrt(dForwardZ * dForwardZ + dLateralX * dLateralX);
     }
 
 }    // namespace tagdetectutils

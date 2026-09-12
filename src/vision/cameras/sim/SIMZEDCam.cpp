@@ -225,6 +225,12 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
         return;
     }
 
+    // Ensure depth measure matches the dimensions of the received depth image.
+    if (cvDepthMeasure.size() != cvDepthImage.size() || cvDepthMeasure.type() != CV_32FC1)
+    {
+        cvDepthMeasure.create(cvDepthImage.rows, cvDepthImage.cols, CV_32FC1);
+    }
+
 // TEST: Even though this speeds up the code, it might be too much CPU work as the codebase grows. Use a GpuMat instead.
 #pragma omp parallel for collapse(2)
 
@@ -237,13 +243,24 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
             // Get the depth value from the depth image.
             uchar ucDepthValue = cvDepthImage.at<uchar>(nY, nX);
 
-            // Calculate the depth in cm.
-            float fDepth = (1.0f - (ucDepthValue / 255.0f)) * fMaxDepth;
-            // Check if nY and nX are within the bounds of the depth measure image.
-            if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
+            // In simulator pixel streaming, 0 represents black/unmeasured pixels (depth dropout/ceiling).
+            if (ucDepthValue == 0)
             {
-                // Store the estimated depth in the new cv::Mat. Convert cm to m.
-                cvDepthMeasure.at<float>(nY, nX) = fDepth / 100.0f;    // Convert cm to m.
+                cvDepthMeasure.at<float>(nY, nX) = 0.0f;
+            }
+            else
+            {
+                // Calculate the depth in cm.
+                float fDepth = (1.0f - (ucDepthValue / 255.0f)) * fMaxDepth;
+                if (fDepth >= fMaxDepth - 10.0f)
+                {
+                    cvDepthMeasure.at<float>(nY, nX) = 0.0f;
+                }
+                else
+                {
+                    // Store the estimated depth in the new cv::Mat. Convert cm to m.
+                    cvDepthMeasure.at<float>(nY, nX) = fDepth / 100.0f;    // Convert cm to m.
+                }
             }
         }
     }
@@ -261,6 +278,19 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
  ******************************************************************************/
 void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
 {
+    // Check if depth measure is empty.
+    if (cvDepthMeasure.empty())
+    {
+        cvPointCloud = cv::Mat::zeros(cvPointCloud.size(), CV_32FC4);
+        return;
+    }
+
+    // Ensure point cloud matches the dimensions of the depth measure.
+    if (cvPointCloud.size() != cvDepthMeasure.size() || cvPointCloud.type() != CV_32FC4)
+    {
+        cvPointCloud.create(cvDepthMeasure.rows, cvDepthMeasure.cols, CV_32FC4);
+    }
+
     // Calculate focal lengths from FOV.
     const double dRadPerDeg = M_PI / 180.0;
     const double dFx        = (cvDepthMeasure.cols / 2.0) / tan(m_dPropHorizontalFOV * dRadPerDeg / 2.0);
@@ -281,8 +311,8 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
             // Get depth value.
             float fDepth = cvDepthMeasure.at<float>(nY, nX);
 
-            // Skip invalid depth values.
-            if (fDepth <= 0)
+            // Skip invalid depth values or background ceiling.
+            if (fDepth <= 0 || fDepth >= 19.5f)
             {
                 cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(0, 0, 0, 0);
                 continue;
@@ -327,24 +357,18 @@ void SIMZEDCam::ThreadedContinuousCode()
     // Check if the depth image WebRTC connection is open.
     if (m_pDepthImageStream != nullptr && m_pDepthImageStream->GetIsConnected())
     {
-        // Acquire a lock on the WebRTC mutex.
-        std::shared_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
+        // Acquire an exclusive lock on the WebRTC depth mutex while writing to depth measure and point cloud.
+        std::unique_lock<std::shared_mutex> lkWebRTC2(m_muWebRTCDepthImageCopyMutex);
         // Check if the depth image is not empty before processing.
         if (!m_cvDepthImage.empty())
         {
             // Estimate the depth measure from the depth image.
             this->EstimateDepthMeasure(m_cvDepthImage, m_cvDepthMeasure);
-            // Release lock.
-            lkWebRTC2.unlock();
-
             // Calculate the point cloud from the estimated depth measure.
             this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
         }
-        else
-        {
-            // Release lock.
-            lkWebRTC2.unlock();
-        }
+        // Release lock.
+        lkWebRTC2.unlock();
     }
 
     // Acquire a shared_lock on the frame copy queue.
@@ -426,6 +450,7 @@ void SIMZEDCam::PooledLinearCode()
         {
             case PIXEL_FORMATS::eBGRA:
             {
+                std::shared_lock<std::shared_mutex> lkRGB(m_muWebRTCRGBImageCopyMutex);
                 if (m_cvFrame.channels() == 3)
                 {
                     cv::cvtColor(m_cvFrame, *(stContainer.pFrame), cv::COLOR_BGR2BGRA);
@@ -436,10 +461,30 @@ void SIMZEDCam::PooledLinearCode()
                 }
                 break;
             }
-            case PIXEL_FORMATS::eDepthImage: *(stContainer.pFrame) = m_cvDepthImage.clone(); break;
-            case PIXEL_FORMATS::eDepthMeasure: *(stContainer.pFrame) = m_cvDepthMeasure.clone(); break;
-            case PIXEL_FORMATS::eXYZ: *(stContainer.pFrame) = m_cvPointCloud.clone(); break;
-            default: *(stContainer.pFrame) = m_cvFrame.clone(); break;
+            case PIXEL_FORMATS::eDepthImage:
+            {
+                std::shared_lock<std::shared_mutex> lkDepth(m_muWebRTCDepthImageCopyMutex);
+                *(stContainer.pFrame) = m_cvDepthImage.clone();
+                break;
+            }
+            case PIXEL_FORMATS::eDepthMeasure:
+            {
+                std::shared_lock<std::shared_mutex> lkDepth(m_muWebRTCDepthImageCopyMutex);
+                *(stContainer.pFrame) = m_cvDepthMeasure.clone();
+                break;
+            }
+            case PIXEL_FORMATS::eXYZ:
+            {
+                std::shared_lock<std::shared_mutex> lkDepth(m_muWebRTCDepthImageCopyMutex);
+                *(stContainer.pFrame) = m_cvPointCloud.clone();
+                break;
+            }
+            default:
+            {
+                std::shared_lock<std::shared_mutex> lkRGB(m_muWebRTCRGBImageCopyMutex);
+                *(stContainer.pFrame) = m_cvFrame.clone();
+                break;
+            }
         }
 
         // Signal future that the frame has been successfully retrieved.

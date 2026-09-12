@@ -999,33 +999,38 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
             // Loop through the tags and use their center point to lookup their distance in the point cloud.
             for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
             {
+                // Basic frame geometric properties.
+                double dFrameWidth      = m_cvFrame.cols > 0 ? static_cast<double>(m_cvFrame.cols) : 640.0;
+                double dFrameHeight     = m_cvFrame.rows > 0 ? static_cast<double>(m_cvFrame.rows) : 480.0;
+                double dHFOVRad         = stTag.dHorizontalFOV * (CV_PI / 180.0);
+                double dFx              = (dFrameWidth / 2.0) / std::tan(dHFOVRad / 2.0);
+                double dFy              = dFx;
+                double dFrameCenterX    = dFrameWidth / 2.0;
+                double dFrameCenterY    = dFrameHeight / 2.0;
+
+                // Center coordinates and angular offsets.
+                double dTagCenterX      = stTag.pBoundingBox->x + (stTag.pBoundingBox->width / 2.0);
+                double dTagCenterY      = stTag.pBoundingBox->y + (stTag.pBoundingBox->height / 2.0);
+                double dPixelOffsetX    = dTagCenterX - dFrameCenterX;
+                double dDegreesPerPixel = stTag.dHorizontalFOV / dFrameWidth;
+                stTag.dYawAngle         = dPixelOffsetX * dDegreesPerPixel;
+                stTag.dStraightLineDistance = 0.0;
+
+                // Compute perspective pinhole distance from apparent tag size (0.20m standard competition tag).
+                const double dPhysicalTagSize = 0.20;
+                double dTagPixelSize          = std::max(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
+                double dPinholeDistance       = (dPhysicalTagSize * dFx) / std::max(1.0, dTagPixelSize);
+
                 // Use either width of height for the neighborhood size.
                 int nNeighborhoodSize = std::min(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
                 // Geolocate the tag in the point cloud.
                 geoops::Waypoint stGeolocation =
                     geoloc::GeolocateBox(m_cvPointCloud,
                                          stCameraPose,
-                                         cv::Point(stTag.pBoundingBox->x + stTag.pBoundingBox->width / 2, stTag.pBoundingBox->y + stTag.pBoundingBox->height / 2),
+                                         cv::Point(static_cast<int>(dTagCenterX), static_cast<int>(dTagCenterY)),
                                          nNeighborhoodSize);
 
-                // Calculate the yaw angle to the tag using the center point of the tag and the camera's field of view.
-                // This is a fallback in case the geolocation fails for some reason, we can still provide a relative angle to the tag.
-                // Get the center X pixel coordinate of the tag's bounding box.
-                double dTagCenterX = stTag.pBoundingBox->x + (stTag.pBoundingBox->width / 2.0);
-                // Get the center X pixel coordinate of the camera frame.
-                double dFrameCenterX = m_cvFrame.cols / 2.0;
-                // Calculate the offset in pixels from the center of the camera frame.
-                // (Positive offset = target is to the right, Negative = target is to the left)
-                double dPixelOffsetX = dTagCenterX - dFrameCenterX;
-                // Calculate how many real-world degrees each pixel represents.
-                double dDegreesPerPixel = stTag.dHorizontalFOV / static_cast<double>(m_cvFrame.cols);
-                // Multiply the pixel offset by the degrees per pixel to get the relative yaw angle.
-                stTag.dYawAngle = dPixelOffsetX * dDegreesPerPixel;
-                // Explicitly set distance to 0.0 so the autonomy state machines know the depth map failed
-                // and will properly fall back to using this calculated dYawAngle.
-                stTag.dStraightLineDistance = 0.0;
-
-                // Check if the geolocation is valid. If it is overwrite the yaw angle and distance with the geolocation data.
+                bool bUsePinhole = false;
                 if (stGeolocation != geoops::Waypoint())
                 {
                     // Since this is a tag detection, set the tag's waypoint type appropriately.
@@ -1033,27 +1038,111 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
                     // Calculate the geo measurement and print the distance to the tag.
                     geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stGeolocation.GetUTMCoordinate());
 
-                    // Check that the distance is in a reasonable range.
-                    if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
+                    // If stereovision depth is at/above max ceiling (>= 19.5m) or conflicts drastically with optical size, fall back to pinhole
+                    if (stMeasurement.dDistanceMeters >= 19.5 || (dTagPixelSize >= 15.0 && stMeasurement.dDistanceMeters > dPinholeDistance * 2.5))
+                    {
+                        bUsePinhole = true;
+                    }
+                    else if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
                     {
                         // Set the tag's geolocation.
-                        stTag.stGeolocatedPosition = stGeolocation;
+                        stTag.stGeolocatedPosition   = stGeolocation;
                         // Use the rover heading and the azimuth angle to calculate the relative heading to the tag.
-                        stTag.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                        stTag.dYawAngle              = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
                         // Set the straight line distance to the tag.
                         stTag.dStraightLineDistance = stMeasurement.dDistanceMeters;
                     }
+                    else
+                    {
+                        bUsePinhole = true;
+                    }
+                }
+                else
+                {
+                    bUsePinhole = true;
+                }
+
+                if (bUsePinhole)
+                {
+                    // Calculate 3D camera frame coordinates from perspective geometry
+                    double dCenterOffsetX = dTagCenterX - dFrameCenterX;
+                    double dCenterOffsetY = dFrameCenterY - dTagCenterY;    // Y is Up in camera frame
+                    double dForwardZ      = (dPhysicalTagSize * dFx) / std::max(1.0, dTagPixelSize);
+                    double dLateralX      = (dCenterOffsetX / dFx) * dForwardZ;
+                    double dVerticalY     = (dCenterOffsetY / dFy) * dForwardZ;
+                    double dRealDist      = std::sqrt(dForwardZ * dForwardZ + dLateralX * dLateralX + dVerticalY * dVerticalY);
+
+                    // Transform to global UTM coordinates
+                    // Camera heading: 0 is North, clockwise positive.
+                    double dCamHeadingRad = dAbsoluteCameraHeading * (CV_PI / 180.0);
+                    double dDeltaEasting  = (dForwardZ * std::sin(dCamHeadingRad)) + (dLateralX * std::cos(dCamHeadingRad));
+                    double dDeltaNorthing = (dForwardZ * std::cos(dCamHeadingRad)) - (dLateralX * std::sin(dCamHeadingRad));
+
+                    geoops::UTMCoordinate stTagUTM(stCamera.dEasting + dDeltaEasting,
+                                                   stCamera.dNorthing + dDeltaNorthing,
+                                                   stCamera.nZone,
+                                                   stCamera.bWithinNorthernHemisphere,
+                                                   stCamera.dAltitude + dVerticalY);
+
+                    stTag.stGeolocatedPosition   = geoops::Waypoint(stTagUTM, geoops::WaypointType::eTagWaypoint, 0.2);
+                    stTag.dStraightLineDistance = dRealDist;
+
+                    geoops::GeoMeasurement stMeasurement = geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stTagUTM);
+                    stTag.dYawAngle              = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
                 }
             }
         }
     }
     else
     {
-        // Estimate the positions of the tags using some basic trig.
+        // Estimate the positions and geolocation of the tags using perspective pinhole geometry.
+        m_stRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+        geoops::UTMCoordinate stCamera = m_stRoverPose.GetUTMCoordinate();
+
+        double dRoverHeadingRad = m_stRoverPose.GetCompassHeading() * (CV_PI / 180.0);
+        double dRotatedX        = (m_pCamera->GetCameraPoseOffset().dPosY * sin(dRoverHeadingRad)) + (m_pCamera->GetCameraPoseOffset().dPosX * cos(dRoverHeadingRad));
+        double dRotatedY        = (m_pCamera->GetCameraPoseOffset().dPosY * cos(dRoverHeadingRad)) - (m_pCamera->GetCameraPoseOffset().dPosX * sin(dRoverHeadingRad));
+
+        stCamera.dEasting += dRotatedX;
+        stCamera.dNorthing += dRotatedY;
+        stCamera.dAltitude += m_pCamera->GetCameraPoseOffset().dPosZ;
+
+        double dQW = m_pCamera->GetCameraPoseOffset().dQW;
+        double dQX = m_pCamera->GetCameraPoseOffset().dQX;
+        double dQY = m_pCamera->GetCameraPoseOffset().dQY;
+        double dQZ = m_pCamera->GetCameraPoseOffset().dQZ;
+        double dSinYCosP      = 2.0 * (dQW * dQY + dQX * dQZ);
+        double dCosYCosP      = 1.0 - 2.0 * (dQX * dQX + dQY * dQY);
+        double dCameraHeading = std::atan2(dSinYCosP, dCosYCosP) * (180.0 / CV_PI);
+        double dAbsoluteCameraHeading = numops::InputAngleModulus<double>(m_stRoverPose.GetCompassHeading() + dCameraHeading, 0.0, 360.0);
+
         for (tagdetectutils::ArucoTag& stTag : m_vDetectedArucoTags)
         {
-            // Use some trig to get the location of the tag.
+            // Use pinhole perspective trig to get the location of the tag.
             tagdetectutils::EstimatePoseFromCameraFrame(stTag);
+
+            if (stTag.dStraightLineDistance > 0.0 && stTag.cvImageResolution.width > 0 && stTag.pBoundingBox != nullptr)
+            {
+                double dHFOVRad       = stTag.dHorizontalFOV * (CV_PI / 180.0);
+                double dFx            = (stTag.cvImageResolution.width / 2.0) / std::tan(dHFOVRad / 2.0);
+                double dTagCenterX    = stTag.pBoundingBox->x + (stTag.pBoundingBox->width / 2.0);
+                double dTagErrorX     = dTagCenterX - (stTag.cvImageResolution.width / 2.0);
+                const double dPhysicalTagSize = 0.20;
+                double dTagPixelSize  = std::max(stTag.pBoundingBox->width, stTag.pBoundingBox->height);
+                double dForwardZ      = (dPhysicalTagSize * dFx) / std::max(1.0, dTagPixelSize);
+                double dLateralX      = (dTagErrorX / dFx) * dForwardZ;
+
+                double dCamHeadingRad = dAbsoluteCameraHeading * (CV_PI / 180.0);
+                double dDeltaEasting  = (dForwardZ * std::sin(dCamHeadingRad)) + (dLateralX * std::cos(dCamHeadingRad));
+                double dDeltaNorthing = (dForwardZ * std::cos(dCamHeadingRad)) - (dLateralX * std::sin(dCamHeadingRad));
+
+                geoops::UTMCoordinate stTagUTM(stCamera.dEasting + dDeltaEasting,
+                                               stCamera.dNorthing + dDeltaNorthing,
+                                               stCamera.nZone,
+                                               stCamera.bWithinNorthernHemisphere,
+                                               stCamera.dAltitude);
+                stTag.stGeolocatedPosition = geoops::Waypoint(stTagUTM, geoops::WaypointType::eTagWaypoint, 0.2);
+            }
         }
     }
 }

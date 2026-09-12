@@ -129,14 +129,27 @@ namespace pathplanners
         m_dMaxSearchTimeSeconds = dMaxSearchTimeSeconds;
         m_dCorridorPadding      = dCorridorPadding;
 
-        LOG_NOTICE(logging::g_qSharedLogger,
-                   "Starting GeoPlanner path planning from ({:.2f}, {:.2f}) to ({:.2f}, {:.2f}) with algorithmic beta: {}, minimum score threshold: {}.",
-                   stStart.dEasting,
-                   stStart.dNorthing,
-                   stEnd.dEasting,
-                   stEnd.dNorthing,
-                   m_dBeta,
-                   m_dMinTravScore);
+        double dEuclidDist = EuclideanDistance(stStart.dEasting, stStart.dNorthing, stEnd.dEasting, stEnd.dNorthing);
+        if (dEuclidDist < 0.5)
+        {
+            LOG_DEBUG(logging::g_qSharedLogger,
+                      "GeoPlanner: Start ({:.2f}, {:.2f}) and End ({:.2f}, {:.2f}) distance {:.2f}m < 0.5m threshold. Skipping A* search.",
+                      stStart.dEasting,
+                      stStart.dNorthing,
+                      stEnd.dEasting,
+                      stEnd.dNorthing,
+                      dEuclidDist);
+            return {geoops::Waypoint(stEnd, geoops::WaypointType::eNavigationWaypoint, m_dPathWaypointTolerance)};
+        }
+
+        LOG_DEBUG(logging::g_qSharedLogger,
+                  "Starting GeoPlanner path planning from ({:.2f}, {:.2f}) to ({:.2f}, {:.2f}) with algorithmic beta: {}, minimum score threshold: {}.",
+                  stStart.dEasting,
+                  stStart.dNorthing,
+                  stEnd.dEasting,
+                  stEnd.dNorthing,
+                  m_dBeta,
+                  m_dMinTravScore);
 
         // Sanity check the beta multiplier to avoid dividing by zero or disabling penalty tracking.
         if (m_dBeta <= 0.0)
@@ -157,24 +170,24 @@ namespace pathplanners
 
         std::chrono::time_point<std::chrono::high_resolution_clock> tmAfterInit = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> dInitDurationSeconds                      = tmAfterInit - tmStartTime;
-        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner Grid Generation phase mapped within {:.6f} seconds.", dInitDurationSeconds.count());
+        LOG_DEBUG(logging::g_qSharedLogger, "GeoPlanner Grid Generation phase mapped within {:.6f} seconds.", dInitDurationSeconds.count());
 
         // Step 2: Formally run the highly optimized Weighted A* search logic.
         this->SearchAStar();
 
         std::chrono::time_point<std::chrono::high_resolution_clock> tmAfterSearch = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> dSearchDurationSeconds                      = tmAfterSearch - tmAfterInit;
-        LOG_INFO(logging::g_qSharedLogger, "GeoPlanner A* Grid Node Expansion executed within {:.6f} seconds.", dSearchDurationSeconds.count());
+        LOG_DEBUG(logging::g_qSharedLogger, "GeoPlanner A* Grid Node Expansion executed within {:.6f} seconds.", dSearchDurationSeconds.count());
 
         // Step 3: Integrate and rebuild exact geographic sequences tracking backwards from the goal.
         std::vector<geoops::Waypoint> vPath                                   = this->ReconstructPath();
 
         std::chrono::time_point<std::chrono::high_resolution_clock> tmEndTime = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> dOverallDurationSeconds                 = tmEndTime - tmStartTime;
-        LOG_NOTICE(logging::g_qSharedLogger,
-                   "GeoPlanner total end-to-end path routing executed within {:.6f} seconds rendering {} waypoints.",
-                   dOverallDurationSeconds.count(),
-                   vPath.size());
+        LOG_DEBUG(logging::g_qSharedLogger,
+                  "GeoPlanner total end-to-end path routing executed within {:.6f} seconds rendering {} waypoints.",
+                  dOverallDurationSeconds.count(),
+                  vPath.size());
 
         return vPath;
     }
@@ -434,13 +447,13 @@ namespace pathplanners
             m_pqOpenSetNextBest.pop();
         }
 
-        LOG_INFO(logging::g_qSharedLogger,
-                 "Abstract Search Grid Built. Width {} x Height {} (Total: {} cells). Start Index: {}, End Index: {}",
-                 m_nGridWidth,
-                 m_nGridHeight,
-                 nTotalCells,
-                 m_nStartIndex,
-                 m_nEndIndex);
+        LOG_DEBUG(logging::g_qSharedLogger,
+                  "Abstract Search Grid Built. Width {} x Height {} (Total: {} cells). Start Index: {}, End Index: {}",
+                  m_nGridWidth,
+                  m_nGridHeight,
+                  nTotalCells,
+                  m_nStartIndex,
+                  m_nEndIndex);
         return true;
     }
 
@@ -493,7 +506,7 @@ namespace pathplanners
             // Immediately exit standard operations if the target goal coordinate was successfully reached.
             if (stCurrentState.nGridIndex == m_nEndIndex)
             {
-                LOG_INFO(logging::g_qSharedLogger, "Successfully reached valid goal configuration parameter during A* expansions.");
+                LOG_DEBUG(logging::g_qSharedLogger, "Successfully reached valid goal configuration parameter during A* expansions.");
                 return;
             }
 

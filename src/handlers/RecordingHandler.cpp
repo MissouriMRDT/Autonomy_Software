@@ -354,6 +354,15 @@ void RecordingHandler::RequestAndWriteCameraFrames()
         // Check if recording for the camera at this index is enabled.
         if (m_vRecordingToggles[nIter])
         {
+            // Do not enqueue a new request if the previous one is still pending in the camera pool.
+            if (m_vFrameFutures[nIter].valid())
+            {
+                if (m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) != std::future_status::ready)
+                {
+                    continue;
+                }
+            }
+
             // Check if the camera at the current index is a BasicCam or ZEDCam.
             if (m_vBasicCameras[nIter] != nullptr)
             {
@@ -383,101 +392,51 @@ void RecordingHandler::RequestAndWriteCameraFrames()
         // Check if recording for the camera at this index is enabled.
         if (m_vRecordingToggles[nIter])
         {
-            // Check if the camera at the current index is a BasicCam or ZEDCam.
-            if (m_vBasicCameras[nIter] != nullptr)
+            if (m_vFrameFutures[nIter].valid() &&
+                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
             {
-                // Wait for future to be fulfilled with timeout to prevent deadlocks.
-                if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+                bool bSuccess = false;
+                try
                 {
-                    // Check if this is a grayscale or color image.
-                    if (m_vFrames[nIter].channels() == 1)
+                    bSuccess = m_vFrameFutures[nIter].get();
+                }
+                catch (...)
+                {
+                    bSuccess = false;
+                }
+
+                if (bSuccess)
+                {
+                    if (m_vZEDCameras[nIter] != nullptr && m_vZEDCameras[nIter]->GetUsingGPUMem())
                     {
-                        // Convert frame from 1 channel grayscale to 3 channel BGR.
-                        cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
-                    }
-                    // Check if this has an alpha channel.
-                    else if (m_vFrames[nIter].channels() == 4)
-                    {
-                        // Convert from from 4 channels to 3 channels.
-                        cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
+                        if (!m_vGPUFrames[nIter].empty())
+                        {
+                            m_vGPUFrames[nIter].download(m_vFrames[nIter]);
+                        }
                     }
 
-                    // Write frame to OpenCV video writer.
-                    if (m_vCameraWriters[nIter].isOpened())
+                    if (!m_vFrames[nIter].empty() && m_vCameraWriters[nIter].isOpened())
                     {
+                        cv::Mat cvFrameToWrite;
+                        if (m_vFrames[nIter].channels() == 1)
+                        {
+                            cv::cvtColor(m_vFrames[nIter], cvFrameToWrite, cv::COLOR_GRAY2BGR);
+                        }
+                        else if (m_vFrames[nIter].channels() == 4)
+                        {
+                            cv::cvtColor(m_vFrames[nIter], cvFrameToWrite, cv::COLOR_BGRA2BGR);
+                        }
+                        else
+                        {
+                            cvFrameToWrite = m_vFrames[nIter].clone();
+                        }
+
                         if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
-                            m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
+                            cvFrameToWrite.size() != m_vWriterResolutions[nIter])
                         {
-                            cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
+                            cv::resize(cvFrameToWrite, cvFrameToWrite, m_vWriterResolutions[nIter]);
                         }
-                        m_vCameraWriters[nIter].write(m_vFrames[nIter]);
-                    }
-                }
-            }
-            else if (m_vZEDCameras[nIter] != nullptr)
-            {
-                // Check if the camera is setup to use CPU or GPU mats.
-                if (m_vZEDCameras[nIter]->GetUsingGPUMem())
-                {
-                    // Wait for future to be fulfilled with timeout to prevent deadlocks.
-                    if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vGPUFrames[nIter].empty())
-                    {
-                        // Download GPU mat frame to normal mat.
-                        m_vGPUFrames[nIter].download(m_vFrames[nIter]);
-
-                        // Check if this is a grayscale or color image.
-                        if (m_vFrames[nIter].channels() == 1)
-                        {
-                            // Convert frame from 1 channel grayscale to 3 channel BGR.
-                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
-                        }
-                        // Check if this has an alpha channel.
-                        else if (m_vFrames[nIter].channels() == 4)
-                        {
-                            // Convert from from 4 channels to 3 channels.
-                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
-                        }
-
-                        // Write frame to OpenCV video writer.
-                        if (m_vCameraWriters[nIter].isOpened())
-                        {
-                            if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
-                                m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
-                            {
-                                cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
-                            }
-                            m_vCameraWriters[nIter].write(m_vFrames[nIter]);
-                        }
-                    }
-                }
-                else
-                {
-                    // Wait for future to be fulfilled with timeout to prevent deadlocks.
-                    if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
-                    {
-                        // Check if this is a grayscale or color image.
-                        if (m_vFrames[nIter].channels() == 1)
-                        {
-                            // Convert frame from 1 channel grayscale to 3 channel BGR.
-                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
-                        }
-                        // Check if this has an alpha channel.
-                        else if (m_vFrames[nIter].channels() == 4)
-                        {
-                            // Convert from from 4 channels to 3 channels.
-                            cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
-                        }
-
-                        // Write frame to OpenCV video writer.
-                        if (m_vCameraWriters[nIter].isOpened())
-                        {
-                            if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
-                                m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
-                            {
-                                cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
-                            }
-                            m_vCameraWriters[nIter].write(m_vFrames[nIter]);
-                        }
+                        m_vCameraWriters[nIter].write(cvFrameToWrite);
                     }
                 }
             }
@@ -587,6 +546,14 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
         // Check if recording for the camera at this index is enabled and tag detector at index is not null.
         if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
         {
+            // Do not enqueue a new request if the previous one is still pending.
+            if (m_vFrameFutures[nIter].valid())
+            {
+                if (m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) != std::future_status::ready)
+                {
+                    continue;
+                }
+            }
             // Request frame.
             m_vFrameFutures[nIter] = m_vTagDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
         }
@@ -598,31 +565,41 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
         // Check if recording for the camera at this index is enabled and tag detector is not null.
         if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
         {
-            // Wait for future to be fulfilled with timeout to prevent deadlocks.
-            if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+            if (m_vFrameFutures[nIter].valid() &&
+                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
             {
-                // Check if this is a grayscale or color image.
-                if (m_vFrames[nIter].channels() == 1)
+                bool bSuccess = false;
+                try
                 {
-                    // Convert frame from 1 channel grayscale to 3 channel BGR.
-                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                    bSuccess = m_vFrameFutures[nIter].get();
                 }
-                // Check if this has an alpha channel.
-                else if (m_vFrames[nIter].channels() == 4)
+                catch (...)
                 {
-                    // Convert from from 4 channels to 3 channels.
-                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
+                    bSuccess = false;
                 }
 
-                // Write frame to OpenCV video writer.
-                if (m_vCameraWriters[nIter].isOpened())
+                if (bSuccess && !m_vFrames[nIter].empty() && m_vCameraWriters[nIter].isOpened())
                 {
-                    if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
-                        m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
+                    cv::Mat cvFrameToWrite;
+                    if (m_vFrames[nIter].channels() == 1)
                     {
-                        cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
+                        cv::cvtColor(m_vFrames[nIter], cvFrameToWrite, cv::COLOR_GRAY2BGR);
                     }
-                    m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                    else if (m_vFrames[nIter].channels() == 4)
+                    {
+                        cv::cvtColor(m_vFrames[nIter], cvFrameToWrite, cv::COLOR_BGRA2BGR);
+                    }
+                    else
+                    {
+                        cvFrameToWrite = m_vFrames[nIter].clone();
+                    }
+
+                    if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
+                        cvFrameToWrite.size() != m_vWriterResolutions[nIter])
+                    {
+                        cv::resize(cvFrameToWrite, cvFrameToWrite, m_vWriterResolutions[nIter]);
+                    }
+                    m_vCameraWriters[nIter].write(cvFrameToWrite);
                 }
             }
         }
@@ -731,9 +708,17 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
     // Loop through total number of cameras and request frames.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
-        // Check if recording for the camera at this index is enabled and tag detector at index is not null.
+        // Check if recording for the camera at this index is enabled and object detector at index is not null.
         if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
         {
+            // Do not enqueue a new request if the previous one is still pending.
+            if (m_vFrameFutures[nIter].valid())
+            {
+                if (m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) != std::future_status::ready)
+                {
+                    continue;
+                }
+            }
             // Request frame.
             m_vFrameFutures[nIter] = m_vObjectDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
         }
@@ -742,34 +727,44 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
     // Loop through cameras and wait for frame requests to be fulfilled.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
-        // Check if recording for the camera at this index is enabled and tag detector is not null.
+        // Check if recording for the camera at this index is enabled and object detector is not null.
         if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
         {
-            // Wait for future to be fulfilled with timeout to prevent deadlocks.
-            if (m_vFrameFutures[nIter].valid() && m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready && m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty())
+            if (m_vFrameFutures[nIter].valid() &&
+                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
             {
-                // Check if this is a grayscale or color image.
-                if (m_vFrames[nIter].channels() == 1)
+                bool bSuccess = false;
+                try
                 {
-                    // Convert frame from 1 channel grayscale to 3 channel BGR.
-                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_GRAY2BGR);
+                    bSuccess = m_vFrameFutures[nIter].get();
                 }
-                // Check if this has an alpha channel.
-                else if (m_vFrames[nIter].channels() == 4)
+                catch (...)
                 {
-                    // Convert from from 4 channels to 3 channels.
-                    cv::cvtColor(m_vFrames[nIter], m_vFrames[nIter], cv::COLOR_BGRA2BGR);
+                    bSuccess = false;
                 }
 
-                // Write frame to OpenCV video writer.
-                if (m_vCameraWriters[nIter].isOpened())
+                if (bSuccess && !m_vFrames[nIter].empty() && m_vCameraWriters[nIter].isOpened())
                 {
-                    if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
-                        m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
+                    cv::Mat cvFrameToWrite;
+                    if (m_vFrames[nIter].channels() == 1)
                     {
-                        cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
+                        cv::cvtColor(m_vFrames[nIter], cvFrameToWrite, cv::COLOR_GRAY2BGR);
                     }
-                    m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                    else if (m_vFrames[nIter].channels() == 4)
+                    {
+                        cv::cvtColor(m_vFrames[nIter], cvFrameToWrite, cv::COLOR_BGRA2BGR);
+                    }
+                    else
+                    {
+                        cvFrameToWrite = m_vFrames[nIter].clone();
+                    }
+
+                    if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
+                        cvFrameToWrite.size() != m_vWriterResolutions[nIter])
+                    {
+                        cv::resize(cvFrameToWrite, cvFrameToWrite, m_vWriterResolutions[nIter]);
+                    }
+                    m_vCameraWriters[nIter].write(cvFrameToWrite);
                 }
             }
         }
