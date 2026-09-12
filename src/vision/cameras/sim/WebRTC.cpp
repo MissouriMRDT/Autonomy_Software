@@ -76,6 +76,9 @@ WebRTC::~WebRTC()
     LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} destructor called. Cleaning up...", m_szStreamerID);
     this->CloseConnection();
 
+    // Acquire lock to guarantee no decoder thread is inside DecodeH264BytesToCVMat while freeing resources.
+    std::unique_lock<std::shared_mutex> lkDecoderLock(m_muDecoderMutex);
+
     // Free the codec context.
     if (m_pSWSContext)
     {
@@ -772,6 +775,10 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
 
     // Send the packet to the decoder.
     int nReturnCode = avcodec_send_packet(m_pAVCodecContext, m_pPacket);
+    // Immediately clear packet pointers to avoid dangling references after vH264EncodedBytes goes out of scope.
+    m_pPacket->data = nullptr;
+    m_pPacket->size = 0;
+
     if (nReturnCode < 0)
     {
         // Get the error message.
@@ -795,6 +802,8 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         return false;
     }
 
+    bool bFrameDecoded = false;
+
     // Receive decoded frames in a loop
     while (true)
     {
@@ -817,17 +826,54 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             return false;
         }
 
+        // Validate basic dimensions and format.
+        if (m_pFrame->width <= 0 || m_pFrame->height <= 0 || m_pFrame->format < 0)
+        {
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Skipping frame with invalid dimensions/format ({}, {}, fmt:{})",
+                      m_szStreamerID, m_pFrame->width, m_pFrame->height, m_pFrame->format);
+            continue;
+        }
+
+        // Skip frames explicitly flagged as corrupt by the decoder.
+        if (m_pFrame->flags & AV_FRAME_FLAG_CORRUPT)
+        {
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Skipping corrupt decoded frame", m_szStreamerID);
+            continue;
+        }
+
+        // Verify required plane pointers and linesizes are valid.
+        const AVPixFmtDescriptor* pDesc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(m_pFrame->format));
+        if (!pDesc)
+        {
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Unknown pixel format descriptor: {}", m_szStreamerID, m_pFrame->format);
+            continue;
+        }
+
+        bool bPlanesValid = true;
+        for (int i = 0; i < pDesc->nb_components; ++i)
+        {
+            int nPlane = pDesc->comp[i].plane;
+            if (m_pFrame->data[nPlane] == nullptr || m_pFrame->linesize[nPlane] <= 0)
+            {
+                bPlanesValid = false;
+                break;
+            }
+        }
+        if (!bPlanesValid)
+        {
+            LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Skipping frame with null or invalid plane data/stride", m_szStreamerID);
+            continue;
+        }
+
         // Check if the user want to keep the YUV420P data un-altered.
         if (eOutputPixelFormat == AV_PIX_FMT_YUV420P)
         {
             // The frame received from the FFMPEG H264 decoder is already in YUV420P format.
             // We want to keep the raw YUV420P byte data un-altered, but store that data in a RGB 3 channel Mat.
-            // Absolutely no colorspace conversion or the binary data will be corrupted.
-
-            // Extract the Y, U, and V planes.
-            cv::Mat cvYPlane(m_pFrame->height, m_pFrame->width, CV_8UC1, m_pFrame->data[0]);
-            cv::Mat cvUPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[1]);
-            cv::Mat cvVPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[2]);
+            // Explicitly pass linesize to each plane Mat to handle stride padding correctly.
+            cv::Mat cvYPlane(m_pFrame->height, m_pFrame->width, CV_8UC1, m_pFrame->data[0], m_pFrame->linesize[0]);
+            cv::Mat cvUPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[1], m_pFrame->linesize[1]);
+            cv::Mat cvVPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[2], m_pFrame->linesize[2]);
             // Upsample the U and V planes to match the Y plane.
             cv::Mat cvUPlaneUpsampled, cvVPlaneUpsampled;
             cv::resize(cvUPlane, cvUPlaneUpsampled, cv::Size(m_pFrame->width, m_pFrame->height), 0, 0, cv::INTER_NEAREST);
@@ -835,32 +881,28 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             // Merge the Y, U, and V planes into a single 3 channel Mat.
             std::vector<cv::Mat> vYUVPlanes = {cvYPlane, cvUPlaneUpsampled, cvVPlaneUpsampled};
             cv::merge(vYUVPlanes, cvDecodedFrame);
+            bFrameDecoded = true;
         }
         else
         {
-            // Convert the decoded frame to cv::Mat using sws_scale.
+            // Dynamically manage SwsContext with sws_getCachedContext to automatically adapt
+            // to any resolution, pixel format, or stride changes without crashing.
+            m_pSWSContext = sws_getCachedContext(m_pSWSContext,
+                                                 m_pFrame->width,
+                                                 m_pFrame->height,
+                                                 static_cast<AVPixelFormat>(m_pFrame->format),
+                                                 m_pFrame->width,
+                                                 m_pFrame->height,
+                                                 eOutputPixelFormat,
+                                                 SWS_FAST_BILINEAR,
+                                                 nullptr,
+                                                 nullptr,
+                                                 nullptr);
             if (m_pSWSContext == nullptr)
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Initializing SwsContext...", m_szStreamerID);
-                m_pSWSContext = sws_getContext(m_pFrame->width,
-                                               m_pFrame->height,
-                                               static_cast<AVPixelFormat>(m_pFrame->format),
-                                               m_pFrame->width,
-                                               m_pFrame->height,
-                                               eOutputPixelFormat,
-                                               SWS_FAST_BILINEAR,
-                                               nullptr,
-                                               nullptr,
-                                               nullptr);
-                if (m_pSWSContext == nullptr)
-                {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "Failed to initialize SwsContext!");
-                    // Request a new keyframe from the video track.
-                    this->RequestKeyFrame();
-
-                    return false;
-                }
+                LOG_WARNING(logging::g_qSharedLogger, "WebRTC camera {} Failed to allocate or cache SwsContext!", m_szStreamerID);
+                this->RequestKeyFrame();
+                return false;
             }
 
             // Create new mat for the decoded frame.
@@ -870,10 +912,11 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
 
             // Convert the frame to the output pixel format.
             sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pFrame->height, aDest.data(), aDestLinesize.data());
+            bFrameDecoded = true;
         }
     }
 
-    return true;
+    return bFrameDecoded;
 }
 
 /******************************************************************************

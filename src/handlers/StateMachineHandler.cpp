@@ -251,10 +251,19 @@ void StateMachineHandler::ThreadedContinuousCode()
         states. And verify that the state machine is not exiting. This prevents
         the state machine from running after it has been stopped.
     */
-    if (!m_bSwitchingStates)
+    std::shared_ptr<statemachine::State> pStateToRun;
     {
-        // Run the current state
-        m_pCurrentState->Run();
+        std::shared_lock<std::shared_mutex> lkStateProcessLock(m_muStateMutex);
+        if (!m_bSwitchingStates && m_pCurrentState != nullptr)
+        {
+            pStateToRun = m_pCurrentState;
+        }
+    }
+
+    if (pStateToRun != nullptr)
+    {
+        // Run the current state safely using local shared_ptr reference
+        pStateToRun->Run();
     }
 }
 

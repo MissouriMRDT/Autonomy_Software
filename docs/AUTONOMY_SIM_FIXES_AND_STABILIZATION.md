@@ -25,6 +25,7 @@
    - [3.10 Vector Mutex Violations & Race Conditions in Tag/Object Detectors](#310-vector-mutex-violations--race-conditions-in-tagobject-detectors)
    - [3.11 ZED Point Cloud Retrieval Abandonment & Asynchronous Memory Race](#311-zed-point-cloud-retrieval-abandonment--asynchronous-memory-race)
    - [3.12 Null Pointer Dereferences in State Machine Checkers](#312-null-pointer-dereferences-in-state-machine-checkers)
+   - [3.13 WebRTC Image Scaling Context Mismatch & Libswscale Crash (SIGSEGV)](#313-webrtc-image-scaling-context-mismatch--libswscale-crash-sigsegv)
 4. [Comprehensive File-by-File Change Log](#4-comprehensive-file-by-file-change-log)
 5. [Diagnostics & Debugging Methodology](#5-diagnostics--debugging-methodology)
 6. [Verification & Mission Testing Results](#6-verification--mission-testing-results)
@@ -623,11 +624,61 @@ if (vObjectDetectors[siIdx] != nullptr && vObjectDetectors[siIdx]->GetIsReady())
 
 ---
 
+### 3.13 WebRTC Image Scaling Context Mismatch & Libswscale Crash (SIGSEGV)
+
+#### Root Cause (Core Dump `49388` Analysis)
+During extended navigation in `NavigatingState`, the simulator crashed after 30–60 seconds with:
+```text
+fish: Job 1, './Autonomy_Software_Sim' terminated by signal SIGSEGV (Address boundary error)
+```
+Inspection with `systemd-coredump` / `coredumpctl` revealed:
+```text
+PID: 49388, TID: 49575
+Signal: 11 (SEGV) si_code: SEGV_MAPERR
+Stack trace of thread 15548:
+#0  0x00007f7914b14c13 n/a (/usr/local/lib/libswscale.so.8.3.100 + 0x36c13)
+```
+Disassembly at offset `0x36c13` inside `libswscale.so`:
+```text
+0x0000000000036c13: movzbl 0x4(%r10), %eax
+```
+This fault occurred during YUV420P-to-RGB conversion where `%r10` attempted to read beyond the mapped memory page.
+
+**The Mechanics of the Failure:**
+1. **Static SwsContext:** In `WebRTC::DecodeH264BytesToCVMat()`, `m_pSWSContext` was allocated with `sws_getContext()` only on the very first decoded frame (`if (m_pSWSContext == nullptr)`).
+2. **Dynamic WebRTC Video Changes:** During active simulation driving, Unreal Engine's Pixel Streaming NVENC encoder dynamically adjusts bitrate, resolution, or macroblock slice structures.
+3. When resolution or stride changed (or when corrupted macroblock slices arrived), `m_pSWSContext` was **not updated**. `sws_scale()` attempted to read the old context's dimensions (e.g. 1280x720) from an incoming frame buffer of different dimensions (e.g. 640x360), immediately reading past the allocated memory boundary (`SEGV_MAPERR`).
+4. **Packet Pointer Dangling:** `m_pPacket->data` borrowed the pointer from `vH264EncodedBytes`. When `vH264EncodedBytes` was deallocated on callback exit, `m_pPacket` was left pointing to dangling memory.
+5. **Missing Frame/Plane Validation:** If a frame had missing planes, corrupt flags (`AV_FRAME_FLAG_CORRUPT`), or linesize $\le 0$, it was passed directly into `sws_scale()`.
+
+#### Solution
+1. In `src/vision/cameras/sim/WebRTC.cpp`, replaced one-time `sws_getContext()` with dynamic `sws_getCachedContext()`:
+```cpp
+m_pSWSContext = sws_getCachedContext(m_pSWSContext,
+                                     m_pFrame->width,
+                                     m_pFrame->height,
+                                     static_cast<AVPixelFormat>(m_pFrame->format),
+                                     m_pFrame->width,
+                                     m_pFrame->height,
+                                     eOutputPixelFormat,
+                                     SWS_FAST_BILINEAR,
+                                     nullptr,
+                                     nullptr,
+                                     nullptr);
+```
+2. Validated all decoded frame properties (`width > 0`, `height > 0`, `format >= 0`, and `!(m_pFrame->flags & AV_FRAME_FLAG_CORRUPT)`).
+3. Verified all required image planes and positive strides using `av_pix_fmt_desc_get()` before scaling.
+4. Immediately cleared `m_pPacket->data = nullptr` and `m_pPacket->size = 0` after `avcodec_send_packet()`.
+5. Passed `m_pFrame->linesize` steps to OpenCV matrix plane constructors in YUV mode.
+
+---
+
 ## 4. Comprehensive File-by-File Change Log
 
 | File Path | Description of Changes |
 | :--- | :--- |
-| `src/vision/cameras/sim/WebRTC.cpp` | • Changed FFmpeg decode log level from `AV_LOG_DEBUG` to `AV_LOG_ERROR` to eliminate console saturation.<br>• Added WebSocket `"ping"`/`"pong"` keepalive handling to maintain connection to Unreal Signalling Server.<br>• Rate-limited H.264 `send_packet` warnings to once every 3 seconds.<br>• Added 2-second timeout to `CloseConnection()` to avoid deadlocks. |
+| `src/vision/cameras/sim/WebRTC.cpp` | • Changed FFmpeg decode log level from `AV_LOG_DEBUG` to `AV_LOG_ERROR` to eliminate console saturation.<br>• Added WebSocket `"ping"`/`"pong"` keepalive handling to maintain connection to Unreal Signalling Server.<br>• Rate-limited H.264 `send_packet` warnings to once every 3 seconds.<br>• Added 2-second timeout to `CloseConnection()` to avoid deadlocks.<br>• **Cached SwsContext dynamically via `sws_getCachedContext` to prevent mid-run `libswscale` memory boundary segfaults.**<br>• **Added frame and plane validation checks (`av_pix_fmt_desc_get`, `AV_FRAME_FLAG_CORRUPT`).**<br>• **Cleared `m_pPacket` data pointers immediately after submission to prevent dangling references.** |
+| `src/vision/cameras/sim/WebRTC.h` | • Included `<libavutil/pixdesc.h>` for pixel format descriptor validation. |
 | `src/vision/cameras/sim/SIMZEDCam.cpp` | • Initialized `m_cvFrame` with 3 channels (`CV_8UC3`) to match BGR decoding.<br>• Added BGRA conversion in `PooledLinearCode` for consumers requesting 4 channels.<br>• Added empty check on `m_cvDepthImage` before estimating depth measure.<br>• Updated `GetCameraIsOpen()` with null pointer verification. |
 | `src/main.cpp` | • Wrapped `STDIN_FILENO` reading with `isatty()` checks to prevent infinite error loops in non-interactive containers.<br>• Ignored non-blocking read codes (`EAGAIN`, `EWOULDBLOCK`). |
 | `src/util/vision/YOLOModel.hpp` | • Added `.clone()` to `PreprocessImage()` tensor output, preventing use-after-free on CPU fallback.<br>• Added `torch::NoGradGuard` and `m_muInferenceMutex` around model forward pass. |

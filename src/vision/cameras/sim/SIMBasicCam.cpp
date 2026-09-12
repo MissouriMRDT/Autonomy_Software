@@ -80,6 +80,24 @@ SIMBasicCam::~SIMBasicCam()
     this->RequestStop();
     this->Join();
 
+    // Drain and fulfill any remaining scheduled promises so consumers don't get broken promise errors.
+    std::unique_lock<std::shared_mutex> lkFrameQueue(m_muFrameCopyMutex);
+    while (!m_qFrameCopySchedule.empty())
+    {
+        auto stContainer = m_qFrameCopySchedule.front();
+        m_qFrameCopySchedule.pop();
+        if (stContainer.pCopiedFrameStatus)
+        {
+            try
+            {
+                stContainer.pCopiedFrameStatus->set_value(false);
+            }
+            catch (...)
+            {
+            }
+        }
+    }
+
     // Release camera capture object.
     m_cvCamera.release();
 }
@@ -186,7 +204,7 @@ std::future<bool> SIMBasicCam::RequestFrameCopy(cv::Mat& cvFrame)
     containers::FrameFetchContainer<cv::Mat> stContainer(cvFrame, m_ePropPixelFormat);
 
     // Acquire lock on frame copy queue.
-    std::unique_lock<std::shared_mutex> lkScheduler(m_muPoolScheduleMutex);
+    std::unique_lock<std::shared_mutex> lkScheduler(m_muFrameCopyMutex);
     // Append frame fetch container to the schedule queue.
     m_qFrameCopySchedule.push(stContainer);
     // Release lock on the frame schedule queue.

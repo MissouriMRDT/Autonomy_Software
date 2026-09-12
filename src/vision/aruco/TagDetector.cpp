@@ -287,14 +287,22 @@ void TagDetector::ThreadedContinuousCode()
                 bool bPointCloudSuccess = false;
                 if (bRequestingPointCloud)
                 {
-                    if (bCloudReady)
+                    try
                     {
-                        bPointCloudSuccess = fuPointCloudCopyStatus.get();
+                        if (bCloudReady)
+                        {
+                            bPointCloudSuccess = fuPointCloudCopyStatus.get();
+                        }
+                        else if (fuPointCloudCopyStatus.valid())
+                        {
+                            fuPointCloudCopyStatus.wait();
+                            bPointCloudSuccess = fuPointCloudCopyStatus.get();
+                        }
                     }
-                    else if (fuPointCloudCopyStatus.valid())
+                    catch (const std::exception& e)
                     {
-                        fuPointCloudCopyStatus.wait();
-                        bPointCloudSuccess = fuPointCloudCopyStatus.get();
+                        LOG_WARNING(logging::g_qSharedLogger, "TagDetector: Exception retrieving point cloud future: {}", e.what());
+                        bPointCloudSuccess = false;
                     }
 
                     if (!bPointCloudSuccess)
@@ -305,14 +313,22 @@ void TagDetector::ThreadedContinuousCode()
                 }
 
                 bool bFrameSuccess = false;
-                if (bFrameReady)
+                try
                 {
-                    bFrameSuccess = fuRegularFrameCopyStatus.get();
+                    if (bFrameReady)
+                    {
+                        bFrameSuccess = fuRegularFrameCopyStatus.get();
+                    }
+                    else if (fuRegularFrameCopyStatus.valid())
+                    {
+                        fuRegularFrameCopyStatus.wait();
+                        bFrameSuccess = fuRegularFrameCopyStatus.get();
+                    }
                 }
-                else if (fuRegularFrameCopyStatus.valid())
+                catch (const std::exception& e)
                 {
-                    fuRegularFrameCopyStatus.wait();
-                    bFrameSuccess = fuRegularFrameCopyStatus.get();
+                    LOG_WARNING(logging::g_qSharedLogger, "TagDetector: Exception retrieving regular frame future: {}", e.what());
+                    bFrameSuccess = false;
                 }
 
                 if (!bFrameSuccess)
@@ -323,9 +339,16 @@ void TagDetector::ThreadedContinuousCode()
         }
         else
         {
-            if (!bFrameReady || !fuRegularFrameCopyStatus.get())
+            try
             {
-                LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
+                if (!bFrameReady || !fuRegularFrameCopyStatus.get())
+                {
+                    LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
+                }
+            }
+            catch (const std::exception& e)
+            {
+                LOG_WARNING(logging::g_qSharedLogger, "TagDetector: Exception retrieving BasicCam frame future: {}", e.what());
             }
         }
 
