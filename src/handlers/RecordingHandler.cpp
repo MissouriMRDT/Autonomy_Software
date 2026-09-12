@@ -44,6 +44,7 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vZEDCameras.resize(m_nTotalVideoFeeds);
             m_vBasicCameras.resize(m_nTotalVideoFeeds);
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
+            m_vWriterResolutions.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
             m_vGPUFrames.resize(m_nTotalVideoFeeds);
@@ -57,6 +58,7 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             // Resize member vectors to match number of total video feeds to record.
             m_vTagDetectors.resize(m_nTotalVideoFeeds);
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
+            m_vWriterResolutions.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
             m_vFrameFutures.resize(m_nTotalVideoFeeds);
@@ -69,6 +71,7 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             // Resize member vectors to match number of total video feeds to record.
             m_vObjectDetectors.resize(m_nTotalVideoFeeds);
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
+            m_vWriterResolutions.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
             m_vFrames.resize(m_nTotalVideoFeeds);
             m_vFrameFutures.resize(m_nTotalVideoFeeds);
@@ -102,6 +105,7 @@ void RecordingHandler::StopRecording()
             cvCameraWriter.release();
         }
     }
+    m_vWriterResolutions.assign(m_nTotalVideoFeeds, cv::Size());
 }
 
 RecordingHandler::~RecordingHandler()
@@ -241,6 +245,10 @@ void RecordingHandler::UpdateRecordableCameras()
                                 pBasicCamera->GetCameraLocation());
                     m_vRecordingToggles[nCamera - 1] = false;
                 }
+                else
+                {
+                    m_vWriterResolutions[nCamera - 1] = cvResolution;
+                }
             }
         }
         else
@@ -315,6 +323,10 @@ void RecordingHandler::UpdateRecordableCameras()
                                 "RecordingHandler: Failed to open cv::VideoWriter for ZED camera with serial {}",
                                 pZEDCamera->GetCameraSerial());
                     m_vRecordingToggles[nCamera + nIndexOffset] = false;
+                }
+                else
+                {
+                    m_vWriterResolutions[nCamera + nIndexOffset] = cvResolution;
                 }
             }
         }
@@ -391,7 +403,15 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                     }
 
                     // Write frame to OpenCV video writer.
-                    m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                    if (m_vCameraWriters[nIter].isOpened())
+                    {
+                        if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
+                            m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
+                        {
+                            cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
+                        }
+                        m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                    }
                 }
             }
             else if (m_vZEDCameras[nIter] != nullptr)
@@ -419,7 +439,15 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                         }
 
                         // Write frame to OpenCV video writer.
-                        m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                        if (m_vCameraWriters[nIter].isOpened())
+                        {
+                            if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
+                                m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
+                            {
+                                cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
+                            }
+                            m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                        }
                     }
                 }
                 else
@@ -441,7 +469,15 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                         }
 
                         // Write frame to OpenCV video writer.
-                        m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                        if (m_vCameraWriters[nIter].isOpened())
+                        {
+                            if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
+                                m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
+                            {
+                                cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
+                            }
+                            m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                        }
                     }
                 }
             }
@@ -521,6 +557,10 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                                 pTagDetector->GetCameraName());
                     m_vRecordingToggles[nDetector - 1] = false;
                 }
+                else
+                {
+                    m_vWriterResolutions[nDetector - 1] = cvResolution;
+                }
             }
         }
         else
@@ -575,7 +615,15 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
                 }
 
                 // Write frame to OpenCV video writer.
-                m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                if (m_vCameraWriters[nIter].isOpened())
+                {
+                    if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
+                        m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
+                    {
+                        cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
+                    }
+                    m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                }
             }
         }
     }
@@ -656,6 +704,10 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
                                 pObjectDetector->GetCameraName());
                     m_vRecordingToggles[nDetector - 1] = false;
                 }
+                else
+                {
+                    m_vWriterResolutions[nDetector - 1] = cvResolution;
+                }
             }
         }
         else
@@ -710,7 +762,15 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
                 }
 
                 // Write frame to OpenCV video writer.
-                m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                if (m_vCameraWriters[nIter].isOpened())
+                {
+                    if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
+                        m_vFrames[nIter].size() != m_vWriterResolutions[nIter])
+                    {
+                        cv::resize(m_vFrames[nIter], m_vFrames[nIter], m_vWriterResolutions[nIter]);
+                    }
+                    m_vCameraWriters[nIter].write(m_vFrames[nIter]);
+                }
             }
         }
     }

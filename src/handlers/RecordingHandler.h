@@ -92,6 +92,7 @@ class RecordingHandler : public AutonomyThread<void>
         std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
         std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
         std::vector<cv::VideoWriter> m_vCameraWriters;
+        std::vector<cv::Size> m_vWriterResolutions;
         std::vector<bool> m_vRecordingToggles;
         std::vector<cv::Mat> m_vFrames;
         std::vector<cv::cuda::GpuMat> m_vGPUFrames;

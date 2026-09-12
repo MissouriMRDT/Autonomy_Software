@@ -39,49 +39,17 @@ namespace statemachine
      ******************************************************************************/
     inline void LoadDetectedObjects(std::vector<objectdetectutils::Object>& vDetectedObjects, const std::vector<std::shared_ptr<ObjectDetector>>& vObjectDetectors)
     {
-        // Number of object detectors.
-        size_t siNumObjectDetectors = vObjectDetectors.size();
-
-        // Initialize vectors to store detected objects temporarily.
-        std::vector<std::vector<objectdetectutils::Object>> vDetectedObjectBuffers(siNumObjectDetectors);
-
-        // Initialize vectors to store detected objects futures.
-        std::vector<std::future<bool>> vDetectedObjectsFuture;
-
-        // Track exactly which cameras successfully spawned a future to prevent vector crashes.
-        std::vector<bool> vSpawnedFuture(siNumObjectDetectors, false);
-
-        // Request objects from each detector.
-        for (size_t siIdx = 0; siIdx < siNumObjectDetectors; ++siIdx)
+        // Retrieve the most recent detected objects non-blockingly from each ready detector.
+        for (const std::shared_ptr<ObjectDetector>& pObjectDetector : vObjectDetectors)
         {
-            // Check if this object detector is ready.
-            if (vObjectDetectors[siIdx] != nullptr && vObjectDetectors[siIdx]->GetIsReady())
+            if (pObjectDetector != nullptr && pObjectDetector->GetIsReady())
             {
-                // Request detected objects from detector.
-                vDetectedObjectsFuture.emplace_back(vObjectDetectors[siIdx]->RequestDetectedObjects(vDetectedObjectBuffers[siIdx]));
-                vSpawnedFuture[siIdx] = true;
-            }
-        }
-
-        // Ensure all requests have been fulfilled.
-        // Then transfer objects from the buffer to vDetectedObjects for the user to access.
-        int nFutureIdx = 0;
-        // Iterate through the total number of detectors to match the buffer and spawned tracking sizes.
-        for (size_t siIdx = 0; siIdx < siNumObjectDetectors; ++siIdx)
-        {
-            // Only check the buffer if the detector was ready and actually spawned a future
-            if (vSpawnedFuture[siIdx])
-            {
-                // Wait for the correct future to finish before buffer can be destroyed
-                if (vDetectedObjectsFuture[nFutureIdx].valid() && vDetectedObjectsFuture[nFutureIdx].get())
+                std::vector<objectdetectutils::Object> vObjects;
+                pObjectDetector->GetDetectedObjects(vObjects);
+                for (const objectdetectutils::Object& tObject : vObjects)
                 {
-                    // Loop through the detected objects and add them to the vDetectedObjects vector.
-                    for (const objectdetectutils::Object& tObject : vDetectedObjectBuffers[siIdx])
-                    {
-                        vDetectedObjects.emplace_back(tObject);
-                    }
+                    vDetectedObjects.emplace_back(tObject);
                 }
-                nFutureIdx++;
             }
         }
     }

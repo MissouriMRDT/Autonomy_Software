@@ -632,6 +632,20 @@ std::future<bool> TagDetector::RequestDetectedArucoTags(std::vector<tagdetectuti
 }
 
 /******************************************************************************
+ * @brief Thread-safe non-blocking retrieval of the most recently detected tags.
+ *
+ * @param vArucoTags - The vector the detected aruco tags will be saved to.
+ * @return bool - True if one or more tags were retrieved, false otherwise.
+ ******************************************************************************/
+bool TagDetector::GetDetectedArucoTags(std::vector<tagdetectutils::ArucoTag>& vArucoTags)
+{
+    // Acquire shared read lock on detected tags data.
+    std::shared_lock<std::shared_mutex> lkAruco(m_muArucoDataCopyMutex);
+    vArucoTags = m_vDetectedArucoTags;
+    return !vArucoTags.empty();
+}
+
+/******************************************************************************
  * @brief Attempt to open the next available Torch hardware and load model at the given
  *      path onto the device.
  *

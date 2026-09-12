@@ -907,8 +907,8 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
 
             // Create new mat for the decoded frame.
             cvDecodedFrame.create(m_pFrame->height, m_pFrame->width, CV_8UC3);
-            std::array<uint8_t*, 4> aDest    = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
-            std::array<int, 4> aDestLinesize = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
+            std::array<uint8_t*, 8> aDest    = {cvDecodedFrame.data, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+            std::array<int, 8> aDestLinesize = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0, 0, 0, 0, 0};
 
             // Convert the frame to the output pixel format.
             sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pFrame->height, aDest.data(), aDestLinesize.data());

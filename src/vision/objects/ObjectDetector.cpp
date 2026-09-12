@@ -565,6 +565,20 @@ std::future<bool> ObjectDetector::RequestDetectedObjects(std::vector<objectdetec
 }
 
 /******************************************************************************
+ * @brief Thread-safe non-blocking retrieval of the most recently detected objects.
+ *
+ * @param vObjects - The vector the detected objects will be saved to.
+ * @return bool - True if one or more objects were retrieved, false otherwise.
+ ******************************************************************************/
+bool ObjectDetector::GetDetectedObjects(std::vector<objectdetectutils::Object>& vObjects)
+{
+    // Acquire shared read lock on detected objects data.
+    std::shared_lock<std::shared_mutex> lkObject(m_muArucoDataCopyMutex);
+    vObjects = m_vDetectedObjects;
+    return !vObjects.empty();
+}
+
+/******************************************************************************
  * @brief Initialize the PyTorch interpreter for object detection.
  *
  * @param szModelPath - The path to the PyTorch model file.

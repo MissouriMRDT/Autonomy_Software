@@ -55,6 +55,7 @@ class ObjectDetector : public AutonomyThread<void>
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestLastGoodDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedObjects(std::vector<objectdetectutils::Object>& vObjects);
+        bool GetDetectedObjects(std::vector<objectdetectutils::Object>& vObjects);
         bool InitTorchDetection(const std::string& szModelPath,
                                 yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
 

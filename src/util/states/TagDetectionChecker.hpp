@@ -39,47 +39,17 @@ namespace statemachine
      ******************************************************************************/
     inline void LoadDetectedTags(std::vector<tagdetectutils::ArucoTag>& vDetectedArucoTags, const std::vector<std::shared_ptr<TagDetector>>& vTagDetectors)
     {
-        // Number of tag detectors.
-        size_t siNumTagDetectors = vTagDetectors.size();
-
-        // Initialize vectors to store detected tags temporarily.
-        std::vector<std::vector<tagdetectutils::ArucoTag>> vDetectedArucoTagBuffers(siNumTagDetectors);
-
-        // Initialize vectors to store detected tags futures.
-        std::vector<std::future<bool>> vDetectedArucoTagsFuture;
-
-        // Track exactly which cameras successfully spawned a future to prevent vector crashes.
-        std::vector<bool> vSpawnedFuture(siNumTagDetectors, false);
-
-        // Request tags from each detector.
-        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
+        // Retrieve the most recent detected tags non-blockingly from each ready detector.
+        for (const std::shared_ptr<TagDetector>& pTagDetector : vTagDetectors)
         {
-            // Check if this tag detector is non-null and ready.
-            if (vTagDetectors[siIdx] != nullptr && vTagDetectors[siIdx]->GetIsReady())
+            if (pTagDetector != nullptr && pTagDetector->GetIsReady())
             {
-                // Request detected Aruco tags from detector.
-                vDetectedArucoTagsFuture.emplace_back(vTagDetectors[siIdx]->RequestDetectedArucoTags(vDetectedArucoTagBuffers[siIdx]));
-                vSpawnedFuture[siIdx] = true;
-            }
-        }
-
-        // Ensure all requests have been fulfilled.
-        int nFutureIdx = 0;
-        for (size_t siIdx = 0; siIdx < siNumTagDetectors; ++siIdx)
-        {
-            // Only check the buffer if the detector was ready and actually spawned a future
-            if (vSpawnedFuture[siIdx])
-            {
-                // Wait for the correct future to finish before buffer can be destroyed
-                if (vDetectedArucoTagsFuture[nFutureIdx].valid() && vDetectedArucoTagsFuture[nFutureIdx].get())
+                std::vector<tagdetectutils::ArucoTag> vTags;
+                pTagDetector->GetDetectedArucoTags(vTags);
+                for (const tagdetectutils::ArucoTag& tTag : vTags)
                 {
-                    // Loop through the detected tags using the correct buffer index (siIdx)
-                    for (const tagdetectutils::ArucoTag& tTag : vDetectedArucoTagBuffers[siIdx])
-                    {
-                        vDetectedArucoTags.emplace_back(tTag);
-                    }
+                    vDetectedArucoTags.emplace_back(tTag);
                 }
-                nFutureIdx++;
             }
         }
     }

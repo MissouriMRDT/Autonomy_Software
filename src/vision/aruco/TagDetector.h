@@ -74,6 +74,7 @@ class TagDetector : public AutonomyThread<void>
         std::future<bool> RequestDetectionOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestLastGoodOverlayFrame(cv::Mat& cvFrame);
         std::future<bool> RequestDetectedArucoTags(std::vector<tagdetectutils::ArucoTag>& vArucoTags);
+        bool GetDetectedArucoTags(std::vector<tagdetectutils::ArucoTag>& vArucoTags);
         bool InitTorchDetection(const std::string& szModelPath,
                                 yolomodel::pytorch::PyTorchInterpreter::HardwareDevices eDevice = yolomodel::pytorch::PyTorchInterpreter::HardwareDevices::eCUDA);
 
