@@ -30,6 +30,8 @@
    - [3.15 Engine Version & Pak File Mismatch in Steam Build (Pak Version 12 vs UE 5.6)](#315-engine-version--pak-file-mismatch-in-steam-build-pak-version-12-vs-ue-56)
    - [3.16 Missing Monolithic Engine Plugin Modules in Packaged Windows Exports](#316-missing-monolithic-engine-plugin-modules-in-packaged-windows-exports)
    - [3.17 Windows Simulator RoveComm UDP IOCP Stack Corruption Crash (DEP Access Violation)](#317-windows-simulator-rovecomm-udp-iocp-stack-corruption-crash-dep-access-violation)
+   - [3.18 Windows Simulator Pixel Streaming Black Screen & NVENC Frame Stall (D3D12 GPU Synchronization Fence)](#318-windows-simulator-pixel-streaming-black-screen--nvenc-frame-stall-d3d12-gpu-synchronization-fence)
+   - [3.19 Windows Simulator NVCodecs Illegal cuArrayDestroy Context Corruption (CUDA 700) & Video Freeze](#319-windows-simulator-nvcodecs-illegal-cuarraydestroy-context-corruption-cuda-700--video-freeze)
 4. [Comprehensive File-by-File Change Log](#4-comprehensive-file-by-file-change-log)
 5. [Diagnostics & Debugging Methodology](#5-diagnostics--debugging-methodology)
 6. [Verification & Mission Testing Results](#6-verification--mission-testing-results)
@@ -856,6 +858,114 @@ On Linux, this bug never occurred because Linux used synchronous non-blocking `r
 4. Removed `RecvContext`, `SendContext`, and `HANDLE m_stdIOCP` from `RoveCommUDP.h` and `RoveCommUDP.cpp`.
 5. Added defensive null-checking in `BS_thread_pool::move_only_function::operator()` in `BS_thread_pool.hpp`.
 6. Recompiled `RoveSoSimulator-Win64-Shipping.exe` via Unreal Build Tool 5.7 and deployed the binary to both `PackagedGame\Windows` and Steam depots.
+
+---
+
+### 3.18 Windows Simulator Pixel Streaming Black Screen & NVENC Frame Stall (D3D12 GPU Synchronization Fence)
+
+#### Root Cause
+When connecting Autonomy Software or the Pixel Streaming browser frontend (`http://127.0.0.1:8080/`) to the packaged Windows simulator (`PackagedGame\Windows`), camera streams (`ZEDFrontRGB`, `ZEDFrontDepthImage`, `ZEDRearRGB`, `ZEDRearDepthImage`) exhibited two severe failure modes:
+1. Video feeds either stayed completely pitch black (all pixels 0) or hung indefinitely on initial frame loading.
+2. In older simulator exports (`WindowsSimExport09.12.26`), video rendered initially but the engine suffered an unhandled crash after ~54 seconds once all cameras and the default streamer reached the 5-session hardware encoder limit on GeForce GPUs (`NVENC 20`, `Check encoder config or perhaps you used up all your HW encoders`).
+
+**The Mechanism of the Black Screen:**
+1. In `RoveSoSimulator`, the rover stereo cameras (`ZED2i_StereoCamera` and `RearZED2i_StereoCamera`) render asynchronously into `UTextureRenderTarget2D` buffers using `SceneCaptureComponent2D` on the Direct3D 12 GPU render queue.
+2. During an earlier attempt to suppress the `CUDA 700` semaphore crash (Section 3.14), `ExternalFenceDesc` inside `VideoResourceCUDA.cpp` had been completely zeroed out:
+   ```cpp
+   CUDA_EXTERNAL_SEMAPHORE_HANDLE_DESC ExternalFenceDesc = {};
+   ```
+3. In Direct3D 12, GPU operations are asynchronous. The D3D12 fence (`ID3D12Fence`) informs CUDA when the render target has finished drawing the scene.
+4. Without the D3D12 fence handle imported into the CUDA external semaphore, NVENC hardware encoding proceeded to read unrendered GPU memory (all zero bytes, producing pitch-black frames) or stalled waiting for unsynchronized GPU resource access.
+5. In addition, an outdated copy of `Plugins/NVCodecs` from Unreal Engine 5.6 had been placed in the project root, which overrode Unreal Engine 5.7's native plugin and introduced API incompatibilities.
+
+#### Solution
+1. **Restored the Direct3D 12 Fence Handle in `VideoResourceCUDA.cpp`:**
+   In both the engine and project copy of `Plugins/NVCodecs/Source/NVCodecs/Private/Video/Resources/VideoResourceCUDA.cpp`:
+   ```cpp
+   CUDA_EXTERNAL_SEMAPHORE_HANDLE_DESC ExternalFenceDesc = {};
+   ExternalFenceDesc.type = CU_EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE;
+   ExternalFenceDesc.handle.win32.name = nullptr;
+   ExternalFenceDesc.handle.win32.handle = InResource->GetFenceSharedHandle();
+   ```
+2. **Defensive Non-Fatal Import Handling:**
+   Retained non-fatal error handling in the `FVideoResourceCUDA` constructor so that if `cuImportExternalSemaphore` fails, it logs a warning instead of aborting the constructor and corrupting the CUDA context:
+   ```cpp
+   if (ExternalFenceDesc.handle.fd || ExternalFenceDesc.handle.win32.handle != nullptr)
+   {
+       CUresult Result = FCUDAModule::CUDA().cuImportExternalSemaphore(&ExternalSemaphore, &ExternalFenceDesc);
+       if (Result != CUDA_SUCCESS)
+       {
+           FAVResult::Log(EAVResult::Warning, TEXT("Failed to import external semaphore"), TEXT("CUDA"), Result);
+           ExternalSemaphore = NULL;
+       }
+   }
+   ```
+3. **Cleaned Stale UE 5.6 Plugin & Fixed UE 5.7 Orphaned Files:**
+   - Replaced the project's stale UE 5.6 `NVCodecs` plugin with a clean copy of the native **Unreal Engine 5.7** `NVCodecs` plugin.
+   - Disabled orphaned/incomplete files from Epic Games in UE 5.7 (`VideoEncoderNVENCD3D12.cpp`, `VideoEncoderNVENCD3D11.cpp`, and `VideoEncoderNVENCCUDA.cpp`) using `#if 0`, which had been superseded by inline implementations in `VideoEncoderNVENC.h` and `VideoEncoderNVENC.cpp`.
+4. **Rebuilt & Deployed:**
+   Compiled `RoveSoSimulator-Win64-Shipping.exe` via UnrealBuildTool for UE 5.7.4 and deployed it to `PackagedGame\Windows\RoveSoSimulator\Binaries\Win64\`.
+5. **Verified Full Stream Integrity:**
+   - Automated WebRTC test clients successfully negotiated SDP and received 1280x720 video frames from `ZEDFrontRGB` and `ZEDRearRGB`.
+   - Verified non-zero pixel intensities (mean frame brightness ~34.1, peak brightness 138), accurately capturing the Martian sky, mountains, and rover terrain.
+   - Verified that the simulator runs continuously (>5 minutes) without crashing or dropping camera streams.
+
+---
+
+### 3.19 Windows Simulator NVCodecs Illegal `cuArrayDestroy` Context Corruption (CUDA 700) & Video Freeze
+
+#### Root Cause
+In Unreal Engine 5.7, when WebRTC clients (Autonomy Software or the Pixel Streaming browser frontend) connected to the simulator, the video stream displayed only the first 1–2 frames before freezing permanently or reverting to `"WEBRTC CONNECTION NEGOTIATE"`. Inspecting the log revealed thousands of consecutive CUDA failures starting at:
+```
+LogAVCodecs: Error: Error Unmapping: Failed to destroy array [CUDA 700]
+LogAVCodecs: Error: Error Unmapping: Failed to destroy mipmaps [CUDA 700]
+LogAVCodecs: Error: Error Mapping: Failed to import external memory [CUDA 700]
+LogAVCodecs: Error: Error Invalid State: Raw resource is invalid [CUDA]
+```
+
+**The Mechanism of the Freeze:**
+1. In `VideoResourceCUDA.cpp` (`Plugins/NVCodecs/Source/NVCodecs/Private/Video/Resources/VideoResourceCUDA.cpp`), external D3D12 texture render targets are mapped into CUDA via `cuExternalMemoryGetMappedMipmappedArray(&MipArray, ExternalArray, &MipmapDesc)`.
+2. To extract the base mip level for hardware encoding, `cuMipmappedArrayGetLevel(&MaxMipArray, MipArray, 0)` is called to retrieve a `CUarray` handle `MaxMipArray`.
+3. In the destructor `FVideoResourceCUDA::~FVideoResourceCUDA()`, Epic's UE 5.7 implementation called:
+   ```cpp
+   if (MaxMipArray != nullptr)
+   {
+       CUresult const Result = FCUDAModule::CUDA().cuArrayDestroy(MaxMipArray); // <--- FATAL BUG!
+       // ...
+   }
+   ```
+4. According to the NVIDIA CUDA Driver API specification, sub-level arrays of a `CUmipmappedArray` do not own an independent allocation; their lifecycle is owned entirely by `cuMipmappedArrayDestroy(MipArray)`. Passing a mip-level array handle to `cuArrayDestroy()` is illegal and returns `CUDA_ERROR_ILLEGAL_ADDRESS` (`CUDA 700`).
+5. Because CUDA error 700 is an asynchronous sticky exception, it permanently poisons the underlying `CUcontext`. Once poisoned, all subsequent CUDA calls—including destroying the mipmaps, importing external memory, and encoding new frames—immediately fail with `CUDA 700`.
+6. With the CUDA context corrupted, `FVideoResourceCUDA::Validate()` reported `Raw resource is invalid [CUDA]`, halting all frame rendering after frame 1. The WebRTC pipeline, receiving no further video frames, froze on the last frame received.
+
+**Secondary Launcher Issue:**
+In `LaunchRoveSoSimulatorAndPixelStreaming.cmd`, `GAME_EXE` pointed to `%APP_DIR%\RoveSoSimulator.exe`, which is a 248KB bootstrap launcher that launches `RoveSoSimulator-Win64-Shipping.exe` in a child process and terminates immediately. Because `start /wait` was used on this stub, the batch script proceeded to execute `taskkill /f /im node.exe` within 1 second of launch, shutting down the signalling server while the simulator was still booting. Furthermore, the launcher passed `-PixelStreamingURL=ws://127.0.0.1:8080` (the player port) instead of `ws://127.0.0.1:8888` (the streamer port).
+
+#### Solution
+1. **Removed the Illegal `cuArrayDestroy(MaxMipArray)` Call:**
+   In both the project plugin and engine plugin copies of `VideoResourceCUDA.cpp`:
+   ```cpp
+   FVideoResourceCUDA::~FVideoResourceCUDA()
+   {
+       FCUDAContextScope const ContextGuard(GetContext()->Raw);
+
+       MaxMipArray = nullptr;
+
+       if (MipArray != nullptr)
+       {
+           CUresult const Result = FCUDAModule::CUDA().cuMipmappedArrayDestroy(MipArray);
+           // ...
+       }
+   ```
+   Allowing `cuMipmappedArrayDestroy(MipArray)` to handle cleanup completely eliminated the `CUDA 700` exception.
+2. **Corrected Launcher Script (`LaunchRoveSoSimulatorAndPixelStreaming.cmd`):**
+   - Pointed `GAME_EXE` directly to `%APP_DIR%\RoveSoSimulator\Binaries\Win64\RoveSoSimulator-Win64-Shipping.exe` so `start /wait` accurately tracks the true simulator lifecycle and prevents premature termination of `node.exe`.
+   - Restored `-PixelStreamingURL=ws://127.0.0.1:8888` for streamer connections (with browser and Autonomy clients connecting to player port `8080`).
+3. **Recompiled & Deployed:**
+   Compiled both `Shipping` and `Development` builds via UnrealBuildTool for UE 5.7.4 and staged the binaries to `PackagedGame\Windows\RoveSoSimulator\Binaries\Win64\`.
+4. **Verified Full Stream Continuity:**
+   - Ran continuous automated WebRTC stream verification on both `ZEDFrontRGB` and `ZEDFrontDepthImage` for 60 consecutive frames.
+   - All 60 frames streamed with zero drops, zero freezes, realistic brightness (mean 34.6 for RGB, 192.8 for Depth), and zero `CUDA 700` errors in the server logs.
 
 ---
 
