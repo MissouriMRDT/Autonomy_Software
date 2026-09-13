@@ -26,6 +26,10 @@
    - [3.11 ZED Point Cloud Retrieval Abandonment & Asynchronous Memory Race](#311-zed-point-cloud-retrieval-abandonment--asynchronous-memory-race)
    - [3.12 Null Pointer Dereferences in State Machine Checkers](#312-null-pointer-dereferences-in-state-machine-checkers)
    - [3.13 WebRTC Image Scaling Context Mismatch & Libswscale Crash (SIGSEGV)](#313-webrtc-image-scaling-context-mismatch--libswscale-crash-sigsegv)
+   - [3.14 Windows Simulator D3D12 CUDA Semaphore Crash (CUDA 700) on Modern GPUs](#314-windows-simulator-d3d12-cuda-semaphore-crash-cuda-700-on-modern-gpus)
+   - [3.15 Engine Version & Pak File Mismatch in Steam Build (Pak Version 12 vs UE 5.6)](#315-engine-version--pak-file-mismatch-in-steam-build-pak-version-12-vs-ue-56)
+   - [3.16 Missing Monolithic Engine Plugin Modules in Packaged Windows Exports](#316-missing-monolithic-engine-plugin-modules-in-packaged-windows-exports)
+   - [3.17 Windows Simulator RoveComm UDP IOCP Stack Corruption Crash (DEP Access Violation)](#317-windows-simulator-rovecomm-udp-iocp-stack-corruption-crash-dep-access-violation)
 4. [Comprehensive File-by-File Change Log](#4-comprehensive-file-by-file-change-log)
 5. [Diagnostics & Debugging Methodology](#5-diagnostics--debugging-methodology)
 6. [Verification & Mission Testing Results](#6-verification--mission-testing-results)
@@ -669,7 +673,189 @@ m_pSWSContext = sws_getCachedContext(m_pSWSContext,
 2. Validated all decoded frame properties (`width > 0`, `height > 0`, `format >= 0`, and `!(m_pFrame->flags & AV_FRAME_FLAG_CORRUPT)`).
 3. Verified all required image planes and positive strides using `av_pix_fmt_desc_get()` before scaling.
 4. Immediately cleared `m_pPacket->data = nullptr` and `m_pPacket->size = 0` after `avcodec_send_packet()`.
-5. Passed `m_pFrame->linesize` steps to OpenCV matrix plane constructors in YUV mode.
+
+---
+
+### 3.14 Windows Simulator D3D12 CUDA Semaphore Crash (CUDA 700) on Modern GPUs
+
+#### Root Cause
+When running `RoveSoSimulator` on Windows with Pixel Streaming enabled on modern NVIDIA GPUs (RTX 40-series and 50-series Blackwell GPUs, e.g. RTX 5070 Ti, driver 610.x+), the simulator crashed after approximately 30 to 60 seconds with either an unhandled fatal error or:
+```text
+LogAVCodecs: Error: Error Mapping: Failed to import external semaphore [CUDA 700]
+```
+In Unreal Engine's `AVCodecs` plugin (`Engine/Plugins/Experimental/AVCodecs/NVCodecs`), `VideoResourceCUDA.cpp` attempts to map Direct3D 12 backbuffers into CUDA memory for NVENC hardware video encoding.
+During the conversion in `TransformResource(FVideoResourceD3D12 -> FVideoResourceCUDA)`:
+1. UE attempts to export the D3D12 fence handle into a `CUDA_EXTERNAL_SEMAPHORE_HANDLE_DESC` and calls `cuImportExternalSemaphore(&ExternalSemaphore, &ExternalFenceDesc)`.
+2. On current Windows WDDM / NVIDIA display drivers with newer architecture cards, `cuImportExternalSemaphore` fails with `CUDA 700` (`CUDA_ERROR_ILLEGAL_ADDRESS`).
+3. The constructor immediately returned early without completing memory binding. Crucially, in CUDA, error 700 is an asynchronous sticky error that permanently corrupts and invalidates the CUDA context (`CUcontext`), causing all subsequent memory mappings and frame transfers to fail.
+4. As video frames queued up without being processed, GPU memory and pipeline queues leaked until the engine crashed.
+
+#### Solution
+1. In `VideoResourceCUDA.cpp`, zeroed `ExternalFenceDesc = {}` for D3D12 (matching the existing implementation for D3D11 where fences are not imported into CUDA external semaphores, as NVENC does not require CUDA semaphore synchronization for hardware encoding).
+2. Changed the semaphore import failure from a fatal early-return error to a non-fatal warning log (`FAVResult::Log(EAVResult::Warning, ...)`), leaving `ExternalSemaphore = NULL` and allowing frame processing to continue unimpeded.
+
+---
+
+### 3.15 Engine Version & Pak File Mismatch in Steam Build (Pak Version 12 vs UE 5.6)
+
+#### Root Cause
+Launching the Steam build of `RoveSoSimulator` (`C:\Program Files (x86)\Steam\steamapps\common\RoveSoSimulator`) resulted in:
+```text
+LowLevelFatalError [File:D:\build++UE5\Sync\Engine\Source\Runtime\PakFile\Private\PakFile.cpp] [Line: 309] 
+Invalid pak file version (12) in '../../../RoveSoSimulator/Content/Paks/pakchunk0optional-Windows.pak'. Verify your installation.
+```
+1. Unreal Engine Pak file format version **11** corresponds to **Unreal Engine 5.6**.
+2. Pak file format version **12** belongs to **Unreal Engine 5.7**.
+3. Inspection of the Steam depot paks revealed magic `0x5A6F12E1` with version header `12`. The Steam release was cooked with Unreal Engine 5.7.
+4. When a game binary built with UE 5.6 was executed against the Steam export, UE 5.6's `FPakInfo::PakFile_Version_Latest` (11) rejected the version 12 pak file, triggering an immediate `LowLevelFatalError`.
+
+#### Solution
+1. Updated `Source/RoveSoSimulator.Target.cs` to support the UE 5.7 build toolchain (`DefaultBuildSettings = BuildSettingsVersion.V6;`).
+2. Compiled `RoveSoSimulator-Win64-Shipping.exe` natively using Unreal Engine 5.7 (`UE_5.7/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.dll`), incorporating our patched `NVCodecs` plugin.
+3. Deployed the UE 5.7 shipping executable directly into `Steam/steamapps/common/RoveSoSimulator/RoveSoSimulator/Binaries/Win64/`.
+
+---
+
+### 3.16 Missing Monolithic Engine Plugin Modules in Packaged Windows Exports
+
+#### Root Cause
+Launching the manual Windows export (`C:\Users\ltkli\Downloads\MRDT\Sim Exports\WindowsSimExport09.11.26`) resulted in:
+```text
+Plugin 'AnalyticsBlueprintLibrary' failed to load because module 'AnalyticsBlueprintLibrary' could not be found. 
+Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project.
+```
+1. In monolithic Unreal Engine builds (such as Windows Development/Shipping executables), plugin modules must be statically linked into the executable at compile time.
+2. The packaged pak files in `WindowsSimExport09.11.26` contained cooked plugin manifests containing 114 plugins (including `AnalyticsBlueprintLibrary` and `SteamShared`).
+3. When standalone UBT compiles `RoveSoSimulator.exe`, it only links modules enabled in `RoveSoSimulator.uproject` and `RoveSoSimulator.Build.cs`.
+4. When the executable booted and mounted the pak files, the engine plugin manager discovered `AnalyticsBlueprintLibrary.uplugin` inside the pak file. Because the module was not statically linked into the executable, engine startup aborted.
+
+#### Solution
+1. Added `AnalyticsBlueprintLibrary` to `RoveSoSimulator.uproject` and `Source/RoveSoSimulator/RoveSoSimulator.Build.cs`.
+2. Synchronized `WindowsSimExport09.11.26` with the project's matching UE 5.6 pak files (`pakchunk0-Windows.pak`) and staged manifest files from `PackagedGame/Windows`.
+3. Verified clean startup: the simulator boots completely to `FEngineLoop::Init()` with 0 missing module errors.
+
+---
+
+### 3.17 Windows Simulator RoveComm UDP IOCP Stack Corruption Crash (DEP Access Violation)
+
+#### Root Cause (Minidump `UECC-Windows-8967A9DD4253DF9E2F9676A1F6557D4E` Analysis)
+When launching the packaged Windows simulator (`PackagedGame\Windows` or Steam) and starting Autonomy Software, the simulator crashed almost immediately (or within 30 seconds) with an unhandled fatal error:
+```text
+The UE-RoveSoSimulator Game has crashed and will close.
+Fatal error!
+```
+Inspection of minidump `UEMinidump.dmp` via custom Python scripts using Windows `dbghelp.dll` revealed:
+```text
+ExceptionCode: EXCEPTION_ACCESS_VIOLATION
+ExceptionAddress: 0x0000006bfdba7d78
+ExceptionInformation: ['0x8', '0x0000006bfdba7d78']
+```
+1. **DEP Execution Fault on Stack:** Exception parameter `0x8` denotes a Data Execution Prevention (DEP) violation. The CPU was instructed to jump to and execute instructions at `0x0000006bfdba7d78`.
+2. Address `0x0000006bfdba7d78` was located directly inside the active stack address space of thread index 111 (TID `0x45f8`, range `0x6bfdbaec48` to `0x6bfdbb0000`). Stack pages are marked `PAGE_READWRITE` without execute permission, triggering an immediate access violation.
+3. Symbol resolution on the crashed thread revealed it was a worker thread belonging to `BS::thread_pool`:
+   ```text
+   0x7ff632b4fc8b: BS::thread_pool::worker(std::stop_token const&, unsigned __int64)
+   0x7ff632b4f060: std::stop_callback<std::condition_variable_any::_Cv_any_notify_all>::_Invoke_by_stop
+   ```
+4. A whole-process memory search across all minidump segments revealed the exact value `0x0000006bfdba7d78` had been written to multiple thread stack frames, including `[RSP - 8]` (the pushed return address).
+
+**The Architectural Defect in `RoveCommUDP.cpp`:**
+In `Source/ThirdParty/RoveComm_CPP/src/RoveComm/RoveCommUDP.cpp`:
+```cpp
+void RoveCommUDP::ReceiveUDPPacketAndCallback()
+{
+#if defined(__ROVECOMM_WINDOWS_MODE__) && __ROVECOMM_WINDOWS_MODE__ == 1
+    constexpr size_t BATCH_SIZE = 32;
+    RecvContext rcContexts[BATCH_SIZE]; // <--- ALLOCATED LOCALLY ON THE THREAD STACK!
+
+    for (size_t siIter = 0; siIter < BATCH_SIZE; siIter++)
+    {
+        ZeroMemory(&rcContexts[siIter].overlapped, sizeof(OVERLAPPED));
+        rcContexts[siIter].wsabuf.buf = reinterpret_cast<char*>(&rcContexts[siIter].data);
+        rcContexts[siIter].wsabuf.len = sizeof(RoveCommData);
+        int nAddrLen                  = sizeof(rcContexts[siIter].addr);
+        DWORD stdFlags                = 0;
+        int nRet                      = WSARecvFrom(m_nUDPSocket,
+                               &rcContexts[siIter].wsabuf,
+                               1,
+                               NULL,
+                               &stdFlags,
+                               reinterpret_cast<sockaddr*>(&rcContexts[siIter].addr),
+                               &nAddrLen,
+                               &rcContexts[siIter].overlapped,
+                               NULL);
+        // ...
+    }
+
+    while (true)
+    {
+        BOOL bSuccess = GetQueuedCompletionStatus(m_stdIOCP, ..., dwTimeout = 1ms);
+        if (!bSuccess)
+        {
+            if (GetLastError() == WAIT_TIMEOUT)
+            {
+                break; // <--- EXITS AND RETURNS AFTER 1 MILLISECOND!
+            }
+        }
+        // ...
+    }
+#endif
+}
+```
+1. `RecvContext rcContexts[32]` was allocated as a local variable on the execution stack.
+2. `WSARecvFrom` was called 32 times with `&rcContexts[siIter].overlapped` and `&rcContexts[siIter].wsabuf.buf` pointing directly to this stack array.
+3. `GetQueuedCompletionStatus` waited with a 1 ms timeout (`dwTimeout = 1`). If no packets were received within 1 millisecond, the loop broke and the function returned.
+4. Returning popped the stack frame. However, the 32 asynchronous `WSARecvFrom` operations registered with the Windows socket kernel were **never cancelled**.
+5. In `AutonomyThread`, `ThreadedContinuousCode()` called `RunDetachedPool(10, 5)` in a continuous loop, spawning 5 worker threads that each posted 32 asynchronous receives every few milliseconds. Within seconds, thousands of active asynchronous receives pointing to dead stack memory were queued in the kernel.
+6. The moment Autonomy connected and began transmitting UDP packets to the simulator (port 11000), Winsock completed the pending overlapped operations by writing incoming packet bytes into whatever live thread stacks currently occupied those addresses.
+7. This directly overwritten return addresses, saved registers, and object vtable pointers on the stack, causing worker threads to jump into arbitrary stack data and crash with DEP violation code 8.
+
+On Linux, this bug never occurred because Linux used synchronous non-blocking `recvmmsg` inside a mutex lock without any asynchronous kernel state.
+
+#### Solution
+1. Completely removed the dangerous IOCP and `OVERLAPPED` mechanism on Windows.
+2. In `RoveCommUDP::Init()`, set the UDP socket to non-blocking mode using standard Winsock `ioctlsocket`:
+   ```cpp
+   #if defined(__ROVECOMM_WINDOWS_MODE__) && __ROVECOMM_WINDOWS_MODE__ == 1
+       u_long nMode = 1;
+       if (ioctlsocket(m_nUDPSocket.load(), FIONBIO, &nMode) != 0)
+       {
+           perror("Failed to set UDP socket to non-blocking mode.");
+           return false;
+       }
+   #endif
+   ```
+3. In `RoveCommUDP::ReceiveUDPPacketAndCallback()`, replaced the asynchronous IOCP logic with a clean, synchronous non-blocking `recvfrom` loop protected by `m_muSocketReceiveMutex`:
+   ```cpp
+   #if defined(__ROVECOMM_WINDOWS_MODE__) && __ROVECOMM_WINDOWS_MODE__ == 1
+       constexpr size_t BATCH_SIZE = 32;
+       for (size_t siIter = 0; siIter < BATCH_SIZE; siIter++)
+       {
+           RoveCommData stData;
+           sockaddr_in saClientAddr;
+           int nAddrLen = sizeof(saClientAddr);
+
+           std::unique_lock<std::mutex> lkSocketReceiveLock(m_muSocketReceiveMutex);
+           int nBytesReceived = recvfrom(m_nUDPSocket.load(),
+                                         reinterpret_cast<char*>(&stData),
+                                         sizeof(stData),
+                                         0,
+                                         reinterpret_cast<sockaddr*>(&saClientAddr),
+                                         &nAddrLen);
+           lkSocketReceiveLock.unlock();
+
+           if (nBytesReceived <= 0)
+           {
+               break; // No more packets ready in socket buffer
+           }
+
+           // Dispatch packet callbacks...
+       }
+   #endif
+   ```
+4. Removed `RecvContext`, `SendContext`, and `HANDLE m_stdIOCP` from `RoveCommUDP.h` and `RoveCommUDP.cpp`.
+5. Added defensive null-checking in `BS_thread_pool::move_only_function::operator()` in `BS_thread_pool.hpp`.
+6. Recompiled `RoveSoSimulator-Win64-Shipping.exe` via Unreal Build Tool 5.7 and deployed the binary to both `PackagedGame\Windows` and Steam depots.
 
 ---
 
@@ -690,6 +876,11 @@ m_pSWSContext = sws_getCachedContext(m_pSWSContext,
 | `src/vision/objects/ObjectDetector.cpp` | • Synchronized `m_vDetectedObjects` vector access with `m_muArucoDataCopyMutex` across all threads.<br>• Fixed point cloud polling timeout and future awaiting to match `TagDetector`. |
 | `src/util/states/TagDetectionChecker.hpp` | • Replaced `wait_for` timeouts with `.get()` on valid detector futures to prevent stack memory corruption.<br>• Added `vTagDetectors[siIdx] != nullptr` safety check. |
 | `src/util/states/ObjectDetectionChecker.hpp` | • Replaced `wait_for` timeouts with `.get()` on valid detector futures.<br>• Added `vObjectDetectors[siIdx] != nullptr` safety check. |
+| `RoveSoSimulator: RoveCommUDP.cpp` | • **Eliminated stack-allocated IOCP and `OVERLAPPED` requests that caused kernel stack memory corruption.**<br>• Configured non-blocking socket via `ioctlsocket(FIONBIO)` and synchronous `recvfrom()` loop under `m_muSocketReceiveMutex`.<br>• Removed dead `RecvContext` and `SendContext` structures. |
+| `RoveSoSimulator: RoveCommUDP.h` | • Removed unused Windows-only `m_stdIOCP` handle member. |
+| `RoveSoSimulator: BS_thread_pool.hpp` | • Added defensive null pointer check to `move_only_function::operator()` to prevent virtual function call crashes on empty tasks. |
+| `RoveSoSimulator: VideoResourceCUDA.cpp` | • Bypassed D3D12 `cuImportExternalSemaphore` on modern NVIDIA architectures (RTX 40/50 series) to prevent CUDA 700 sticky errors and context invalidation. |
+| `RoveSoSimulator: RoveSoSimulator.Target.cs` | • Updated build settings to `BuildSettingsVersion.V6` and target to UE 5.7 to match Steam and procedural branch exports. |
 
 ---
 
