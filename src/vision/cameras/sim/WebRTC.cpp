@@ -406,7 +406,7 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             std::string szSDP = rtcDescription.generateSdp();
             // Munger the SDP to add the bitrate.
             std::string szMungedSDP =
-                std::regex_replace(szSDP, std::regex("(a=fmtp:\\d+ level-asymmetry-allowed=.*)\r\n"), "$1;x-google-start-bitrate=10000;x-google-max-bitrate=100000\r\n");
+                std::regex_replace(szSDP, std::regex("(a=fmtp:\\d+ level-asymmetry-allowed=.*)\r\n"), "$1;x-google-start-bitrate=1000;x-google-max-bitrate=5000\r\n");
             jsnMessage["sdp"] = szMungedSDP;
             // Send the message.
             m_pWebSocket->send(jsnMessage.dump());
@@ -624,14 +624,11 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 
             // Set bitrate limits.
             this->SendCommandToStreamer(R"({"WebRTC.MinBitrate":100000})");
-            this->SendCommandToStreamer(R"({"WebRTC.MaxBitrate":100000000})");
+            this->SendCommandToStreamer(R"({"WebRTC.MaxBitrate":5000000})");
 
             // Set FPS.
             this->SendCommandToStreamer(R"({"WebRTC.Fps":60})");
             this->SendCommandToStreamer(R"({"WebRTC.MaxFps":60})");
-
-            // Target Bitrate. (-1 = Use Max/Unlimited)
-            this->SendCommandToStreamer(R"({"Encoder.TargetBitrate":-1})");
         });
 
     m_pDataChannel->onMessage(
