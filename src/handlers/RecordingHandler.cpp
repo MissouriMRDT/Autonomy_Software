@@ -96,6 +96,46 @@ void RecordingHandler::StopRecording()
     this->RequestStop();
     this->Join();
 
+    // Harvest any final pending frame before releasing writers.
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+    {
+        if (m_vFrameFutures[nIter].valid())
+        {
+            if (m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready)
+            {
+                try
+                {
+                    if (m_vFrameFutures[nIter].get() && !m_vFrames[nIter].empty() && m_vCameraWriters[nIter].isOpened())
+                    {
+                        cv::Mat cvFrameToWrite;
+                        if (m_vFrames[nIter].channels() == 1)
+                        {
+                            cv::cvtColor(m_vFrames[nIter], cvFrameToWrite, cv::COLOR_GRAY2BGR);
+                        }
+                        else if (m_vFrames[nIter].channels() == 4)
+                        {
+                            cv::cvtColor(m_vFrames[nIter], cvFrameToWrite, cv::COLOR_BGRA2BGR);
+                        }
+                        else
+                        {
+                            cvFrameToWrite = m_vFrames[nIter].clone();
+                        }
+
+                        if (m_vWriterResolutions[nIter].width > 0 && m_vWriterResolutions[nIter].height > 0 &&
+                            cvFrameToWrite.size() != m_vWriterResolutions[nIter])
+                        {
+                            cv::resize(cvFrameToWrite, cvFrameToWrite, m_vWriterResolutions[nIter]);
+                        }
+                        m_vCameraWriters[nIter].write(cvFrameToWrite);
+                    }
+                }
+                catch (...)
+                {
+                }
+            }
+        }
+    }
+
     // Loop through and close video writers by reference so files are finalized on disk.
     for (cv::VideoWriter& cvCameraWriter : m_vCameraWriters)
     {
@@ -348,44 +388,6 @@ void RecordingHandler::UpdateRecordableCameras()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteCameraFrames()
 {
-    // Loop through total number of cameras and request frames.
-    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
-    {
-        // Check if recording for the camera at this index is enabled.
-        if (m_vRecordingToggles[nIter])
-        {
-            // Do not enqueue a new request if the previous one is still pending in the camera pool.
-            if (m_vFrameFutures[nIter].valid())
-            {
-                if (m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) != std::future_status::ready)
-                {
-                    continue;
-                }
-            }
-
-            // Check if the camera at the current index is a BasicCam or ZEDCam.
-            if (m_vBasicCameras[nIter] != nullptr)
-            {
-                // Request frame.
-                m_vFrameFutures[nIter] = m_vBasicCameras[nIter]->RequestFrameCopy(m_vFrames[nIter]);
-            }
-            else if (m_vZEDCameras[nIter] != nullptr)
-            {
-                // Check if the camera is setup to use CPU or GPU mats.
-                if (m_vZEDCameras[nIter]->GetUsingGPUMem())
-                {
-                    // Grab frames from camera.
-                    m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vGPUFrames[nIter]);
-                }
-                else
-                {
-                    // Grab frames from camera.
-                    m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vFrames[nIter]);
-                }
-            }
-        }
-    }
-
     // Loop through cameras and wait for frame requests to be fulfilled.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
@@ -393,7 +395,7 @@ void RecordingHandler::RequestAndWriteCameraFrames()
         if (m_vRecordingToggles[nIter])
         {
             if (m_vFrameFutures[nIter].valid() &&
-                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready)
             {
                 bool bSuccess = false;
                 try
@@ -438,6 +440,41 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                         }
                         m_vCameraWriters[nIter].write(cvFrameToWrite);
                     }
+                }
+            }
+        }
+    }
+
+    // Loop through total number of cameras and request next frames.
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+    {
+        // Check if recording for the camera at this index is enabled.
+        if (m_vRecordingToggles[nIter])
+        {
+            // Do not enqueue a new request if the previous one is still pending in the camera pool.
+            if (m_vFrameFutures[nIter].valid())
+            {
+                continue;
+            }
+
+            // Check if the camera at the current index is a BasicCam or ZEDCam.
+            if (m_vBasicCameras[nIter] != nullptr)
+            {
+                // Request frame.
+                m_vFrameFutures[nIter] = m_vBasicCameras[nIter]->RequestFrameCopy(m_vFrames[nIter]);
+            }
+            else if (m_vZEDCameras[nIter] != nullptr)
+            {
+                // Check if the camera is setup to use CPU or GPU mats.
+                if (m_vZEDCameras[nIter]->GetUsingGPUMem())
+                {
+                    // Grab frames from camera.
+                    m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vGPUFrames[nIter]);
+                }
+                else
+                {
+                    // Grab frames from camera.
+                    m_vFrameFutures[nIter] = m_vZEDCameras[nIter]->RequestFrameCopy(m_vFrames[nIter]);
                 }
             }
         }
@@ -540,25 +577,6 @@ void RecordingHandler::UpdateRecordableTagDetectors()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteTagDetectorFrames()
 {
-    // Loop through total number of cameras and request frames.
-    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
-    {
-        // Check if recording for the camera at this index is enabled and tag detector at index is not null.
-        if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
-        {
-            // Do not enqueue a new request if the previous one is still pending.
-            if (m_vFrameFutures[nIter].valid())
-            {
-                if (m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) != std::future_status::ready)
-                {
-                    continue;
-                }
-            }
-            // Request frame.
-            m_vFrameFutures[nIter] = m_vTagDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
-        }
-    }
-
     // Loop through cameras and wait for frame requests to be fulfilled.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
@@ -566,7 +584,7 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
         if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
         {
             if (m_vFrameFutures[nIter].valid() &&
-                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready)
             {
                 bool bSuccess = false;
                 try
@@ -602,6 +620,22 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
                     m_vCameraWriters[nIter].write(cvFrameToWrite);
                 }
             }
+        }
+    }
+
+    // Loop through total number of cameras and request next frames.
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+    {
+        // Check if recording for the camera at this index is enabled and tag detector at index is not null.
+        if (m_vRecordingToggles[nIter] && m_vTagDetectors[nIter] != nullptr)
+        {
+            // Do not enqueue a new request if the previous one is still pending.
+            if (m_vFrameFutures[nIter].valid())
+            {
+                continue;
+            }
+            // Request frame.
+            m_vFrameFutures[nIter] = m_vTagDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
         }
     }
 }
@@ -705,25 +739,6 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
  ******************************************************************************/
 void RecordingHandler::RequestAndWriteObjectDetectorFrames()
 {
-    // Loop through total number of cameras and request frames.
-    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
-    {
-        // Check if recording for the camera at this index is enabled and object detector at index is not null.
-        if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
-        {
-            // Do not enqueue a new request if the previous one is still pending.
-            if (m_vFrameFutures[nIter].valid())
-            {
-                if (m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) != std::future_status::ready)
-                {
-                    continue;
-                }
-            }
-            // Request frame.
-            m_vFrameFutures[nIter] = m_vObjectDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
-        }
-    }
-
     // Loop through cameras and wait for frame requests to be fulfilled.
     for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
     {
@@ -731,7 +746,7 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
         if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
         {
             if (m_vFrameFutures[nIter].valid() &&
-                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+                m_vFrameFutures[nIter].wait_for(std::chrono::milliseconds(50)) == std::future_status::ready)
             {
                 bool bSuccess = false;
                 try
@@ -767,6 +782,22 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
                     m_vCameraWriters[nIter].write(cvFrameToWrite);
                 }
             }
+        }
+    }
+
+    // Loop through total number of cameras and request next frames.
+    for (int nIter = 0; nIter < m_nTotalVideoFeeds; ++nIter)
+    {
+        // Check if recording for the camera at this index is enabled and object detector at index is not null.
+        if (m_vRecordingToggles[nIter] && m_vObjectDetectors[nIter] != nullptr)
+        {
+            // Do not enqueue a new request if the previous one is still pending.
+            if (m_vFrameFutures[nIter].valid())
+            {
+                continue;
+            }
+            // Request frame.
+            m_vFrameFutures[nIter] = m_vObjectDetectors[nIter]->RequestDetectionOverlayFrame(m_vFrames[nIter]);
         }
     }
 }
