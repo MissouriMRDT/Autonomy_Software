@@ -740,7 +740,7 @@ namespace controllers
             if (m_dKp < 0)
             {
                 // Flip sign sign for proportional gain.
-                m_dKi *= -1;
+                m_dKp *= -1;
             }
             if (m_dKi < 0)
             {
