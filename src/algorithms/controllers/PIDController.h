@@ -60,6 +60,8 @@ namespace controllers
             PIDController(const double dKp, const double dKi, const double dKd, const double dKff = 0.0);
             double Calculate(const double dActual, const double dSetpoint);
             double Calculate(const double dActual);
+            double CalculateVelocity(const double dCurrVelo, const double dGoalVelo);
+            double CalculateVelocity(const double dCurrVelo);
             void EnableContinuousInput(const double dMinimumInput, const double dMaximumInput);
             void DisableContinuousInput();
             void Reset();
