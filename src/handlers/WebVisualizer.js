@@ -38,24 +38,24 @@ const typeNames = {};
 
 // State Colors
 let stateColors = {
-    0: { name: "Idle", color: "#888888" },
-    1: { name: "Navigating", color: "#00ffff" },
-    2: { name: "Search Pattern", color: "#0000ff" },
-    3: { name: "Approach Marker", color: "#ffffff" },
-    4: { name: "Approach Object", color: "#ffaa00" },
-    5: { name: "Verify Pos", color: "#00550e" },
-    6: { name: "Verify Marker", color: "#06ac00" },
-    7: { name: "Verify Object", color: "#78ff66" },
-    8: { name: "Reversing", color: "#ff0000" },
-    9: { name: "Stuck", color: "#330000" }
+    0: { name: "Idle", color: "#888888", visible: true },
+    1: { name: "Navigating", color: "#00ffff", visible: true },
+    2: { name: "Search Pattern", color: "#0000ff", visible: true },
+    3: { name: "Approach Marker", color: "#ffffff", visible: true },
+    4: { name: "Approach Object", color: "#ffaa00", visible: true },
+    5: { name: "Verify Pos", color: "#00550e", visible: true },
+    6: { name: "Verify Marker", color: "#06ac00", visible: true },
+    7: { name: "Verify Object", color: "#78ff66", visible: true },
+    8: { name: "Reversing", color: "#ff0000", visible: true },
+    9: { name: "Stuck", color: "#330000", visible: true }
 };
 
 // Detection Colors
 let detectColors = {
-    10: { name: "Aruco Tag", color: "#aa00ff" }, // Purple
-    11: { name: "Mallet", color: "#ffa500" },      // Orange
-    12: { name: "Bottle", color: "#0088ff" },      // Blue
-    13: { name: "Pick", color: "#ffee00" }         // Yellow
+    10: { name: "Aruco Tag", color: "#aa00ff", visible: true },
+    11: { name: "Mallet", color: "#ffa500", visible: true },
+    12: { name: "Bottle", color: "#0088ff", visible: true },
+    13: { name: "Pick", color: "#ffee00", visible: true }
 };
 
 // Terrain Height Sampler
@@ -202,7 +202,18 @@ function init() {
     for (const [id, data] of Object.entries(detectColors)) {
         const item = document.createElement('div');
         item.className = 'legend-item';
-        item.innerHTML = `<button class="circle-box" id="item-${id}" style="background:${data.color}" onClick="modifyColor(this)"></button><span>${data.name}</span>`;
+        item.innerHTML = `<button class="circle-box" id="item-${id}" style="background:${data.color}" onClick="modifyColor(this)"></button><span>${data.name}</span>
+        <button class="visibility-toggle" id="visibility-${id}" onclick="toggleVisibility('${id}')" aria-label="Toggle ${data.name} visibility">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="16"
+                 height="16"
+                 fill="#00FF00"
+                 viewBox="0 0 16 16">
+                <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/>
+                <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/>
+                <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>
+            </svg>
+        </button>`;
         detLegendDiv.appendChild(item);
     }
 
@@ -211,7 +222,18 @@ function init() {
     for (const [id, data] of Object.entries(stateColors)) {
         const item = document.createElement('div');
         item.className = 'legend-item';
-        item.innerHTML = `<button class="color-box" id="item-${id}" style="background:${data.color}" onClick="modifyColor(this)"></button><span>${data.name}</span>`;
+        item.innerHTML = `<button class="color-box" id="item-${id}" style="background:${data.color}" onClick="modifyColor(this)"></button><span>${data.name}</span>
+        <button class="visibility-toggle" id="visibility-${id}" onclick="toggleVisibility('${id}')" aria-label="Toggle ${data.name} visibility">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="16"
+                 height="16"
+                 fill="#00FF00"
+                 viewBox="0 0 16 16">
+                <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/>
+                <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/>
+                <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>
+            </svg>
+        </button>`;
         stateLegendDiv.appendChild(item);
     }
 
@@ -470,11 +492,15 @@ function updateTelemetry(buffer) {
         const c = new THREE.Color();
 
         for (let i = 0; i < floats.length; i += 4) {
-            vertices.push(floats[i], floats[i + 1], -floats[i + 2]);
             const state = Math.floor(floats[i + 3]);
-            const hex = stateColors[state] ? stateColors[state].color : "#ffffff";
-            c.set(hex);
-            colors.push(c.r, c.g, c.b);
+            const visible = stateColors[state] ? stateColors[state].visible : true;
+
+            if (visible) {
+                vertices.push(floats[i], floats[i + 1], -floats[i + 2]);
+                const hex = stateColors[state] ? stateColors[state].color : "#ffffff";
+                c.set(hex);
+                colors.push(c.r, c.g, c.b);
+            }
         }
 
         pathLine = createThickPath(vertices, colors, 0.1, 0xffffff);
@@ -792,6 +818,18 @@ function animate() {
     updateHUD();
 
     renderer.render(scene, camera);
+}
+
+// TODO needs commented @JordanH7
+window.toggleVisibility = function (id) {
+    const icon = document.getElementById(`visibility-${id}`);
+    const svg = icon.querySelector('svg');
+
+    const numId = parseInt(id);
+    const line = stateColors[numId] || detectColors[numId];
+    line.visible = !line.visible;
+
+    svg.style.fill = line.visible ? "rgb(0, 255, 0)" : "rgb(255, 0, 0)";
 }
 
 // TODO needs commented @JordanH7

@@ -111,6 +111,14 @@ body {
     border: none;
 }
 
+.visibility-toggle {
+    background: none;
+    border: none;
+    padding: 2px;
+    margin-left: 6px;
+    cursor: pointer;
+}
+
 .control-group {
     margin-bottom: 10px;
     pointer-events: auto;
