@@ -128,21 +128,22 @@ namespace tui
     {
         using namespace ftxui;
 
-        auto makeTab = [this](int nIndex, const std::string& szLabel) {
+        auto makeTab = [this](int nIndex, const std::string& szLabel, ftxui::Box& box) {
             bool bSelected = (m_nActiveTab == nIndex);
             return text(" " + szLabel + " ")
                    | (bSelected ? (bold | bgcolor(Color::Blue) | color(Color::White))
-                                : (color(Color::GrayLight)));
+                                : (color(Color::GrayLight)))
+                   | reflect(box);
         };
 
         return hbox({
-            text(" 🤖 AUTONOMY TUI DASHBOARD ") | bold | color(Color::CyanLight),
+            text(" AUTONOMY TUI DASHBOARD ") | bold | color(Color::CyanLight),
             separator(),
-            makeTab(0, "1: TELEMETRY"),
+            makeTab(0, "1: TELEMETRY", m_boxTab0),
             text(" "),
-            makeTab(1, "2: HARDWARE"),
+            makeTab(1, "2: HARDWARE", m_boxTab1),
             text(" "),
-            makeTab(2, "3: LIVE LOGS"),
+            makeTab(2, "3: LIVE LOGS", m_boxTab2),
             filler(),
             text(" [Tab/←/→: Switch Tabs | 'q': Quit] ") | color(Color::GrayDark)
         }) | border | bgcolor(Color::RGB(15, 15, 25));
@@ -183,7 +184,21 @@ namespace tui
                 {
                     vLogs = m_pLogBuffer->GetSnapshot();
                 }
-                currentView = views::RenderLogView(vLogs, m_eLogMinLevel, m_bLogAutoScroll, m_nLogScrollOffset);
+                currentView = views::RenderLogView(vLogs,
+                                                   m_nLogSubTab,
+                                                   m_bLogAutoScroll,
+                                                   m_nLogScrollOffset,
+                                                   m_szSearchQuery,
+                                                   m_bSearchMode,
+                                                   m_boxSubTab0,
+                                                   m_boxSubTab1,
+                                                   m_boxSubTab2,
+                                                   m_boxSubTab3,
+                                                   m_boxSubTab4,
+                                                   m_boxSubTab5,
+                                                   m_boxAutoScroll,
+                                                   m_boxSearch,
+                                                   m_boxLogContent);
                 break;
             }
         }
@@ -206,8 +221,105 @@ namespace tui
         });
 
         auto component = CatchEvent(renderer, [this, &screen](Event event) -> bool {
-            if (event == Event::Character('q') || event == Event::Character('Q') ||
-                event == Event::Special({3}) || event == Event::Special("\x03"))
+            // Global Ctrl+C / quit handling
+            if (event == Event::Special({3}) || event == Event::Special("\x03"))
+            {
+                if (m_fnOnQuit)
+                {
+                    m_fnOnQuit();
+                }
+                screen.Exit();
+                return true;
+            }
+
+            // Mouse events
+            if (event.is_mouse())
+            {
+                int mx = event.mouse().x;
+                int my = event.mouse().y;
+
+                if (event.mouse().button == Mouse::Left && event.mouse().motion == Mouse::Pressed)
+                {
+                    // Top tab bar clicks
+                    if (m_boxTab0.Contain(mx, my)) { m_nActiveTab = 0; return true; }
+                    if (m_boxTab1.Contain(mx, my)) { m_nActiveTab = 1; return true; }
+                    if (m_boxTab2.Contain(mx, my)) { m_nActiveTab = 2; return true; }
+
+                    // Log tab subtabs and controls
+                    if (m_nActiveTab == 2)
+                    {
+                        if (m_boxSubTab0.Contain(mx, my)) { m_nLogSubTab = 0; return true; }
+                        if (m_boxSubTab1.Contain(mx, my)) { m_nLogSubTab = 1; m_eLogMinLevel = quill::LogLevel::TraceL3; return true; }
+                        if (m_boxSubTab2.Contain(mx, my)) { m_nLogSubTab = 2; m_eLogMinLevel = quill::LogLevel::Debug; return true; }
+                        if (m_boxSubTab3.Contain(mx, my)) { m_nLogSubTab = 3; m_eLogMinLevel = quill::LogLevel::Info; return true; }
+                        if (m_boxSubTab4.Contain(mx, my)) { m_nLogSubTab = 4; m_eLogMinLevel = quill::LogLevel::Warning; return true; }
+                        if (m_boxSubTab5.Contain(mx, my)) { m_nLogSubTab = 5; m_eLogMinLevel = quill::LogLevel::Error; return true; }
+
+                        if (m_boxAutoScroll.Contain(mx, my))
+                        {
+                            m_bLogAutoScroll = !m_bLogAutoScroll;
+                            if (m_bLogAutoScroll) m_nLogScrollOffset = 0;
+                            return true;
+                        }
+
+                        if (m_boxSearch.Contain(mx, my))
+                        {
+                            m_bSearchMode = true;
+                            return true;
+                        }
+                    }
+                }
+                else if (event.mouse().button == Mouse::WheelUp)
+                {
+                    if (m_nActiveTab == 2)
+                    {
+                        m_bLogAutoScroll = false;
+                        m_nLogScrollOffset += 3;
+                        return true;
+                    }
+                }
+                else if (event.mouse().button == Mouse::WheelDown)
+                {
+                    if (m_nActiveTab == 2)
+                    {
+                        m_nLogScrollOffset = std::max(0, m_nLogScrollOffset - 3);
+                        if (m_nLogScrollOffset == 0) m_bLogAutoScroll = true;
+                        return true;
+                    }
+                }
+            }
+
+            // Search input mode
+            if (m_bSearchMode)
+            {
+                if (event == Event::Escape || event == Event::Return)
+                {
+                    m_bSearchMode = false;
+                    return true;
+                }
+                if (event == Event::Backspace)
+                {
+                    if (!m_szSearchQuery.empty())
+                    {
+                        m_szSearchQuery.pop_back();
+                    }
+                    return true;
+                }
+                if (event == Event::Special({21}))    // Ctrl+U: clear query
+                {
+                    m_szSearchQuery.clear();
+                    return true;
+                }
+                if (event.is_character())
+                {
+                    m_szSearchQuery += event.character();
+                    return true;
+                }
+                return true;
+            }
+
+            // Normal keyboard mode
+            if (event == Event::Character('q') || event == Event::Character('Q'))
             {
                 if (m_fnOnQuit)
                 {
@@ -248,6 +360,16 @@ namespace tui
             // Tab 2 (Live Logs) key interactions
             if (m_nActiveTab == 2)
             {
+                if (event == Event::Character('/') || event == Event::Character('s') || event == Event::Character('S'))
+                {
+                    m_bSearchMode = true;
+                    return true;
+                }
+                if (event == Event::Character('c') || event == Event::Character('C'))
+                {
+                    m_szSearchQuery.clear();
+                    return true;
+                }
                 if (event == Event::Character(' '))
                 {
                     m_bLogAutoScroll = !m_bLogAutoScroll;
@@ -259,73 +381,89 @@ namespace tui
                 }
                 if (event == Event::ArrowUp)
                 {
-                    if (!m_bLogAutoScroll)
-                    {
-                        m_nLogScrollOffset += 5;
-                    }
+                    m_bLogAutoScroll = false;
+                    m_nLogScrollOffset += 3;
                     return true;
                 }
                 if (event == Event::ArrowDown)
                 {
-                    if (!m_bLogAutoScroll)
+                    m_nLogScrollOffset = std::max(0, m_nLogScrollOffset - 3);
+                    if (m_nLogScrollOffset == 0)
                     {
-                        m_nLogScrollOffset = std::max(0, m_nLogScrollOffset - 5);
+                        m_bLogAutoScroll = true;
                     }
                     return true;
                 }
                 if (event == Event::PageUp)
                 {
-                    if (!m_bLogAutoScroll)
-                    {
-                        m_nLogScrollOffset += 25;
-                    }
+                    m_bLogAutoScroll = false;
+                    m_nLogScrollOffset += 20;
                     return true;
                 }
                 if (event == Event::PageDown)
                 {
-                    if (!m_bLogAutoScroll)
+                    m_nLogScrollOffset = std::max(0, m_nLogScrollOffset - 20);
+                    if (m_nLogScrollOffset == 0)
                     {
-                        m_nLogScrollOffset = std::max(0, m_nLogScrollOffset - 25);
+                        m_bLogAutoScroll = true;
                     }
+                    return true;
+                }
+                if (event == Event::Home)
+                {
+                    m_bLogAutoScroll = false;
+                    m_nLogScrollOffset = 5000;
+                    return true;
+                }
+                if (event == Event::End)
+                {
+                    m_nLogScrollOffset = 0;
+                    m_bLogAutoScroll = true;
+                    return true;
+                }
+                if (event == Event::Character('0'))
+                {
+                    m_nLogSubTab = 0;
                     return true;
                 }
                 if (event == Event::F1)
                 {
+                    m_nLogSubTab = 1;
                     m_eLogMinLevel = quill::LogLevel::TraceL3;
                     return true;
                 }
                 if (event == Event::F2)
                 {
+                    m_nLogSubTab = 2;
                     m_eLogMinLevel = quill::LogLevel::Debug;
                     return true;
                 }
                 if (event == Event::F3)
                 {
+                    m_nLogSubTab = 3;
                     m_eLogMinLevel = quill::LogLevel::Info;
                     return true;
                 }
                 if (event == Event::F4)
                 {
+                    m_nLogSubTab = 4;
                     m_eLogMinLevel = quill::LogLevel::Warning;
                     return true;
                 }
                 if (event == Event::F5)
                 {
+                    m_nLogSubTab = 5;
                     m_eLogMinLevel = quill::LogLevel::Error;
                     return true;
                 }
                 if (event == Event::Character('f') || event == Event::Character('F'))
                 {
-                    if (m_eLogMinLevel == quill::LogLevel::TraceL3)
-                        m_eLogMinLevel = quill::LogLevel::Debug;
-                    else if (m_eLogMinLevel == quill::LogLevel::Debug)
-                        m_eLogMinLevel = quill::LogLevel::Info;
-                    else if (m_eLogMinLevel == quill::LogLevel::Info)
-                        m_eLogMinLevel = quill::LogLevel::Warning;
-                    else if (m_eLogMinLevel == quill::LogLevel::Warning)
-                        m_eLogMinLevel = quill::LogLevel::Error;
-                    else
-                        m_eLogMinLevel = quill::LogLevel::TraceL3;
+                    m_nLogSubTab = (m_nLogSubTab + 1) % 6;
+                    if (m_nLogSubTab == 1) m_eLogMinLevel = quill::LogLevel::TraceL3;
+                    else if (m_nLogSubTab == 2) m_eLogMinLevel = quill::LogLevel::Debug;
+                    else if (m_nLogSubTab == 3) m_eLogMinLevel = quill::LogLevel::Info;
+                    else if (m_nLogSubTab == 4) m_eLogMinLevel = quill::LogLevel::Warning;
+                    else if (m_nLogSubTab == 5) m_eLogMinLevel = quill::LogLevel::Error;
                     return true;
                 }
             }

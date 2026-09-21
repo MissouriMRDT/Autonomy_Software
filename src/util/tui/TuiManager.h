@@ -16,12 +16,14 @@
 #include <ftxui/component/screen_interactive.hpp>
 #include <ftxui/component/component.hpp>
 #include <ftxui/dom/elements.hpp>
+#include <ftxui/screen/box.hpp>
 
 #include <atomic>
 #include <memory>
 #include <mutex>
 #include <thread>
 #include <functional>
+#include <string>
 
 namespace tui
 {
@@ -73,9 +75,17 @@ namespace tui
 
         // TUI Navigation and View State
         int m_nActiveTab = 0;              // 0: Telemetry, 1: Hardware, 2: Logs
+        int m_nLogSubTab = 0;              // 0: Console/Raw, 1: All, 2: Debug, 3: Info, 4: Warn, 5: Error
         quill::LogLevel m_eLogMinLevel = quill::LogLevel::TraceL3;
         bool m_bLogAutoScroll = true;
         int m_nLogScrollOffset = 0;
+        std::string m_szSearchQuery = "";
+        bool m_bSearchMode = false;
+
+        // Interactive mouse click hitboxes
+        ftxui::Box m_boxTab0, m_boxTab1, m_boxTab2;
+        ftxui::Box m_boxSubTab0, m_boxSubTab1, m_boxSubTab2, m_boxSubTab3, m_boxSubTab4, m_boxSubTab5;
+        ftxui::Box m_boxAutoScroll, m_boxSearch, m_boxLogContent;
 
         std::atomic<bool> m_bRunning{false};
         std::thread m_thRender;

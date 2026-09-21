@@ -10,6 +10,8 @@
 
 #include "../../../../src/util/tui/TuiLogSink.h"
 #include "../../../../src/util/tui/SystemMetrics.h"
+#include "../../../../src/util/tui/views/LogView.h"
+#include "../../../../src/util/GeospatialOperations.hpp"
 #include "../../../TestingBase.hh"
 
 #include <gtest/gtest.h>
@@ -104,4 +106,31 @@ TEST_F(TuiTestsTest, SystemMetricsQuery)
     EXPECT_GE(stStats.fGpuTempCelsius, 0.0f);
     EXPECT_GE(stStats.fVramUsedGB, 0.0f);
     EXPECT_GE(stStats.fVramTotalGB, 0.0f);
+}
+
+/******************************************************************************
+ * @brief Test that UTM to GPS coordinate conversion works accurately.
+ ******************************************************************************/
+TEST_F(TuiTestsTest, DualCoordinatesConversion)
+{
+    // Rolla, MO coordinates ~ Zone 15N
+    // E: 601000, N: 4198000
+    geoops::UTMCoordinate stUTM(601000.0, 4198000.0, 15, true);
+    geoops::GPSCoordinate stGPS = geoops::ConvertUTMToGPS(stUTM);
+
+    // Approximate latitude around 37.9° N, longitude around -91.8° W
+    EXPECT_NEAR(stGPS.dLatitude, 37.92, 0.1);
+    EXPECT_NEAR(stGPS.dLongitude, -91.85, 0.1);
+}
+
+/******************************************************************************
+ * @brief Test that case-insensitive search filtering functions correctly.
+ ******************************************************************************/
+TEST_F(TuiTestsTest, SearchFilterTest)
+{
+    EXPECT_TRUE(tui::views::ContainsCaseInsensitive("Rover State: AUTONOMOUS", "state"));
+    EXPECT_TRUE(tui::views::ContainsCaseInsensitive("GPS Fix Acquired", "gps"));
+    EXPECT_TRUE(tui::views::ContainsCaseInsensitive("Obstacle detected", "OBSTACLE"));
+    EXPECT_TRUE(tui::views::ContainsCaseInsensitive("Any text", ""));
+    EXPECT_FALSE(tui::views::ContainsCaseInsensitive("Sensor Online", "offline"));
 }
