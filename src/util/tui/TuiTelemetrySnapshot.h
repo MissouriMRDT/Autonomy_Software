@@ -29,6 +29,11 @@ namespace tui
         double dEasting                    = 0.0;
         double dNorthing                   = 0.0;
         double dAltitude                   = 0.0;
+        int nUTMZone                       = 0;
+        bool bUTMNorth                     = true;
+        double dLatitude                   = 0.0;
+        double dLongitude                  = 0.0;
+        bool bHasGPSFix                    = false;
         double dCompassHeading             = 0.0;
         double dTargetHeading              = 0.0;
         double dHeadingError               = 0.0;
@@ -42,6 +47,10 @@ namespace tui
         float fRollAngle                   = 0.0f;
 
         // Vision & Detections
+        bool bMainCamOpen                  = false;
+        bool bRearCamOpen                  = false;
+        bool bTagDetectorReady             = false;
+        bool bObjectDetectorReady          = false;
         float fMainCamFPS                  = 0.0f;
         float fRearCamFPS                  = 0.0f;
         int nDetectedTagsCount             = 0;

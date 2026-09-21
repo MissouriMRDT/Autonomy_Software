@@ -356,10 +356,26 @@ int main(int argc, char** argv)
                     stSnapshot.nStateMachineIPS = static_cast<int>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS());
 
                     stPose                      = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
-                    stSnapshot.dEasting         = stPose.GetUTMCoordinate().dEasting;
-                    stSnapshot.dNorthing        = stPose.GetUTMCoordinate().dNorthing;
-                    stSnapshot.dAltitude        = stPose.GetUTMCoordinate().dAltitude;
+                    geoops::UTMCoordinate stUTM = stPose.GetUTMCoordinate();
+                    stSnapshot.dEasting         = stUTM.dEasting;
+                    stSnapshot.dNorthing        = stUTM.dNorthing;
+                    stSnapshot.dAltitude        = stUTM.dAltitude;
+                    stSnapshot.nUTMZone         = stUTM.nZone;
+                    stSnapshot.bUTMNorth        = stUTM.bWithinNorthernHemisphere;
                     stSnapshot.dCompassHeading  = stPose.GetCompassHeading();
+
+                    try
+                    {
+                        geoops::GPSCoordinate stGPS = geoops::ConvertUTMToGPS(stUTM);
+                        stSnapshot.dLatitude        = stGPS.dLatitude;
+                        stSnapshot.dLongitude       = stGPS.dLongitude;
+                        stSnapshot.bHasGPSFix       = (stUTM.eCoordinateAccuracyFixType != geoops::PositionFixType::eNoFix &&
+                                                       stUTM.eCoordinateAccuracyFixType != geoops::PositionFixType::eUNKNOWN);
+                    }
+                    catch (const std::exception& e)
+                    {
+                        stSnapshot.bHasGPSFix = false;
+                    }
                 }
 
                 stSnapshot.bSimMode        = constants::MODE_SIM;
@@ -372,8 +388,12 @@ int main(int argc, char** argv)
                     stSnapshot.fRightDrivePower     = static_cast<float>(stPowers.dRightDrivePower);
                 }
 
-                stSnapshot.fMainCamFPS = static_cast<float>(pMainCam->GetIPS().GetExactIPS());
-                stSnapshot.fRearCamFPS = pRearCam ? static_cast<float>(pRearCam->GetIPS().GetExactIPS()) : 0.0f;
+                stSnapshot.bMainCamOpen         = pMainCam ? pMainCam->GetCameraIsOpen() : false;
+                stSnapshot.bRearCamOpen         = pRearCam ? pRearCam->GetCameraIsOpen() : false;
+                stSnapshot.bTagDetectorReady    = pMainTagDetector ? pMainTagDetector->GetIsReady() : false;
+                stSnapshot.bObjectDetectorReady = pMainObjectDetector ? pMainObjectDetector->GetIsReady() : false;
+                stSnapshot.fMainCamFPS          = static_cast<float>(pMainCam->GetIPS().GetExactIPS());
+                stSnapshot.fRearCamFPS          = pRearCam ? static_cast<float>(pRearCam->GetIPS().GetExactIPS()) : 0.0f;
 
                 if (globals::g_pWaypointHandler && globals::g_pWaypointHandler->GetWaypointCount() > 0)
                 {
