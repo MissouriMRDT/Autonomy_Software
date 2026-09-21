@@ -44,18 +44,28 @@ namespace tui::views
         ossGpuTemp << std::fixed << std::setprecision(1) << stats.fGpuTempCelsius << "°C";
         ossBoardTemp << std::fixed << std::setprecision(1) << stats.fBoardTempCelsius << "°C";
 
+        std::string szCpuTempStr = stats.fCpuTempCelsius > 0.0f
+            ? ossCpuTemp.str()
+            : (stats.bIsVirtualMachine ? "N/A (VM)" : "N/A");
+        std::string szBoardTempStr = stats.fBoardTempCelsius > 0.0f
+            ? ossBoardTemp.str()
+            : (stats.bIsVirtualMachine ? "N/A (VM)" : "N/A");
+        std::string szGpuTempStr = stats.fGpuTempCelsius > 0.0f
+            ? ossGpuTemp.str()
+            : "N/A";
+
         Element summaryBar = hbox({
             text(" LOAD AVG: ") | bold,
             text(ossLoad.str()) | color(Color::CyanLight),
             separator(),
             text(" CPU TEMP: ") | bold,
-            text(stats.fCpuTempCelsius > 0.0f ? ossCpuTemp.str() : "N/A") | bold | color(GetTempColor(stats.fCpuTempCelsius)),
+            text(szCpuTempStr) | bold | color(stats.fCpuTempCelsius > 0.0f ? GetTempColor(stats.fCpuTempCelsius) : Color::GrayLight),
             separator(),
             text(" GPU TEMP: ") | bold,
-            text(stats.fGpuTempCelsius > 0.0f ? ossGpuTemp.str() : "N/A") | bold | color(GetTempColor(stats.fGpuTempCelsius)),
+            text(szGpuTempStr) | bold | color(stats.fGpuTempCelsius > 0.0f ? GetTempColor(stats.fGpuTempCelsius) : Color::GrayLight),
             separator(),
             text(" BOARD TEMP: ") | bold,
-            text(stats.fBoardTempCelsius > 0.0f ? ossBoardTemp.str() : "N/A") | color(GetTempColor(stats.fBoardTempCelsius))
+            text(szBoardTempStr) | color(stats.fBoardTempCelsius > 0.0f ? GetTempColor(stats.fBoardTempCelsius) : Color::GrayLight)
         }) | border | bgcolor(Color::RGB(20, 25, 35));
 
         // 2. CPU Pane (Per-Core btop-style horizontal meters)
@@ -114,7 +124,7 @@ namespace tui::views
         }
 
         Element cpuPane = window(
-            text(" ⚡ PROCESSOR (CPU) ") | bold | color(Color::CyanLight),
+            text(" PROCESSOR (CPU) ") | bold | color(Color::CyanLight),
             vbox({
                 totalCpuRow,
                 separator(),
@@ -131,7 +141,7 @@ namespace tui::views
         ossSwap << std::fixed << std::setprecision(2) << stats.fSwapUsedGB << " / " << stats.fSwapTotalGB << " GB (" << static_cast<int>(fSwapPct) << "%)";
 
         Element memPane = window(
-            text(" 💾 SYSTEM MEMORY ") | bold | color(Color::MagentaLight),
+            text(" SYSTEM MEMORY ") | bold | color(Color::MagentaLight),
             vbox({
                 text(" RAM Usage:") | color(Color::GrayLight),
                 hbox({
@@ -149,23 +159,45 @@ namespace tui::views
 
         // 4. GPU & Accelerator Pane
         float fGpuPct = std::clamp(stats.fGpuUsagePercent, 0.0f, 100.0f);
-        std::ostringstream ossGpuPct;
+        std::ostringstream ossGpuPct, ossVram;
         ossGpuPct << std::fixed << std::setprecision(1) << fGpuPct << "%";
+        float fVramPct = stats.fVramTotalGB > 0.0f ? (stats.fVramUsedGB / stats.fVramTotalGB) * 100.0f : 0.0f;
+        ossVram << std::fixed << std::setprecision(2) << stats.fVramUsedGB << " / " << stats.fVramTotalGB << " GB (" << static_cast<int>(fVramPct) << "%)";
+
+        std::string szModel = !stats.szGpuModel.empty() ? stats.szGpuModel : (stats.fGpuUsagePercent >= 0.0f ? "NVIDIA Tegra Orin / Ampere" : "Unavailable / Standard CPU");
+
+        Elements vGpuElements;
+        vGpuElements.push_back(text(" GPU Engine Load:") | color(Color::GrayLight));
+        vGpuElements.push_back(
+            hbox({
+                gauge(fGpuPct / 100.0f) | color(GetUsageColor(fGpuPct)) | flex,
+                text(" " + ossGpuPct.str()) | bold | color(Color::White)
+            })
+        );
+
+        if (stats.fVramTotalGB > 0.0f)
+        {
+            vGpuElements.push_back(separator());
+            vGpuElements.push_back(text(" Dedicated VRAM:") | color(Color::GrayLight));
+            vGpuElements.push_back(
+                hbox({
+                    gauge(fVramPct / 100.0f) | color(GetUsageColor(fVramPct)) | flex,
+                    text(" " + ossVram.str()) | bold | color(Color::White)
+                })
+            );
+        }
+
+        vGpuElements.push_back(separator());
+        vGpuElements.push_back(
+            hbox({
+                text(" Model: ") | color(Color::GrayLight),
+                text(szModel) | bold | color(Color::YellowLight)
+            })
+        );
 
         Element gpuPane = window(
-            text(" 🎮 ACCELERATOR / GPU ") | bold | color(Color::GreenLight),
-            vbox({
-                text(" GPU Engine Load:") | color(Color::GrayLight),
-                hbox({
-                    gauge(fGpuPct / 100.0f) | color(GetUsageColor(fGpuPct)) | flex,
-                    text(" " + ossGpuPct.str()) | bold | color(Color::White)
-                }),
-                separator(),
-                hbox({
-                    text(" Architecture: ") | color(Color::GrayLight),
-                    text(stats.fGpuUsagePercent >= 0.0f ? "NVIDIA Tegra Orin / Ampere" : "Unavailable / Standard CPU") | color(Color::YellowLight)
-                })
-            })
+            text(" ACCELERATOR / GPU ") | bold | color(Color::GreenLight),
+            vbox(std::move(vGpuElements))
         );
 
         return vbox({

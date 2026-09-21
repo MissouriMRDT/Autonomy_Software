@@ -53,17 +53,19 @@ namespace tui
         float fGpuUsagePercent      = 0.0f;
         float fVramUsedGB           = 0.0f;
         float fVramTotalGB          = 0.0f;
+        std::string szGpuModel      = "";
 
         float fCpuTempCelsius       = 0.0f;
         float fGpuTempCelsius       = 0.0f;
         float fBoardTempCelsius     = 0.0f;
+        bool bIsVirtualMachine      = false;
     };
 
     class SystemMetricsCollector
     {
     public:
         SystemMetricsCollector();
-        ~SystemMetricsCollector() = default;
+        ~SystemMetricsCollector();
 
         HardwareStats Query();
 
@@ -76,6 +78,7 @@ namespace tui
         CpuTimeSample m_stPrevTotalCpu;
         std::vector<CpuTimeSample> m_vPrevCoreCpu;
         bool m_bHasPrevCpu = false;
+        void* m_pNvml      = nullptr;
     };
 }    // namespace tui
 

@@ -97,4 +97,11 @@ TEST_F(TuiTestsTest, SystemMetricsQuery)
     // RAM total should be positive on any Linux system
     EXPECT_GE(stStats.fRamTotalGB, 0.0f);
     EXPECT_GE(stStats.fRamUsedGB, 0.0f);
+
+    // GPU metrics should be non-negative
+    EXPECT_GE(stStats.fGpuUsagePercent, 0.0f);
+    EXPECT_LE(stStats.fGpuUsagePercent, 100.0f);
+    EXPECT_GE(stStats.fGpuTempCelsius, 0.0f);
+    EXPECT_GE(stStats.fVramUsedGB, 0.0f);
+    EXPECT_GE(stStats.fVramTotalGB, 0.0f);
 }
