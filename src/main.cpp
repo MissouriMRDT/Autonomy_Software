@@ -35,25 +35,35 @@ void RunExample() {}
 CHECK_IF_EXAMPLE_INCLUDED
 #endif
 
+// Forward declare terminal reset.
+void ResetTerminalMode();
+
 // Create a boolean used to handle a SIGINT and exit gracefully.
 volatile sig_atomic_t bMainStop = false;
+static volatile sig_atomic_t g_nSigIntCount = 0;
 // Store original terminal settings.
 struct termios g_stOriginalTermSettings;
 
-/******************************************************************************
- * @brief Help function given to the C++ csignal standard library to run when
- *      a CONTROL^C is given from the terminal.
- *
- * @param nSignal - Integer representing the interrupt value.
- *
- * @author clayjay3 (claytonraycowen@gmail.com)
- * @date 2024-01-08
- ******************************************************************************/
 void SignalHandler(int nSignal)
 {
     (void)nSignal;
     // Set stop signal safely.
     bMainStop = true;
+
+    tui::TuiManager* pMgr = tui::g_pActiveTuiManager.load();
+    if (pMgr)
+    {
+        pMgr->RequestQuit();
+    }
+
+    g_nSigIntCount = g_nSigIntCount + 1;
+    if (g_nSigIntCount >= 2)
+    {
+        ResetTerminalMode();
+        const char szReset[] = "\033[?1049l\033[?25h\033[0m\n";
+        (void)write(STDOUT_FILENO, szReset, sizeof(szReset) - 1);
+        _exit(130);
+    }
 }
 
 /******************************************************************************
@@ -131,6 +141,11 @@ int main(int argc, char** argv)
     {
         pTuiLogBuffer = std::make_shared<tui::TuiLogBuffer>();
         logging::EnableTuiLoggingMode(pTuiLogBuffer);
+
+        pTuiManager = std::make_unique<tui::TuiManager>(pTuiLogBuffer, []() {
+            bMainStop = true;
+        });
+        pTuiManager->Start();
     }
     else
     {
@@ -237,8 +252,8 @@ int main(int argc, char** argv)
         // Open the LiDAR database.
         if (!globals::g_pLiDARHandler->OpenDB(constants::LIDAR_HANDLER_DB_PATH))
         {
-            LOG_WARNING(logging::g_qSharedLogger, "Failed to open LiDAR database at {}. Attempting fallback to Flat_SIM.db...", constants::LIDAR_HANDLER_DB_PATH);
-            if (!globals::g_pLiDARHandler->OpenDB("../data/LiDAR/data/databases/Flat_SIM.db"))
+            LOG_WARNING(logging::g_qSharedLogger, "Failed to open LiDAR database at {}. Attempting fallback to SIM_Flat.db...", constants::LIDAR_HANDLER_DB_PATH);
+            if (!globals::g_pLiDARHandler->OpenDB("../data/LiDAR/data/databases/SIM_Flat.db"))
             {
                 // Submit logger message.
                 LOG_ERROR(logging::g_qSharedLogger, "Failed to open LiDAR database.");
@@ -251,18 +266,21 @@ int main(int argc, char** argv)
         globals::g_pGeoPlanner                      = new pathplanners::GeoPlanner(constants::GEOPLANNER_TILE_SIZE);
         VisualizationHandler* pVisualizationHandler = new VisualizationHandler(constants::VISUALIZER_WEBSERVER_PORT);
 
-        // Start camera and detection handlers.
-        globals::g_pCameraHandler->StartAllCameras();
-        globals::g_pTagDetectionHandler->StartAllDetectors();
-        globals::g_pObjectDetectionHandler->StartAllDetectors();
-        // Enable recording on handlers.
-        globals::g_pCameraHandler->StartRecording();
-        globals::g_pTagDetectionHandler->StartRecording();
-        globals::g_pObjectDetectionHandler->StartRecording();
-        // Now that cameras and detectors are configured start state machine.
-        globals::g_pStateMachineHandler->StartStateMachine();
-        // Start the visualization handler.
-        pVisualizationHandler->Start();
+        // Start camera and detection handlers if not stopped.
+        if (!bMainStop)
+        {
+            globals::g_pCameraHandler->StartAllCameras();
+            globals::g_pTagDetectionHandler->StartAllDetectors();
+            globals::g_pObjectDetectionHandler->StartAllDetectors();
+            // Enable recording on handlers.
+            globals::g_pCameraHandler->StartRecording();
+            globals::g_pTagDetectionHandler->StartRecording();
+            globals::g_pObjectDetectionHandler->StartRecording();
+            // Now that cameras and detectors are configured start state machine.
+            globals::g_pStateMachineHandler->StartStateMachine();
+            // Start the visualization handler.
+            pVisualizationHandler->Start();
+        }
 
         LOG_NOTICE(logging::g_qSharedLogger, "\n==================================================");
         LOG_NOTICE(logging::g_qSharedLogger, "Autonomy initialization complete! System is IDLE.");
@@ -282,14 +300,7 @@ int main(int argc, char** argv)
         std::shared_ptr<ObjectDetector> pRearObjectDetector = globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam);
         IPS IterPerSecond                                   = IPS();
 
-        // Start TUI Manager if enabled
-        if (bEnableTUI)
-        {
-            pTuiManager = std::make_unique<tui::TuiManager>(pTuiLogBuffer, []() {
-                bMainStop = true;
-            });
-            pTuiManager->Start();
-        }
+        // TUI Manager is started early if enabled
 
         // Create a vector of ints to store the FPS values for each thread.
         std::vector<uint32_t> vThreadFPSValues;

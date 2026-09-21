@@ -15,9 +15,12 @@
 #include <ftxui/component/loop.hpp>
 #include <iostream>
 #include <chrono>
+#include <csignal>
 
 namespace tui
 {
+    std::atomic<TuiManager*> g_pActiveTuiManager{nullptr};
+
     TerminalGuard::TerminalGuard()
     {
     }
@@ -56,6 +59,8 @@ namespace tui
             return;
         }
 
+        g_pActiveTuiManager.store(this);
+
         m_thRender = std::thread(&TuiManager::RenderThreadFunc, this);
         m_thRefresh = std::thread(&TuiManager::RefreshLoopFunc, this);
 
@@ -72,6 +77,8 @@ namespace tui
         {
             return;
         }
+
+        g_pActiveTuiManager.store(nullptr);
 
         ftxui::ScreenInteractive* pScreen = m_pScreen.load();
         if (pScreen)
@@ -93,6 +100,16 @@ namespace tui
         if (m_pTermGuard)
         {
             m_pTermGuard->Restore();
+        }
+    }
+
+    void TuiManager::RequestQuit()
+    {
+        ftxui::ScreenInteractive* pScreen = m_pScreen.load();
+        if (pScreen)
+        {
+            pScreen->Exit();
+            pScreen->PostEvent(ftxui::Event::Custom);
         }
     }
 
@@ -189,7 +206,8 @@ namespace tui
         });
 
         auto component = CatchEvent(renderer, [this, &screen](Event event) -> bool {
-            if (event == Event::Character('q') || event == Event::Character('Q'))
+            if (event == Event::Character('q') || event == Event::Character('Q') ||
+                event == Event::Special({3}) || event == Event::Special("\x03"))
             {
                 if (m_fnOnQuit)
                 {
@@ -316,6 +334,27 @@ namespace tui
         });
 
         Loop loop(&screen, component);
+
+        // Reinstall signal handler after FTXUI PreMain() to ensure Ctrl+C triggers graceful shutdown
+        struct sigaction stSig;
+        stSig.sa_handler = [](int nSig) {
+            (void)nSig;
+            TuiManager* pMgr = g_pActiveTuiManager.load();
+            if (pMgr)
+            {
+                auto fnQuit = pMgr->GetQuitCallback();
+                if (fnQuit)
+                {
+                    fnQuit();
+                }
+                pMgr->RequestQuit();
+            }
+        };
+        stSig.sa_flags = 0;
+        sigemptyset(&stSig.sa_mask);
+        sigaction(SIGINT, &stSig, nullptr);
+        sigaction(SIGTERM, &stSig, nullptr);
+
         while (m_bRunning.load() && !loop.HasQuitted())
         {
             loop.RunOnceBlocking();

@@ -23,6 +23,16 @@ Here are some common types of files or directories you might find within the **D
 4. **Troubleshooting**: Directory containing documentation files that address common issues, errors, or frequently asked questions related to the Rover project.
 5. **Release Notes**: File or directory containing release notes or changelogs that document the changes, bug fixes, and new features introduced in different versions of the Rover project.
 
+## Project Guides & Team Initiatives
+
+Engineering guides and onboarding documentation for major autonomy subteam projects:
+
+- [Platform-Agnostic Autonomy](projects/Platform_Agnostic_Autonomy.md): Guide for decoupling CUDA/NVIDIA hardware dependencies to enable CPU simulation development across Windows, Linux, and macOS.
+- [Model Training Pipeline & Jetson Inference Optimization](projects/Model_Training_Pipeline_And_Jetson_Optimization.md): Guide for automating dataset curation, Dockerized YOLOv8/v11 training, multi-class model unification, and Jetson Orin edge acceleration.
+- [Jetson Hardware & Infrastructure Upgrades](projects/Jetson_Hardware_And_Infrastructure_Upgrades.md): Guide for NVMe SSD root migration, thermal throttling mitigation, URC RF rule compliance, and automated SharePoint log synchronization.
+- [Extended Basestation Telemetry & Safety Controls](projects/Extended_Basestation_Telemetry_And_Safety_Controls.md): Guide for continuous RoveComm telemetry streaming, Drive/Arm state machine safety interlocks, and dynamic LiDAR bypass.
+- [Pointcloud to UTM Transformation & Geolocation Engine](projects/Pointcloud_To_UTM.md): Guide for full 6-DOF 3D coordinate transformations, terrain tilt compensation, object geolocating, and batched obstacle cloud mapping.
+
 ## Generating Documentation
 
 1. Run `doxygen` from the workspace root directory and doxygen will automatically generate the output files to the docs/Doxygen directory.

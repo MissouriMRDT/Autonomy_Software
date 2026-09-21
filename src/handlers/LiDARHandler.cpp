@@ -80,8 +80,9 @@ bool LiDARHandler::OpenDB(const std::string& szDBPath)
 
     try
     {
-        // Instantiate the DuckDB instance.
-        m_pDB = std::make_unique<duckdb::DuckDB>(szDBPath);
+        // Instantiate the DuckDB instance in read-only mode to prevent file-lock conflicts.
+        duckdb::DBConfig stConfig(true);
+        m_pDB = std::make_unique<duckdb::DuckDB>(szDBPath, &stConfig);
     }
     catch (const duckdb::Exception& e)
     {

@@ -25,6 +25,9 @@
 
 namespace tui
 {
+    class TuiManager;
+    extern std::atomic<TuiManager*> g_pActiveTuiManager;
+
     class TerminalGuard
     {
     public:
@@ -46,9 +49,11 @@ namespace tui
 
         void Start();
         void Stop();
+        void RequestQuit();
         bool IsRunning() const;
 
         void UpdateTelemetry(const TuiTelemetrySnapshot& snap);
+        QuitCallback GetQuitCallback() const { return m_fnOnQuit; }
 
     private:
         void RenderThreadFunc();

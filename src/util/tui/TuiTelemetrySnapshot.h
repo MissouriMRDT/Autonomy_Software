@@ -20,7 +20,7 @@ namespace tui
     {
         // State Machine
         statemachine::States eCurrentState = statemachine::States::eIdle;
-        std::string szStateName            = "Idle";
+        std::string szStateName            = "Initializing...";
         int nCurrentWaypointID             = -1;
         double dMissionUptimeSeconds       = 0.0;
         bool bSimMode                      = false;
