@@ -300,7 +300,19 @@ FetchContent_Declare(
     GIT_TAG        v5.0.0
     GIT_SHALLOW    TRUE
 )
+set(PREV_UNITY_BUILD ${CMAKE_UNITY_BUILD})
+set(CMAKE_UNITY_BUILD OFF)
 FetchContent_MakeAvailable(ftxui)
+set(CMAKE_UNITY_BUILD ${PREV_UNITY_BUILD})
+if (TARGET screen)
+    set_target_properties(screen PROPERTIES UNITY_BUILD OFF)
+endif()
+if (TARGET dom)
+    set_target_properties(dom PROPERTIES UNITY_BUILD OFF)
+endif()
+if (TARGET component)
+    set_target_properties(component PROPERTIES UNITY_BUILD OFF)
+endif()
 
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads

@@ -66,6 +66,12 @@
  * @author Eli Byrd (edbgkk@mst.edu)
  * @date 2023-08-22
  ******************************************************************************/
+
+namespace tui
+{
+    class TuiLogBuffer;
+}
+
 namespace logging
 {
     //////////////////////////////////////////
@@ -87,6 +93,9 @@ namespace logging
     /////////////////////////////////////////
 
     void InitializeLoggers(std::string szLoggingOutputPath, std::string szProgramTimeLogsDir = timeops::GetTimestamp());
+    void EnableTuiLoggingMode(std::shared_ptr<tui::TuiLogBuffer> pBuffer);
+    bool IsTuiLoggingModeEnabled();
+    std::shared_ptr<tui::TuiLogBuffer> GetTuiLogBuffer();
 
     /////////////////////////////////////////
     // Declare namespace callbacks.

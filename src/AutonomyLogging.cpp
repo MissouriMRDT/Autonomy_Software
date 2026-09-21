@@ -10,6 +10,7 @@
 
 #include "AutonomyLogging.h"
 #include "AutonomyNetworking.h"
+#include "./util/tui/TuiLogSink.h"
 
 /// \cond
 #include <RoveComm/RoveComm.h>
@@ -43,6 +44,23 @@ namespace logging
 
     std::string g_szProgramStartTimeString;
     std::string g_szLoggingOutputPath;
+
+    static std::shared_ptr<tui::TuiLogBuffer> g_pTuiLogBuffer = nullptr;
+
+    void EnableTuiLoggingMode(std::shared_ptr<tui::TuiLogBuffer> pBuffer)
+    {
+        g_pTuiLogBuffer = std::move(pBuffer);
+    }
+
+    bool IsTuiLoggingModeEnabled()
+    {
+        return g_pTuiLogBuffer != nullptr;
+    }
+
+    std::shared_ptr<tui::TuiLogBuffer> GetTuiLogBuffer()
+    {
+        return g_pTuiLogBuffer;
+    }
 
     /******************************************************************************
      * @brief Logger Initializer - Sets Up all the logging handlers required for
@@ -134,13 +152,26 @@ namespace logging
             quill::Timezone::LocalTime    // Log Timezone
         );
 
-        std::shared_ptr<quill::Sink> qConsoleSink =
-            quill::Frontend::create_or_get_sink<MRDTConsoleSink>("ConsoleSink",                                      // Log Name
-                                                                 qColors,                                            // Log Custom Colors
-                                                                 quill::ConsoleSinkConfig::ColourMode::Automatic,    // Detect is console supports colors.
-                                                                 szConsolePattern,                                   // Log Output Pattern
-                                                                 szTimestampPattern                                  // Log Timestamp Pattern
+        std::shared_ptr<quill::Sink> qConsoleSink;
+        if (g_pTuiLogBuffer)
+        {
+            qConsoleSink = quill::Frontend::create_or_get_sink<tui::MRDTTuiSink>(
+                "TuiSink",
+                g_pTuiLogBuffer,
+                szConsolePattern,
+                szTimestampPattern
             );
+        }
+        else
+        {
+            qConsoleSink =
+                quill::Frontend::create_or_get_sink<MRDTConsoleSink>("ConsoleSink",                                      // Log Name
+                                                                     qColors,                                            // Log Custom Colors
+                                                                     quill::ConsoleSinkConfig::ColourMode::Automatic,    // Detect is console supports colors.
+                                                                     szConsolePattern,                                   // Log Output Pattern
+                                                                     szTimestampPattern                                  // Log Timestamp Pattern
+                );
+        }
 
         // Configure Quill
         quill::BackendOptions qBackendConfig;

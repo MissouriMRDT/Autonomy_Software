@@ -14,6 +14,9 @@
 #include "./handlers/VisualizationHandler.h"
 #include "./util/states/ObjectDetectionChecker.hpp"
 #include "./util/states/TagDetectionChecker.hpp"
+#include "./util/tui/TuiManager.h"
+#include "./util/tui/TuiTelemetrySnapshot.h"
+#include "./util/tui/TuiLogSink.h"
 
 /// \cond
 #include <sys/ioctl.h>
@@ -108,20 +111,42 @@ int CheckKeyPress()
  * @author Eli Byrd (edbgkk@mst.edu), ClayJay3 (claytonraycowen@gmail.com), Sam Hajdukiewicz (samanthahajdukiewicz@gmail.com)
  * @date 2023-06-20
  ******************************************************************************/
-int main()
+int main(int argc, char** argv)
 {
-    // Print Software Header
-    std::ifstream fHeaderText("../data/ASCII/v25.txt");
-    std::string szHeaderText;
-    if (fHeaderText.is_open())
+    // Parse CLI arguments
+    bool bEnableTUI = false;
+    for (int nArgIdx = 1; nArgIdx < argc; ++nArgIdx)
     {
-        std::ostringstream pHeaderText;
-        pHeaderText << fHeaderText.rdbuf();
-        szHeaderText = pHeaderText.str();
+        std::string szArg = argv[nArgIdx];
+        if (szArg == "--tui" || szArg == "-tui")
+        {
+            bEnableTUI = true;
+        }
     }
 
-    std::cout << szHeaderText << std::endl;
-    std::cout << "Copyright \u00A9 2025 - Mars Rover Design Team\n" << std::endl;
+    std::shared_ptr<tui::TuiLogBuffer> pTuiLogBuffer = nullptr;
+    std::unique_ptr<tui::TuiManager> pTuiManager     = nullptr;
+
+    if (bEnableTUI)
+    {
+        pTuiLogBuffer = std::make_shared<tui::TuiLogBuffer>();
+        logging::EnableTuiLoggingMode(pTuiLogBuffer);
+    }
+    else
+    {
+        // Print Software Header
+        std::ifstream fHeaderText("../data/ASCII/v25.txt");
+        std::string szHeaderText;
+        if (fHeaderText.is_open())
+        {
+            std::ostringstream pHeaderText;
+            pHeaderText << fHeaderText.rdbuf();
+            szHeaderText = pHeaderText.str();
+        }
+
+        std::cout << szHeaderText << std::endl;
+        std::cout << "Copyright \u00A9 2025 - Mars Rover Design Team\n" << std::endl;
+    }
 
     // Initialize Loggers
     logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
@@ -176,8 +201,11 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
         sigaction(SIGQUIT, &stSigBreak, nullptr);
-        // Set the terminal to non-canonical mode. This allows us to read a single character from the terminal without waiting for a newline.
-        SetNonCanonicalTerminalMode();
+        if (!bEnableTUI)
+        {
+            // Set the terminal to non-canonical mode. This allows us to read a single character from the terminal without waiting for a newline.
+            SetNonCanonicalTerminalMode();
+        }
 
         // Print warnings if running in SIM mode.
         if (constants::MODE_SIM)
@@ -191,8 +219,11 @@ int main()
                             "or in your build arguments!");
             }
 
-            // Sleep for 3 seconds to make sure it's seen.
-            std::this_thread::sleep_for(std::chrono::seconds(3));
+            // Sleep for 3 seconds to make sure it's seen (only in non-TUI mode).
+            if (!bEnableTUI)
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(3));
+            }
         }
 
         // Initialize handlers.
@@ -251,6 +282,15 @@ int main()
         std::shared_ptr<ObjectDetector> pRearObjectDetector = globals::g_pObjectDetectionHandler->GetObjectDetector(ObjectDetectionHandler::ObjectDetectors::eRearCam);
         IPS IterPerSecond                                   = IPS();
 
+        // Start TUI Manager if enabled
+        if (bEnableTUI)
+        {
+            pTuiManager = std::make_unique<tui::TuiManager>(pTuiLogBuffer, []() {
+                bMainStop = true;
+            });
+            pTuiManager->Start();
+        }
+
         // Create a vector of ints to store the FPS values for each thread.
         std::vector<uint32_t> vThreadFPSValues;
 
@@ -293,8 +333,116 @@ int main()
             // Submit logger message.
             LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
 
-            // Print out the FPS stats to the console if the user presses 'f' or 'F'.
-            if (CheckKeyPress() > 0)
+            // If TUI mode is enabled, update telemetry snapshot for FTXUI dashboard
+            if (bEnableTUI && pTuiManager)
+            {
+                tui::TuiTelemetrySnapshot stSnapshot;
+                geoops::RoverPose stPose;
+                if (globals::g_pStateMachineHandler)
+                {
+                    stSnapshot.eCurrentState    = globals::g_pStateMachineHandler->GetCurrentState();
+                    stSnapshot.szStateName      = statemachine::StateToString(stSnapshot.eCurrentState);
+                    stSnapshot.nStateMachineIPS = static_cast<int>(globals::g_pStateMachineHandler->GetIPS().GetExactIPS());
+
+                    stPose                      = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
+                    stSnapshot.dEasting         = stPose.GetUTMCoordinate().dEasting;
+                    stSnapshot.dNorthing        = stPose.GetUTMCoordinate().dNorthing;
+                    stSnapshot.dAltitude        = stPose.GetUTMCoordinate().dAltitude;
+                    stSnapshot.dCompassHeading  = stPose.GetCompassHeading();
+                }
+
+                stSnapshot.bSimMode        = constants::MODE_SIM;
+                stSnapshot.nMainProcessIPS = static_cast<int>(IterPerSecond.GetExactIPS());
+
+                if (globals::g_pDriveBoard)
+                {
+                    diffdrive::DrivePowers stPowers = globals::g_pDriveBoard->GetDrivePowers();
+                    stSnapshot.fLeftDrivePower      = static_cast<float>(stPowers.dLeftDrivePower);
+                    stSnapshot.fRightDrivePower     = static_cast<float>(stPowers.dRightDrivePower);
+                }
+
+                stSnapshot.fMainCamFPS = static_cast<float>(pMainCam->GetIPS().GetExactIPS());
+                stSnapshot.fRearCamFPS = pRearCam ? static_cast<float>(pRearCam->GetIPS().GetExactIPS()) : 0.0f;
+
+                if (globals::g_pWaypointHandler && globals::g_pWaypointHandler->GetWaypointCount() > 0)
+                {
+                    stSnapshot.nPlannedPathWaypoints = globals::g_pWaypointHandler->GetWaypointCount();
+                    geoops::Waypoint stNextWp        = globals::g_pWaypointHandler->PeekNextWaypoint();
+                    geoops::GeoMeasurement stMeas    = geoops::CalculateGeoMeasurement(stPose.GetUTMCoordinate(), stNextWp.GetUTMCoordinate());
+                    stSnapshot.dDistanceToWaypoint   = stMeas.dDistanceMeters;
+                    stSnapshot.dTargetHeading        = stMeas.dStartRelativeBearing;
+                    double dHeadingDiff              = std::fmod(stMeas.dStartRelativeBearing - stPose.GetCompassHeading() + 540.0, 360.0) - 180.0;
+                    stSnapshot.dHeadingError         = dHeadingDiff;
+                }
+
+                if (pMainTagDetector && pMainTagDetector->GetIsReady())
+                {
+                    tagdetectutils::ArucoTag stBestOpenCVTag, stBestTorchTag;
+                    std::vector<std::shared_ptr<TagDetector>> vTagDetectors = {pMainTagDetector};
+                    if (pRearTagDetector)
+                    {
+                        vTagDetectors.push_back(pRearTagDetector);
+                    }
+                    stSnapshot.nDetectedTagsCount = statemachine::IdentifyTargetMarker(vTagDetectors, stBestOpenCVTag, stBestTorchTag);
+                    if (stBestOpenCVTag.nID != -1)
+                    {
+                        stSnapshot.nBestTagID       = stBestOpenCVTag.nID;
+                        stSnapshot.dBestTagDistance = stBestOpenCVTag.dStraightLineDistance;
+                        stSnapshot.dBestTagYaw      = stBestOpenCVTag.dYawAngle;
+                    }
+                    else if (stBestTorchTag.dConfidence > 0.0)
+                    {
+                        stSnapshot.nBestTagID       = stBestTorchTag.nID;
+                        stSnapshot.dBestTagDistance = stBestTorchTag.dStraightLineDistance;
+                        stSnapshot.dBestTagYaw      = stBestTorchTag.dYawAngle;
+                    }
+                }
+
+                if (pMainObjectDetector && pMainObjectDetector->GetIsReady())
+                {
+                    objectdetectutils::Object stBestTorchObject;
+                    std::vector<std::shared_ptr<ObjectDetector>> vObjDetectors = {pMainObjectDetector};
+                    if (pRearObjectDetector)
+                    {
+                        vObjDetectors.push_back(pRearObjectDetector);
+                    }
+                    stSnapshot.nDetectedObjectsCount = statemachine::IdentifyTargetObject(vObjDetectors, stBestTorchObject);
+                    if (stBestTorchObject.dConfidence > 0.0)
+                    {
+                        stSnapshot.szBestObjectClass     = stBestTorchObject.szClassName;
+                        stSnapshot.dBestObjectDistance   = stBestTorchObject.dStraightLineDistance;
+                        stSnapshot.fBestObjectConfidence = static_cast<float>(stBestTorchObject.dConfidence);
+                    }
+                }
+
+                if (globals::g_pLiDARHandler)
+                {
+                    stSnapshot.bLidarDBLoaded = globals::g_pLiDARHandler->IsDBOpen();
+                    stSnapshot.szLidarDBPath  = constants::LIDAR_HANDLER_DB_PATH;
+                    stSnapshot.nCurrentTileX  = static_cast<int>(stPose.GetUTMCoordinate().dEasting / constants::GEOPLANNER_TILE_SIZE);
+                    stSnapshot.nCurrentTileY  = static_cast<int>(stPose.GetUTMCoordinate().dNorthing / constants::GEOPLANNER_TILE_SIZE);
+                }
+
+                if (network::g_pRoveCommUDPNode)
+                {
+                    stSnapshot.bRoveCommUDPOnline = network::g_bRoveCommUDPStatus.load();
+                    stSnapshot.nRoveCommUDPIPS    = static_cast<int>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS());
+                }
+                if (network::g_pRoveCommTCPNode)
+                {
+                    stSnapshot.bRoveCommTCPOnline = network::g_bRoveCommTCPStatus.load();
+                    stSnapshot.nRoveCommTCPIPS    = static_cast<int>(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS());
+                }
+
+                static auto tmStart = std::chrono::steady_clock::now();
+                auto tmNow          = std::chrono::steady_clock::now();
+                stSnapshot.dMissionUptimeSeconds = std::chrono::duration<double>(tmNow - tmStart).count();
+
+                pTuiManager->UpdateTelemetry(stSnapshot);
+            }
+
+            // Print out the FPS stats to the console if the user presses 'f' or 'F' (only in non-TUI mode).
+            if (!bEnableTUI && CheckKeyPress() > 0)
             {
                 char chTerminalInput = 0;
                 ssize_t nBytesRead   = read(STDIN_FILENO, &chTerminalInput, 1);
@@ -524,6 +672,13 @@ int main()
         /////////////////////////////////////////
         // Cleanup.
         /////////////////////////////////////////
+
+        // Stop TUI if active before stopping subsystem handlers.
+        if (pTuiManager)
+        {
+            pTuiManager->Stop();
+            pTuiManager.reset();
+        }
 
         // Stop handlers.
         globals::g_pStateMachineHandler->StopStateMachine();
