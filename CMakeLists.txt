@@ -292,6 +292,16 @@ else()
     target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+## Fetch FTXUI for Terminal User Interface
+include(FetchContent)
+FetchContent_Declare(
+    ftxui
+    GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI.git
+    GIT_TAG        v5.0.0
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(ftxui)
+
 ## Link Libraries
 set(AUTONOMY_LIBRARIES  Threads::Threads
                         OpenMP::OpenMP_CXX
@@ -311,6 +321,9 @@ set(AUTONOMY_LIBRARIES  Threads::Threads
                         ${TORCH_LIBRARIES}
                         ${MPI_LIBRARIES}
                         ${PCL_LIBRARIES}
+                        ftxui::screen
+                        ftxui::dom
+                        ftxui::component
                         gcov
 )
 target_link_libraries(${EXE_NAME} PRIVATE ${AUTONOMY_LIBRARIES})
