@@ -412,7 +412,6 @@ namespace constants
     const unsigned int NAVIGATING_STUCK_CHECK_ATTEMPTS    = 3;        // Max number of failed checks of the rover's rotation before next attempt.
     const double NAVIGATING_STUCK_CHECK_ROT_THRESH        = 10.0;     // Minimum angular velocity required to consider the rover as actively rotating.
     const double NAVIGATING_STUCK_CHECK_VEL_THRESH        = 0.15;     // Minimum velocity required to consider the rover as actively moving.
-
     ///////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////

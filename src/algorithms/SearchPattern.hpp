@@ -90,7 +90,7 @@ namespace searchpattern
             dCurrentRadius = geoops::CalculateGeoMeasurement(stStartingPoint.GetUTMCoordinate(), stCurrentCoordinate).dDistanceMeters;
         }
         // Same but going back in.
-        while (dCurrentRadius >= 0.5)
+        while (dCurrentRadius >= 0.5 && dCurrentSpacingWindUp > 0.0)
         {
             // Get X and Y positions for the current point.
             double dCurrentX = dStartingX + dCurrentSpacingWindUp * cos(dAngleRadians);

@@ -58,10 +58,14 @@ namespace statemachine
         // Split the path into two halves for forward and reverse navigation.
         std::vector<geoops::Waypoint> vFirstHalf;
         std::vector<geoops::Waypoint> vSecondHalf;
-        if (!vGeoPlannedPath.empty())
+        if (vGeoPlannedPath.size() >= 4)
         {
             vFirstHalf  = std::vector<geoops::Waypoint>(vGeoPlannedPath.begin(), vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2);
             vSecondHalf = std::vector<geoops::Waypoint>(vGeoPlannedPath.begin() + vGeoPlannedPath.size() / 2, vGeoPlannedPath.end());
+        }
+        else if (vGeoPlannedPath.size() >= 2)
+        {
+            vFirstHalf = vGeoPlannedPath;
         }
 
         // Plot the search path in the visualizer.
@@ -141,19 +145,19 @@ namespace statemachine
      ******************************************************************************/
     std::vector<geoops::Waypoint> SearchPatternState::GeoPlanSearchPattern(const std::vector<geoops::Waypoint>& vSkeletonPath)
     {
-        std::vector<geoops::Waypoint> m_vSearchPath;
+        std::vector<geoops::Waypoint> vPlannedPath;
         if (vSkeletonPath.size() < 2)
         {
-            return m_vSearchPath;
+            return vPlannedPath;
         }
         for (long unsigned int nI = 0; nI < vSkeletonPath.size() - 1; nI++)
         {
             std::vector<geoops::Waypoint> vNewPoints =
                 globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, vSkeletonPath[nI].GetUTMCoordinate(), vSkeletonPath[nI + 1].GetUTMCoordinate());
-            m_vSearchPath.insert(m_vSearchPath.end(), vNewPoints.begin(), vNewPoints.end());
+            vPlannedPath.insert(vPlannedPath.end(), vNewPoints.begin(), vNewPoints.end());
         }
 
-        return m_vSearchPath;
+        return vPlannedPath;
     }
 
     /******************************************************************************
@@ -296,11 +300,11 @@ namespace statemachine
         /* --- Follow Search Pattern --- */
         ///////////////////////////////////
 
-        // Check if the search path is empty.
-        if (m_vSearchPath.empty())
+        // Check if the search path has enough points to navigate.
+        if (m_vSearchPath.size() < 2)
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Search path is empty, aborting search.");
+            LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Search path has fewer than 2 points, aborting search.");
             // Handle state transition.
             globals::g_pStateMachineHandler->HandleEvent(Event::eAbort);
             return;
@@ -398,6 +402,14 @@ namespace statemachine
                         // Get the second half of the spiral.
                         m_vSearchPath = globals::g_pWaypointHandler->RetrievePath("GeoPlannerPathReverse");
                         globals::g_pWaypointHandler->DeletePath("GeoPlannerPathReverse");
+
+                        if (m_vSearchPath.size() < 2)
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "SearchPatternState: Reverse search path has fewer than 2 points, giving up...");
+                            globals::g_pWaypointHandler->PopNextWaypoint();
+                            eNextState = States::eIdle;
+                            break;
+                        }
 
                         // Plot the search path in the visualizer.
                         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vSearchPath);

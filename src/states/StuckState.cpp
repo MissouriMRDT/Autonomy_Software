@@ -418,6 +418,13 @@ namespace statemachine
         // Get the rover's pose AFTER stuck state has ran
         geoops::RoverPose stCurrentRoverPose = globals::g_pStateMachineHandler->SmartRetrieveRoverPose();
 
+        // Check if there are any obstacles.
+        if (globals::g_pWaypointHandler->GetObstaclesCount() == 0)
+        {
+            LOG_WARNING(logging::g_qSharedLogger, "StuckState: No obstacles recorded to splice around!");
+            return;
+        }
+
         // Get the obstacle's origin
         int nObstacleIndex                       = globals::g_pWaypointHandler->GetObstaclesCount() - 1;
         geoops::UTMCoordinate stObstaclePosition = globals::g_pWaypointHandler->RetrieveObstacleAtIndex(nObstacleIndex).GetUTMCoordinate();
@@ -538,6 +545,8 @@ namespace statemachine
     /******************************************************************************
      * @brief Removes all points within stuck area in path and re-path plans all deleted paths segments
      *
+     * @param vPath - The path to modify.
+     * @param stObstaclePosition - The position of the obstacle to splice around.
      *
      * @author Sam Nolte (samnolte0302@gmail.com)
      * @date 2026-05-19
