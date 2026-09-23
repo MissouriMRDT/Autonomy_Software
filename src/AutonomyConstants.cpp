@@ -405,7 +405,7 @@ namespace constants
     const double NAVIGATING_MOTOR_POWER                   = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS           = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
     const bool NAVIGATING_VERIFY_POSITION                 = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
-    const double NAVIGATING_VERIFY_SAMPLE_TIME            = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
+    const double NAVIGATING_VERIFY_SAMPLE_TIME            = 10.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
     const bool NAVIGATING_ENABLE_STUCK_DETECT             = true;     // Whether or not to enable the stuck detection algorithm when navigating to a waypoint.
     const bool NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS = false;    // Whether or not to slow down to search pattern speeds when within the waypoint radius.
     const double NAVIGATING_STUCK_CHECK_INTERVAL          = 2.0;      // Period in seconds between consecutive checks of if the rover's rotating.
