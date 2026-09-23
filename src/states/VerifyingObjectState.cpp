@@ -192,29 +192,11 @@ namespace statemachine
 
                 // Loop through the detectors vector and find which ones UUID matches the winning tag's UUID.
                 // If a match is found, request the snapshot from that detector and save it to disk with a unique filename.
-                cv::Mat cvSnapshot;
-                for (const std::shared_ptr<ObjectDetector>& pObjectDetector : m_vObjectDetectors)
-                {
-                    if (pObjectDetector->GetThreadUUID() == m_stBestObject.szDetectorUUID)
-                    {
-                        // Load the detector's newest last-good overlay snapshot once into a local.
-                        // The ObjectDetectionHandler holds a Reader on this channel for the
-                        // detector's lifetime, so it is being published. This read is lock free and
-                        // never blocks on the detector's loop.
-                        pubsub::SharedSnapshot<cv::Mat> pSnapshot = pObjectDetector->GetLastGoodOverlayReader().Get();
-                        if (pSnapshot != nullptr)
-                        {
-                            // Deep copy the immutable snapshot so we own the frame we are about to save.
-                            pSnapshot->tData.copyTo(cvSnapshot);
-                        }
-                        else
-                        {
-                            // Submit logger message.
-                            LOG_WARNING(logging::g_qSharedLogger, "VerifyingObjectState: No detection overlay frame has been published yet.");
-                        }
-                        break;
-                    }
-                }
+                // Ask the ObjectDetectionHandler for the winning detector's last good overlay.
+                // The read goes through the handler because the handler is what holds the Reader
+                // that keeps that channel published; taking a Reader here would register demand
+                // for the length of one expression, which the detector never observes.
+                cv::Mat cvSnapshot = globals::g_pObjectDetectionHandler->GetLastGoodOverlayFrameForDetector(m_stBestObject.szDetectorUUID);
 
                 // Check if the snapshot is empty.
                 if (!cvSnapshot.empty())

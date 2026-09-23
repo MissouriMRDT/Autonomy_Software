@@ -123,6 +123,11 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+    // Name the OS thread so profilers and system tools can tell the SIM cameras apart.
+    // Truncated to 15 characters on Linux.
+    this->SetMainThreadName("SIMZED" + std::to_string(m_unCameraSerialNumber % 10000));
+    // Report a snapshot pool growing past its ceiling the moment it happens.
+    this->InstallPoolCeilingHandlers();
 
     // Publish an initial status snapshot. The producer thread is not running yet, so this is the
     // only thread touching the streams and the call is safe here. Without it every status accessor
@@ -141,7 +146,14 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
 SIMZEDCam::~SIMZEDCam()
 {
     LOG_NOTICE(logging::g_qSharedLogger, "Destroying SIMZEDCam object.");
-    // Stop threaded code FIRST. The producer thread owns the stream objects: its reconnect path
+    // Shut the command queue down FIRST. Between Join() below and Shutdown(), the thread
+    // reports eStopped while the queue is still open, so CanRunCommandInline() would let a
+    // foreign thread run a configuration command inline while this destructor tears the
+    // object down. Shutting the queue first makes CanRunCommandInline() false and those
+    // late commands get cancelled instead.
+    m_cmdQueue.Shutdown();
+
+    // Stop threaded code. The producer thread owns the stream objects: its reconnect path
     // (ImplReconnectStreams) closes, destroys and rebuilds them. Touching those pointers from this
     // thread before the producer is joined races that rebuild and can hang inside CloseConnection().
     // Once Join() returns, this thread is the only one left that can reach the streams.
@@ -151,10 +163,6 @@ SIMZEDCam::~SIMZEDCam()
     // Do NOT close the streams explicitly here. ~WebRTC already closes its own connections, and
     // calling CloseConnection() first makes every stream pay the close-wait twice. The unique_ptr
     // members are destroyed after this body runs, which is still safely after Join().
-
-    // Shut down the command queue so any command posted after the producer thread stopped is
-    // cancelled (its future resolves with an error) rather than left stranded.
-    m_cmdQueue.Shutdown();
 }
 
 /******************************************************************************
@@ -320,6 +328,9 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
 void SIMZEDCam::ThreadedContinuousCode()
 {
     ZoneScopedC(tracy::Color::Orange2);
+    // Everything published this iteration is stamped with the same source sequence, so a
+    // consumer reading two channels can tell a matched pair from a straddled read.
+    ++m_ullIterationCounter;
     // 1. Control channel in. SetPositionalPose/ResetPositionalTracking run here, on this thread.
     m_cmdQueue.DrainAll();
 
@@ -384,7 +395,7 @@ void SIMZEDCam::ThreadedContinuousCode()
             std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubFrameCPU.Acquire();
             m_cvFrame.copyTo(pSlot->tData);
             lkRGB.unlock();
-            m_pubFrameCPU.Publish(std::move(pSlot));
+            m_pubFrameCPU.Publish(std::move(pSlot), m_ullIterationCounter);
         }
     }
 
@@ -411,7 +422,7 @@ void SIMZEDCam::ThreadedContinuousCode()
                     // Deep copy the depth image into a pooled snapshot and publish.
                     std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDepthImageCPU.Acquire();
                     m_cvDepthImageBuffer.copyTo(pSlot->tData);
-                    m_pubDepthImageCPU.Publish(std::move(pSlot));
+                    m_pubDepthImageCPU.Publish(std::move(pSlot), m_ullIterationCounter);
                 }
                 // Compute the depth measure (needed by both the measure and point-cloud publishers).
                 if (bDepthMeasureWanted || bPointCloudWanted)
@@ -431,7 +442,7 @@ void SIMZEDCam::ThreadedContinuousCode()
                 // Deep copy the depth measure into a pooled snapshot and publish.
                 std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDepthMeasureCPU.Acquire();
                 m_cvDepthMeasure.copyTo(pSlot->tData);
-                m_pubDepthMeasureCPU.Publish(std::move(pSlot));
+                m_pubDepthMeasureCPU.Publish(std::move(pSlot), m_ullIterationCounter);
             }
             // Compute and publish the point cloud.
             if (bPointCloudWanted)
@@ -441,7 +452,7 @@ void SIMZEDCam::ThreadedContinuousCode()
                 // Deep copy the point cloud into a pooled snapshot and publish.
                 std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubPointCloudCPU.Acquire();
                 m_cvPointCloud.copyTo(pSlot->tData);
-                m_pubPointCloudCPU.Publish(std::move(pSlot));
+                m_pubPointCloudCPU.Publish(std::move(pSlot), m_ullIterationCounter);
             }
         }
     }
@@ -461,7 +472,7 @@ void SIMZEDCam::ThreadedContinuousCode()
         // Acquire a pooled slot, store the pose, and publish.
         std::shared_ptr<pubsub::Snapshot<Pose>> pSlot = m_pubPose.Acquire();
         pSlot->tData                                  = stPose;
-        m_pubPose.Publish(std::move(pSlot));
+        m_pubPose.Publish(std::move(pSlot), m_ullIterationCounter);
     }
 
     // 7. Sensors (IMU) out. The IMU callback writes m_stIMUData on a foreign thread; read under the lock.
@@ -473,7 +484,7 @@ void SIMZEDCam::ThreadedContinuousCode()
         std::shared_ptr<pubsub::Snapshot<sl::SensorsData>> pSlot = m_pubSensors.Acquire();
         pSlot->tData                                             = m_stIMUData;
         lkIMU.unlock();
-        m_pubSensors.Publish(std::move(pSlot));
+        m_pubSensors.Publish(std::move(pSlot), m_ullIterationCounter);
     }
 
     // 8. Status out.
@@ -515,7 +526,7 @@ void SIMZEDCam::PublishStatus()
     // Publish the status snapshot.
     std::shared_ptr<pubsub::Snapshot<CameraStatus>> pSlot = m_pubStatus.Acquire();
     pSlot->tData                                          = stStatus;
-    m_pubStatus.Publish(std::move(pSlot));
+    m_pubStatus.Publish(std::move(pSlot), m_ullIterationCounter);
 }
 
 /******************************************************************************

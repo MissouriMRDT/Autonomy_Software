@@ -8,28 +8,29 @@
 ## Set CMake Minimum Version
 cmake_minimum_required(VERSION 3.24.3)
 
-## Enforce Using GCC 10 / G++ 10
-execute_process(
-    COMMAND gcc -dumpversion
-    OUTPUT_VARIABLE GCC_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-if(NOT GCC_VERSION VERSION_EQUAL "10.0")
-    message(FATAL_ERROR "Only GCC 10.0 is allowed! Detected GCC version ${GCC_VERSION}.")
-endif()
-
 ## C++ and CUDA Version
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
-    
-set(CMAKE_CUDA_ARCHITECTURES 75)
-set(CMAKE_CUDA_FLAGS "--generate-code=arch=compute_75,code=[compute_75,sm_75]")
+
+## CUDA Flags
+# Don't set CMAKE_CUDA_ARCHITECTURES; Torch overrides it. Set GPU architectures with TORCH_CUDA_ARCH_LIST below.
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
 ## Project Name and Version
 project(Autonomy_Software VERSION 24.05.00 LANGUAGES C CXX CUDA)
+
+## Minimum Host Compiler
+# GCC 12+ is required for std::atomic<std::shared_ptr<T>> (used by Publisher.hpp).
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12.0)
+    message(WARNING
+        "GCC ${CMAKE_CXX_COMPILER_VERSION} is too old - this project requires GCC 12 or newer for "
+        "std::atomic<std::shared_ptr<T>>. Install it with 'apt-get install -y gcc-12 g++-12', then "
+        "either rebuild the dev container or configure with -DCMAKE_C_COMPILER=gcc-12 "
+        "-DCMAKE_CXX_COMPILER=g++-12 -DCMAKE_CUDA_HOST_COMPILER=g++-12.")
+endif()
 
 ## CMake Policies
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "Suppress developer warnings")
@@ -52,7 +53,7 @@ set(CMAKE_UNITY_BUILD_BATCH_SIZE 8) # Adjust batch size based on project size. L
 ####################################################################################################################
 
 ## Enable or Disable Simulation Mode
-option(BUILD_SIM_MODE "Enable Simulation Mode" ON)
+option(BUILD_SIM_MODE "Enable Simulation Mode" OFF)
 
 ## Enable or Disable Code Coverage Mode
 option(BUILD_CODE_COVERAGE "Enable Code Coverage Mode" OFF)
@@ -130,13 +131,15 @@ else()
 endif()
 
 ## Build Tracy Profiler
+# FORCE so toggling BUILD_TRACY_MODE updates an existing cache.
 if (BUILD_TRACY_MODE)
     message("--   [x]: Build Tracy Profiler: Enabled")
-    option(TRACY_ENABLE "Enable Tracy Profiler" ON)
-    option(TRACY_ON_DEMAND "For Long Lived Applications" ON)
+    set(TRACY_ENABLE ON CACHE BOOL "Enable Tracy Profiler" FORCE)
+    set(TRACY_ON_DEMAND ON CACHE BOOL "For Long Lived Applications" FORCE)
 else()
     message("--   [ ]: Build Tracy Profiler: Disabled")
-    option(TRACY_ENABLE "Enable Tracy Profiler" OFF)
+    set(TRACY_ENABLE OFF CACHE BOOL "Enable Tracy Profiler" FORCE)
+    set(TRACY_ON_DEMAND OFF CACHE BOOL "For Long Lived Applications" FORCE)
 endif()
 
 ## Build Examples
@@ -233,17 +236,12 @@ add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 ## Find Tracy
-# Disable automatic call-stack sampling. Tracy silently turns this on whenever the profiled
-# process has root/CAP_SYS_ADMIN (true in this dev container), statistically sampling every
-# thread's instruction pointer via perf_event_open. Most of those addresses land in code
-# without matching debug/frame-pointer info (our own binary, OpenCV, libc) and show up as a
-# flood of unresolved "[unknown]" ghost zones drowning out the actual instrumented zones. This
-# is a build-time client setting, not a per-session viewer toggle, so it has to be disabled
-# here to stay off across every future capture instead of being re-enabled on each new trace.
+# Disable call-stack sampling; when run as root it floods traces with unresolved "[unknown]" zones.
 set(TRACY_NO_SAMPLING ON CACHE BOOL "Disable call stack sampling" FORCE)
 add_subdirectory(external/tracy)
-# RoveComm_CPP pulls in src/interfaces/AutonomyThread.hpp (via ExternalIncludes.h), which now
-# includes <tracy/Tracy.hpp>, so it needs TracyClient's include directories too.
+# Tracy ignores pipe()/fscanf() return values; silence that for TracyClient only.
+target_compile_options(TracyClient PRIVATE -Wno-unused-result)
+# RoveComm_CPP includes AutonomyThread.hpp, which includes <tracy/Tracy.hpp>.
 target_link_libraries(RoveComm_CPP PRIVATE Tracy::TracyClient)
 
 ## Find Eigen3.
@@ -265,7 +263,10 @@ include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
 ## Find PyTorch.
 set(CAFFE2_USE_CUDNN "1")
-set(TORCH_CUDA_ARCH_LIST "8.0 8.6 8.9 9.0")
+# GPU architectures for Torch and our own .cu files (8.7 = Jetson Orin).
+set(TORCH_CUDA_ARCH_LIST "8.0 8.6 8.7 8.9 9.0")
+# Skip libtorch's broken libnvrtc hash probe (always warns; value unused).
+set(CUDA_NVRTC_SHORTHASH "XXXXXXXX" CACHE STRING "Unused by libtorch consumers")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
@@ -396,7 +397,7 @@ if (BUILD_TESTS_MODE)
 
         add_executable(${EXE_NAME}_UnitTests ${Runner_SRC} ${UTests_SRC} ${TEST_SRC})
         target_link_libraries(${EXE_NAME}_UnitTests GTest::gtest GTest::gtest_main ${AUTONOMY_LIBRARIES})
-        
+
         # Apply precompiled headers to Unit Tests
         target_precompile_headers(${EXE_NAME}_UnitTests PRIVATE
             <vector>
@@ -494,6 +495,9 @@ endif()
 message("-- Final Autonomy Software Configuration Summary")
 message("--   Executable Name: ${EXE_NAME}")
 message("--   Simulation Mode: ${BUILD_SIM_MODE}")
+message("--   Host Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message("--   CUDA Device Architectures: ${TORCH_CUDA_ARCH_LIST}")
+message("--   Tracy Profiler: ${TRACY_ENABLE}")
 message("--   Tests Mode: ${BUILD_TESTS_MODE}")
 message("--   Examples Mode: ${BUILD_EXAMPLES_MODE}")
 message("--   Code Coverage Mode: ${BUILD_CODE_COVERAGE}")

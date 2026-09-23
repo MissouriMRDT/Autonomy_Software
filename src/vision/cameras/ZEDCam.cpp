@@ -194,6 +194,14 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+    // Name the OS thread so Tracy, gdb and htop can tell the cameras apart. Truncated to 15
+    // characters on Linux, so keep the serial short by using its last four digits.
+    this->SetMainThreadName("ZEDCam" + std::to_string(m_unCameraSerialNumber % 10000));
+
+    // Report a snapshot pool growing past its ceiling the moment it happens, rather than on
+    // the next diagnostics sweep. A consumer leaking 14 MB point clouds at 60 FPS allocates
+    // ~840 MB per second, and on the rover these are CUDA device allocations.
+    this->InstallPoolCeilingHandlers();
 
     // Publish an initial status snapshot. The producer thread is not running yet, so this is the
     // only thread touching the SDK and the call is safe here. Without it every status accessor
@@ -211,13 +219,19 @@ ZEDCam::ZEDCam(const int nPropResolutionX,
  ******************************************************************************/
 ZEDCam::~ZEDCam()
 {
+    // Shut the command queue down FIRST, before the thread stops.
+    //
+    // Ordering matters here. CanRunCommandInline() returns true once the producer thread
+    // reports eStopped and the queue is not yet shut down - so between Join() and Shutdown()
+    // a foreign thread calling any configuration method would take the inline path and drive
+    // the ZED SDK on its own thread, at the same moment this destructor calls close() on the
+    // handle underneath it. Shutting the queue down first closes that window: IsShutdown()
+    // makes CanRunCommandInline() return false, so late commands are cancelled instead.
+    m_cmdQueue.Shutdown();
+
     // Stop threaded code.
     this->RequestStop();
     this->Join();
-
-    // Shut down the command queue so any command posted after the producer thread stopped
-    // is cancelled (its future resolves with an error) rather than left stranded.
-    m_cmdQueue.Shutdown();
 
     // Close the ZEDCam. Safe here: the producer thread is joined, so no other thread touches the SDK.
     m_slCamera.close();
@@ -240,6 +254,7 @@ ZEDCam::~ZEDCam()
  ******************************************************************************/
 void ZEDCam::ThreadedContinuousCode()
 {
+    ZoneScopedNC("ZEDCam Iteration", tracy::Color::SkyBlue);
     // 1. Control channel in. Every SDK-mutating command posted by a foreign thread runs
     //    here, on this thread, so all SDK access is single threaded by construction.
     m_cmdQueue.DrainAll();
@@ -347,8 +362,17 @@ void ZEDCam::ThreadedContinuousCode()
         return;
     }
 
-    // 3. One grab.
-    sl::ERROR_CODE slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+    // 3. One grab. Everything published below comes from this grab and is stamped with the
+    //    same source sequence, so a consumer reading two channels (frame + point cloud, say)
+    //    can tell a matched pair from a read that straddled a publish.
+    ++m_ullIterationCounter;
+    sl::ERROR_CODE slReturnCode;
+    {
+        // Scope the zone to the grab itself. This is the call that blocks on the camera, so
+        // it is the one worth seeing separately from the retrieve and copy work below.
+        ZoneScopedNC("ZED grab", tracy::Color::SkyBlue1);
+        slReturnCode = m_slCamera.grab(m_slRuntimeParams);
+    }
     if (slReturnCode != sl::ERROR_CODE::SUCCESS)
     {
         // Submit logger message.
@@ -401,8 +425,9 @@ void ZEDCam::ThreadedContinuousCode()
  ******************************************************************************/
 void ZEDCam::LogSnapshotPoolDiagnostics()
 {
-    // Count this iteration and bail out unless we have reached the logging interval.
-    if (++m_ullIterationCounter % constants::ZED_POOL_DIAGNOSTICS_INTERVAL != 0)
+    // Bail out unless we have reached the logging interval. The counter is advanced once per
+    // grab in ThreadedContinuousCode(), because it doubles as the published source sequence.
+    if (m_ullIterationCounter % constants::ZED_POOL_DIAGNOSTICS_INTERVAL != 0)
     {
         // Not time to log yet.
         return;
@@ -454,28 +479,52 @@ void ZEDCam::LogSnapshotPoolDiagnostics()
  ******************************************************************************/
 void ZEDCam::RetrieveAndPublishData()
 {
+    ZoneScopedNC("ZED Retrieve+Publish", tracy::Color::SkyBlue2);
     // Whether the CPU or GPU channel for a given data type currently has demand.
-    auto AnySub = [this](pubsub::Publisher<cv::Mat>& pubCPU, pubsub::Publisher<cv::cuda::GpuMat>& pubGPU)
+    auto AnySub = [this](pubsub::Publisher<cv::Mat>& pubCPU, pubsub::Publisher<cv::cuda::GpuMat>& pubGPU, const char* szChannelName)
     {
-        return (m_slMemoryType == sl::MEM::CPU) ? pubCPU.HasReaders() : pubGPU.HasReaders();
+        // Which channel this camera actually publishes depends on its memory mode.
+        const bool bActiveWanted   = (m_slMemoryType == sl::MEM::CPU) ? pubCPU.HasReaders() : pubGPU.HasReaders();
+        const bool bInactiveWanted = (m_slMemoryType == sl::MEM::CPU) ? pubGPU.HasReaders() : pubCPU.HasReaders();
+
+        // A consumer holding a Reader on the OTHER memory channel gets nothing, forever, with
+        // no error - its demand is real but this camera never looks at it. That mismatch is
+        // wired by convention (the same constant configures the camera and its detectors), so
+        // when it ever breaks it should break loudly instead of producing a silent black feed.
+        if (bInactiveWanted)
+        {
+            // Submit logger message.
+            LOG_ERROR(logging::g_qSharedLogger,
+                      "Stereo camera {} ({}) has a consumer subscribed to the {} channel in {} memory, but this camera publishes {} memory. That consumer will "
+                      "never receive data. Check that the detector and the camera were built from the same USE_GPU_MAT constant.",
+                      m_szCameraModelCached,
+                      m_unCameraSerialNumber,
+                      szChannelName,
+                      (m_slMemoryType == sl::MEM::CPU) ? "GPU" : "CPU",
+                      (m_slMemoryType == sl::MEM::CPU) ? "CPU" : "GPU");
+        }
+
+        // Report demand on the channel this camera actually serves.
+        return bActiveWanted;
     };
     // Deep copy the source sl::Mat into a pooled snapshot on the active memory channel and publish it.
     auto PublishMat = [this](pubsub::Publisher<cv::Mat>& pubCPU, pubsub::Publisher<cv::cuda::GpuMat>& pubGPU, sl::Mat& slSource)
     {
+        ZoneScopedNC("ZED Copy+Publish Mat", tracy::Color::SkyBlue4);
         // Publish to whichever memory channel this camera is configured for.
         if (m_slMemoryType == sl::MEM::CPU)
         {
             // Acquire a pooled slot and DEEP COPY the wrapped SDK buffer into it (never publish the alias).
             std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = pubCPU.Acquire();
             imgops::ConvertSLMatToCVMat(slSource).copyTo(pSlot->tData);
-            pubCPU.Publish(std::move(pSlot));
+            pubCPU.Publish(std::move(pSlot), m_ullIterationCounter);
         }
         else
         {
             // Acquire a pooled device slot and DEEP COPY on the GPU (device-to-device copyTo).
             std::shared_ptr<pubsub::Snapshot<cv::cuda::GpuMat>> pSlot = pubGPU.Acquire();
             imgops::ConvertSLMatToGPUMat(slSource).copyTo(pSlot->tData);
-            pubGPU.Publish(std::move(pSlot));
+            pubGPU.Publish(std::move(pSlot), m_ullIterationCounter);
         }
     };
 
@@ -484,7 +533,7 @@ void ZEDCam::RetrieveAndPublishData()
     sl::ERROR_CODE slReturnCode;
 
     // ---- Normal BGRA frame ----
-    if (AnySub(m_pubFrameCPU, m_pubFrameGPU))
+    if (AnySub(m_pubFrameCPU, m_pubFrameGPU, "frame"))
     {
         // Retrieve the image into the producer-local sl::Mat.
         slReturnCode = m_slCamera.retrieveImage(m_slFrame, constants::ZED_RETRIEVE_VIEW, m_slMemoryType, slResolution);
@@ -505,7 +554,7 @@ void ZEDCam::RetrieveAndPublishData()
     }
 
     // ---- Depth measure ----
-    if (AnySub(m_pubDepthMeasureCPU, m_pubDepthMeasureGPU))
+    if (AnySub(m_pubDepthMeasureCPU, m_pubDepthMeasureGPU, "depth measure"))
     {
         // Retrieve the depth measure into the producer-local sl::Mat.
         slReturnCode = m_slCamera.retrieveMeasure(m_slDepthMeasure, m_slDepthMeasureType, m_slMemoryType, slResolution);
@@ -526,7 +575,7 @@ void ZEDCam::RetrieveAndPublishData()
     }
 
     // ---- Depth grayscale image ----
-    if (AnySub(m_pubDepthImageCPU, m_pubDepthImageGPU))
+    if (AnySub(m_pubDepthImageCPU, m_pubDepthImageGPU, "depth image"))
     {
         // Retrieve the depth image into the producer-local sl::Mat.
         slReturnCode = m_slCamera.retrieveImage(m_slDepthImage, sl::VIEW::DEPTH, m_slMemoryType, slResolution);
@@ -547,7 +596,7 @@ void ZEDCam::RetrieveAndPublishData()
     }
 
     // ---- Point cloud ----
-    if (AnySub(m_pubPointCloudCPU, m_pubPointCloudGPU))
+    if (AnySub(m_pubPointCloudCPU, m_pubPointCloudGPU, "point cloud"))
     {
         // Retrieve the point cloud into the producer-local sl::Mat.
         slReturnCode = m_slCamera.retrieveMeasure(m_slPointCloud, sl::MEASURE::XYZBGRA, m_slMemoryType, slResolution);
@@ -610,7 +659,7 @@ void ZEDCam::RetrieveAndPublishData()
                 // Acquire a pooled slot, store the realigned pose, and publish.
                 std::shared_ptr<pubsub::Snapshot<Pose>> pSlot = m_pubPose.Acquire();
                 pSlot->tData                                  = stPose;
-                m_pubPose.Publish(std::move(pSlot));
+                m_pubPose.Publish(std::move(pSlot), m_ullIterationCounter);
             }
             else
             {
@@ -637,7 +686,7 @@ void ZEDCam::RetrieveAndPublishData()
                 // Acquire a pooled slot, deep copy the plane, and publish.
                 std::shared_ptr<pubsub::Snapshot<sl::Plane>> pSlot = m_pubFloorPlane.Acquire();
                 pSlot->tData                                       = sl::Plane(m_slFloorPlane);
-                m_pubFloorPlane.Publish(std::move(pSlot));
+                m_pubFloorPlane.Publish(std::move(pSlot), m_ullIterationCounter);
             }
             else
             {
@@ -661,7 +710,7 @@ void ZEDCam::RetrieveAndPublishData()
             // Acquire a pooled slot, deep copy the sensor data, and publish.
             std::shared_ptr<pubsub::Snapshot<sl::SensorsData>> pSlot = m_pubSensors.Acquire();
             pSlot->tData                                             = sl::SensorsData(m_slSensorsData);
-            m_pubSensors.Publish(std::move(pSlot));
+            m_pubSensors.Publish(std::move(pSlot), m_ullIterationCounter);
         }
         else
         {
@@ -710,7 +759,7 @@ void ZEDCam::RetrieveAndPublishData()
                         slOwnedMask.move(slObject.mask);
                     }
                 }
-                m_pubObjects.Publish(std::move(pSlot));
+                m_pubObjects.Publish(std::move(pSlot), m_ullIterationCounter);
             }
             else
             {
@@ -730,10 +779,16 @@ void ZEDCam::RetrieveAndPublishData()
             slReturnCode = m_slCamera.getObjectsBatch(m_slDetectedObjectsBatched);
             if (slReturnCode == sl::ERROR_CODE::SUCCESS)
             {
-                // Acquire a pooled slot, deep copy the batched objects, and publish.
+                // Acquire a pooled slot for the batch list.
                 std::shared_ptr<pubsub::Snapshot<std::vector<sl::ObjectsBatch>>> pSlot = m_pubBatchedObjects.Acquire();
-                pSlot->tData                                                           = m_slDetectedObjectsBatched;
-                m_pubBatchedObjects.Publish(std::move(pSlot));
+                // Destroy whatever this recycled slot still holds before assigning, for the
+                // same reason as the object list above: std::vector::operator= assigns over
+                // existing elements rather than destroying them, so any owning handle inside
+                // an sl::ObjectsBatch would be overwritten and its buffer leaked. clear()
+                // runs the element destructors, which release properly.
+                pSlot->tData.clear();
+                pSlot->tData = m_slDetectedObjectsBatched;
+                m_pubBatchedObjects.Publish(std::move(pSlot), m_ullIterationCounter);
             }
             else
             {
@@ -758,6 +813,7 @@ void ZEDCam::RetrieveAndPublishData()
  ******************************************************************************/
 void ZEDCam::PublishStatus()
 {
+    ZoneScopedNC("ZED PublishStatus", tracy::Color::SkyBlue3);
     // Build the status from the current SDK state (legal here, on the owning thread).
     CameraStatus stStatus;
     stStatus.bCameraIsOpen = m_slCamera.isOpened();
@@ -775,7 +831,7 @@ void ZEDCam::PublishStatus()
     // Publish the status snapshot.
     std::shared_ptr<pubsub::Snapshot<CameraStatus>> pSlot = m_pubStatus.Acquire();
     pSlot->tData                                          = stStatus;
-    m_pubStatus.Publish(std::move(pSlot));
+    m_pubStatus.Publish(std::move(pSlot), m_ullIterationCounter);
 }
 
 /******************************************************************************

@@ -71,7 +71,7 @@ void RunExample()
         // non-blocking and return null until that producer has published something.
         pubsub::SharedSnapshot<cv::Mat> pCameraFrame = rdCameraFrame.Get();
         pubsub::SharedSnapshot<cv::Mat> pOverlay     = rdDetectionOverlay.Get();
-        pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pTags = ExampleTagDetector1->GetDetectedTagsReader().Get();
+        pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pTags = ExampleTagDetector1->GetLatestDetectedTags();
 
         // Show the camera frame.
         if (pCameraFrame != nullptr && !pCameraFrame->tData.empty())

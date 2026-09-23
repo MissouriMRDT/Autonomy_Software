@@ -72,13 +72,15 @@ NavigationBoard::~NavigationBoard() {}
  ******************************************************************************/
 geoops::GPSCoordinate NavigationBoard::GetGPSData()
 {
-    // Create static boolean for printing out warnings.
-    static bool bAlreadyPrintedWarning = false;
+    // Create static flag for printing out warnings. Atomic because these accessors are called
+    // from the state machine, the SIM camera producer and the visualization thread at once,
+    // and a plain function-local static written from several threads is a data race.
+    static std::atomic<bool> bAlreadyPrintedWarning{false};
 
     // Acquire read lock for getting GPS struct.
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
     // Calculate time elapsed since last GPS data update.
-    int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetGPSLastUpdateTime()).count();
+    int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetGPSLastUpdateTimeLocked()).count();
     // Make a copy of the GPS data to return.
     geoops::GPSCoordinate stGPSCopy = m_stLocation;
     // Release lock before modifying data.
@@ -125,13 +127,15 @@ geoops::GPSCoordinate NavigationBoard::GetGPSData()
  ******************************************************************************/
 geoops::UTMCoordinate NavigationBoard::GetUTMData()
 {
-    // Create static boolean for printing out warnings.
-    static bool bAlreadyPrintedWarning = false;
+    // Create static flag for printing out warnings. Atomic because these accessors are called
+    // from the state machine, the SIM camera producer and the visualization thread at once,
+    // and a plain function-local static written from several threads is a data race.
+    static std::atomic<bool> bAlreadyPrintedWarning{false};
 
     // Acquire read lock for getting UTM struct.
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
     // Calculate time elapsed since last GPS data update.
-    int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetGPSLastUpdateTime()).count();
+    int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetGPSLastUpdateTimeLocked()).count();
     // Make a copy of the GPS data to return.
     geoops::GPSCoordinate stGPSCopy = m_stLocation;
     // Release lock before modifying data.
@@ -176,13 +180,15 @@ geoops::UTMCoordinate NavigationBoard::GetUTMData()
  ******************************************************************************/
 double NavigationBoard::GetHeading()
 {
-    // Create static boolean for printing out warnings.
-    static bool bAlreadyPrintedWarning = false;
+    // Create static flag for printing out warnings. Atomic because these accessors are called
+    // from the state machine, the SIM camera producer and the visualization thread at once,
+    // and a plain function-local static written from several threads is a data race.
+    static std::atomic<bool> bAlreadyPrintedWarning{false};
 
     // Acquire read lock for getting compass double.
     std::shared_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
     // Calculate time elapsed since last GPS data update.
-    int nCompassDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetCompassLastUpdateTime()).count();
+    int nCompassDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetCompassLastUpdateTimeLocked()).count();
     // Check the last time that our current GPS data has been updated.
     if (nCompassDataAge >= constants::NAVBOARD_MAX_COMPASS_DATA_AGE && !bAlreadyPrintedWarning)
     {
@@ -217,13 +223,15 @@ double NavigationBoard::GetHeading()
  ******************************************************************************/
 double NavigationBoard::GetHeadingAccuracy()
 {
-    // Create static boolean for printing out warnings.
-    static bool bAlreadyPrintedWarning = false;
+    // Create static flag for printing out warnings. Atomic because these accessors are called
+    // from the state machine, the SIM camera producer and the visualization thread at once,
+    // and a plain function-local static written from several threads is a data race.
+    static std::atomic<bool> bAlreadyPrintedWarning{false};
 
     // Acquire read lock for getting compass double.
     std::shared_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
     // Calculate time elapsed since last GPS data update.
-    int nCompassDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetCompassLastUpdateTime()).count();
+    int nCompassDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetCompassLastUpdateTimeLocked()).count();
     // Check the last time that our current GPS data has been updated.
     if (nCompassDataAge >= constants::NAVBOARD_MAX_COMPASS_DATA_AGE && !bAlreadyPrintedWarning)
     {
@@ -259,13 +267,22 @@ double NavigationBoard::GetHeadingAccuracy()
  ******************************************************************************/
 double NavigationBoard::GetVelocity()
 {
-    // Create static boolean for printing out warnings.
-    static bool bAlreadyPrintedWarning = false;
+    // Create static flag for printing out warnings. Atomic because these accessors are called
+    // from the state machine, the SIM camera producer and the visualization thread at once,
+    // and a plain function-local static written from several threads is a data race.
+    static std::atomic<bool> bAlreadyPrintedWarning{false};
+
+    // The data age lives under the LOCATION lock, not the velocity lock. Read it first, in
+    // its own scope, so the two locks are never held at once and no ordering is implied.
+    int nGPSDataAge = 0;
+    {
+        // Acquire read lock for the GPS timestamp.
+        std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
+        nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetGPSLastUpdateTimeLocked()).count();
+    }
 
     // Acquire read lock for getting velocity double.
     std::shared_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
-    // Calculate time elapsed since last GPS data update.
-    int nGPSDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetGPSLastUpdateTime()).count();
     // Check the last time that our current GPS data has been updated.
     if (nGPSDataAge >= constants::NAVBOARD_MAX_GPS_DATA_AGE && !bAlreadyPrintedWarning)
     {
@@ -301,13 +318,23 @@ double NavigationBoard::GetVelocity()
  ******************************************************************************/
 double NavigationBoard::GetAngularVelocity()
 {
-    // Create static boolean for printing out warnings.
-    static bool bAlreadyPrintedWarning = false;
+    // Create static flag for printing out warnings. Atomic because these accessors are called
+    // from the state machine, the SIM camera producer and the visualization thread at once,
+    // and a plain function-local static written from several threads is a data race.
+    static std::atomic<bool> bAlreadyPrintedWarning{false};
+
+    // Acquire read lock for getting angular velocity double.
+    // The data age lives under the HEADING lock, not the angular velocity lock. Read it
+    // first, in its own scope, so the two locks are never held at once.
+    int nCompassDataAge = 0;
+    {
+        // Acquire read lock for the compass timestamp.
+        std::shared_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
+        nCompassDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetCompassLastUpdateTimeLocked()).count();
+    }
 
     // Acquire read lock for getting angular velocity double.
     std::shared_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
-    // Calculate time elapsed since last GPS data update.
-    int nCompassDataAge = std::chrono::duration_cast<std::chrono::seconds>(this->GetCompassLastUpdateTime()).count();
     // Check the last time that our current GPS data has been updated.
     if (nCompassDataAge >= constants::NAVBOARD_MAX_COMPASS_DATA_AGE && !bAlreadyPrintedWarning)
     {
@@ -343,12 +370,30 @@ double NavigationBoard::GetAngularVelocity()
  ******************************************************************************/
 std::chrono::system_clock::duration NavigationBoard::GetGPSLastUpdateTime()
 {
-    // Get current time.
-    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-    // Acquire read lock for getting GPS timestamp.
+    // Acquire read lock for getting GPS timestamp, then do the arithmetic under it.
     std::shared_lock<std::shared_mutex> lkGPSProcessLock(m_muLocationMutex);
-    // Return the difference.
-    return tmCurrentTime - m_tmLastGPSUpdateTime;
+    return this->GetGPSLastUpdateTimeLocked();
+}
+
+/******************************************************************************
+ * @brief How long ago the last GPS update arrived. Assumes m_muLocationMutex is
+ *      ALREADY held by the caller.
+ *
+ *      This exists because std::shared_mutex is not recursive. The public accessors
+ *      hold the location lock and then need the data age; calling the public
+ *      GetGPSLastUpdateTime() from inside that critical section acquires the same
+ *      shared_mutex a second time on the same thread, which is undefined behaviour -
+ *      it survives on glibc only because its rwlock happens to prefer readers.
+ *
+ * @return std::chrono::system_clock::duration - Time elapsed since the last GPS update.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-07
+ ******************************************************************************/
+std::chrono::system_clock::duration NavigationBoard::GetGPSLastUpdateTimeLocked() const
+{
+    // Return the difference between now and the stored timestamp.
+    return std::chrono::system_clock::now() - m_tmLastGPSUpdateTime;
 }
 
 /******************************************************************************
@@ -362,12 +407,24 @@ std::chrono::system_clock::duration NavigationBoard::GetGPSLastUpdateTime()
  ******************************************************************************/
 std::chrono::system_clock::duration NavigationBoard::GetCompassLastUpdateTime()
 {
-    // Get current time.
-    std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
-    // Acquire read lock for getting Heading timestamp.
+    // Acquire read lock for getting Heading timestamp, then do the arithmetic under it.
     std::shared_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
-    // Return the difference.
-    return tmCurrentTime - m_tmLastCompassUpdateTime;
+    return this->GetCompassLastUpdateTimeLocked();
+}
+
+/******************************************************************************
+ * @brief How long ago the last compass update arrived. Assumes m_muHeadingMutex is
+ *      ALREADY held by the caller. See GetGPSLastUpdateTimeLocked() for why.
+ *
+ * @return std::chrono::system_clock::duration - Time elapsed since the last compass update.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-07
+ ******************************************************************************/
+std::chrono::system_clock::duration NavigationBoard::GetCompassLastUpdateTimeLocked() const
+{
+    // Return the difference between now and the stored timestamp.
+    return std::chrono::system_clock::now() - m_tmLastCompassUpdateTime;
 }
 
 /******************************************************************************
@@ -403,28 +460,37 @@ void NavigationBoard::ProcessGPSData(const rovecomm::RoveCommPacket<double>& stP
     // Unlock mutex.
     lkGPSReadProcessLock.unlock();
 
-    // Acquire write lock for writing to velocity member variable.
-    std::unique_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
-    // Calculate rover velocity based on GPS distance traveled over time.
-    m_dVelocity =
-        geMeasurement.dDistanceMeters / static_cast<double>((std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastGPSUpdateTime).count() / 1e6));
-    // Unlock mutex.
-    lkVelocityProcessLock.unlock();
+    // Acquire write lock for the GPS struct and update it. m_tmLastGPSUpdateTime is guarded
+    // by THIS mutex, so read the previous timestamp here rather than under the velocity lock
+    // (which guards m_dVelocity and nothing else).
+    std::chrono::system_clock::time_point tmPreviousGPSUpdate;
+    {
+        // Lock the location data for writing.
+        std::unique_lock<std::shared_mutex> lkGPSWriteProcessLock(m_muLocationMutex);
+        // Keep the previous update time so velocity can be computed from it below.
+        tmPreviousGPSUpdate = m_tmLastGPSUpdateTime;
+        // Repack data from RoveCommPacket into member variable.
+        m_stLocation.dLatitude   = stPacket.vData[0];
+        m_stLocation.dLongitude  = stPacket.vData[1];
+        m_stLocation.dAltitude   = stPacket.vData[2];
+        m_stLocation.tmTimestamp = tmCurrentTime;
+        // Update GPS update time.
+        m_tmLastGPSUpdateTime = tmCurrentTime;
+    }
 
-    // Acquire write lock for writing to GPS struct.
-    std::unique_lock<std::shared_mutex> lkGPSWriteProcessLock(m_muLocationMutex);
-    // Repack data from RoveCommPacket into member variable.
-    m_stLocation.dLatitude   = stPacket.vData[0];
-    m_stLocation.dLongitude  = stPacket.vData[1];
-    m_stLocation.dAltitude   = stPacket.vData[2];
-    m_stLocation.tmTimestamp = tmCurrentTime;
-    // Update GPS update time.
-    m_tmLastGPSUpdateTime = tmCurrentTime;
-    // Unlock mutex.
-    lkGPSWriteProcessLock.unlock();
+    // Guard against a zero interval, which would divide by zero on a duplicate packet.
+    const double dElapsedSeconds = std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - tmPreviousGPSUpdate).count() / 1e6;
+    if (dElapsedSeconds > 0.0)
+    {
+        // Acquire write lock for writing to velocity member variable.
+        std::unique_lock<std::shared_mutex> lkVelocityProcessLock(m_muVelocityMutex);
+        // Calculate rover velocity based on GPS distance traveled over time.
+        m_dVelocity = geMeasurement.dDistanceMeters / dElapsedSeconds;
+    }
 
-    // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Incoming GPS Data: ({} lat, {} lon, {} alt)", m_stLocation.dLatitude, m_stLocation.dLongitude, m_stLocation.dAltitude);
+    // Submit logger message. Log the packet values directly: reading the members back would
+    // be an unsynchronized read, and they may already have been overwritten by the next packet.
+    LOG_DEBUG(logging::g_qSharedLogger, "Incoming GPS Data: ({} lat, {} lon, {} alt)", stPacket.vData[0], stPacket.vData[1], stPacket.vData[2]);
 }
 
 /******************************************************************************
@@ -485,22 +551,32 @@ void NavigationBoard::ProcessCompassData(const rovecomm::RoveCommPacket<float>& 
     // Unlock mutex.
     lkCompassReadLock.unlock();
 
-    // Acquire write lock for writing to angular velocity member variable.
-    std::unique_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
-    // Calculate rover angular velocity based on change in heading over time.
-    m_dAngularVelocity = dDeltaAngle / (std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - m_tmLastCompassUpdateTime).count() / 1e6);
-    // Unlock mutex.
-    lkAngularVelocityProcessLock.unlock();
+    // Acquire write lock for heading and compass timestamp. m_tmLastCompassUpdateTime is
+    // guarded by THIS mutex, so read the previous timestamp here rather than under the
+    // angular velocity lock (which guards m_dAngularVelocity and nothing else).
+    std::chrono::system_clock::time_point tmPreviousCompassUpdate;
+    {
+        // Lock the heading data for writing.
+        std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
+        // Keep the previous update time so angular velocity can be computed from it below.
+        tmPreviousCompassUpdate = m_tmLastCompassUpdateTime;
+        // Repack data from RoveCommPacket into member variable.
+        m_dHeading = dNewHeading;
+        // Update compass time.
+        m_tmLastCompassUpdateTime = tmCurrentTime;
+    }
 
-    // Acquire write lock for heading and compass timestamp.
-    std::unique_lock<std::shared_mutex> lkCompassProcessLock(m_muHeadingMutex);
-    // Repack data from RoveCommPacket into member variable.
-    m_dHeading = dNewHeading;
-    // Update compass time.
-    m_tmLastCompassUpdateTime = tmCurrentTime;
-    // Unlock mutex.
-    lkCompassProcessLock.unlock();
+    // Guard against a zero interval, which would divide by zero on a duplicate packet.
+    const double dElapsedSeconds = std::chrono::duration_cast<std::chrono::microseconds>(tmCurrentTime - tmPreviousCompassUpdate).count() / 1e6;
+    if (dElapsedSeconds > 0.0)
+    {
+        // Acquire write lock for writing to angular velocity member variable.
+        std::unique_lock<std::shared_mutex> lkAngularVelocityProcessLock(m_muAngularVelocityMutex);
+        // Calculate rover angular velocity based on change in heading over time.
+        m_dAngularVelocity = dDeltaAngle / dElapsedSeconds;
+    }
 
-    // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Incoming Compass Data: {}", m_dHeading);
+    // Submit logger message. Log the packet value directly rather than reading the member
+    // back without the lock.
+    LOG_DEBUG(logging::g_qSharedLogger, "Incoming Compass Data: {}", dNewHeading);
 }

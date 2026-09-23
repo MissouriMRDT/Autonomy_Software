@@ -225,7 +225,8 @@ namespace logging
                                                                    szLogLevelShortCode,      // Log level short code
                                                                    *qLogMetadata,            // Log statement metadata
                                                                    vNamedArgs,               // Named arguments
-                                                                   szLogMessage              // Log message
+                                                                   szLogMessage,             // Log message
+                                                                   std::string_view{}        // Mapped diagnostic context (unused)
         );
 
         // Check if logging level is permitted
@@ -307,7 +308,8 @@ namespace logging
                                                                    szLogLevelShortCode,      // Log level short code
                                                                    *qLogMetadata,            // Log statement metadata
                                                                    vNamedArgs,               // Named arguments
-                                                                   szLogMessage              // Log message
+                                                                   szLogMessage,             // Log message
+                                                                   std::string_view{}        // Mapped diagnostic context (unused)
         );
 
         // Check if logging level is permitted

@@ -37,11 +37,19 @@ class ObjectDetectionHandler
 
         // Persistent demand for each detector's overlay channels. A detector only clones and
         // publishes overlay frames while a Reader is alive, so this handler holds one for
-        // the lifetime of its detectors. That is what keeps GetDetectionOverlayFrame() supplied.
+        // the lifetime of its detectors, and every read of those channels goes through THESE
+        // handles via the accessors below. Callers must not create their own Reader just to
+        // read: demand held for one expression is demand the detector never observes.
         pubsub::Reader<cv::Mat> m_rdMainCamOverlay;
         pubsub::Reader<cv::Mat> m_rdMainCamLastGoodOverlay;
         pubsub::Reader<cv::Mat> m_rdRearCamOverlay;
         pubsub::Reader<cv::Mat> m_rdRearCamLastGoodOverlay;
+
+        /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
+        cv::Mat CopyOverlaySnapshot(const pubsub::Reader<cv::Mat>& rdOverlayReader, const std::string& szChannelName);
 
     public:
         /////////////////////////////////////////
@@ -74,6 +82,8 @@ class ObjectDetectionHandler
         std::shared_ptr<ObjectDetector> GetObjectDetector(ObjectDetectors eDetectorName);
 
         cv::Mat GetDetectionOverlayFrame(ObjectDetectors eDetector = ObjectDetectors::eHeadMainCam);
+        cv::Mat GetLastGoodOverlayFrame(ObjectDetectors eDetector = ObjectDetectors::eHeadMainCam);
+        cv::Mat GetLastGoodOverlayFrameForDetector(const std::string& szDetectorUUID);
 };
 
 #endif

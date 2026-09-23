@@ -195,6 +195,17 @@ namespace constants
     // Main ZED Camera.
     const int ZED_MAINCAM_RESOLUTIONX           = 1280;                       // The horizontal pixel resolution to resize the maincam images to.
     const int ZED_MAINCAM_RESOLUTIONY           = 720;                        // The vertical pixel resolution to resize the maincam images to.
+    // NOTE ON PRODUCER/CONSUMER RATES. The ZED cameras run at 60 FPS while both detectors cap
+    // at 30 (TAGDETECT_*_MAX_FPS / OBJECTDETECT_*_MAX_FPS below), so if the detectors are the
+    // only subscribers then half of every retrieve-and-deep-copy is published and never read.
+    // The HasReaders() gating in ZEDCam skips data nobody wants at all, but it cannot tell
+    // that the one reader only wants every other frame.
+    //
+    // Leaving this as-is deliberately: 60 FPS keeps the ZED's own positional tracking and IMU
+    // fusion running at full rate, which matters more than the wasted copies (measured at
+    // ~0.44 ms of memcpy per frame for frame + point cloud on x86; expect 3-5x on a Jetson).
+    // If that ever shows up in a Tracy capture as a real cost, the fix is to match the camera
+    // FPS to the fastest subscriber rather than to drop the detectors' cap.
     const int ZED_MAINCAM_FPS                   = 60;                         // The FPS to use for the maincam.
     const int ZED_MAINCAM_HORIZONTAL_FOV        = 110;                        // The horizontal FOV of the camera. Useful for future calculations.
     const int ZED_MAINCAM_VERTICAL_FOV          = 70;                         // The vertical FOV of the camera. Useful for future calculations.

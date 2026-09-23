@@ -88,6 +88,7 @@ class SIMZEDCam : public ZEDCamera
         // Reconnect pacing and edge-triggered connected/disconnected logging. The producer thread
         // never stops itself when the simulator is unreachable; it idles, retries on this
         // monotonic timer, and logs only when the connection state actually changes.
+        unsigned long long m_ullIterationCounter = 0;    // Advanced once per loop; doubles as the published source sequence.
         threadutils::RetryTimer m_tmReconnectTimer{constants::SIM_STREAM_RECONNECT_RETRY_INTERVAL};
         bool m_bLastKnownOpenState = true;
 

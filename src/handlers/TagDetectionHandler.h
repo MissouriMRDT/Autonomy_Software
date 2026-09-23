@@ -36,13 +36,21 @@ class TagDetectionHandler
         std::unique_ptr<RecordingHandler> m_pRecordingHandler;
 
         // Persistent demand for each detector's overlay channels. A detector only clones and
-        // publishes overlay frames while a Reader is alive, so this handler holds one for
-        // the lifetime of its detectors. That is what keeps GetDetectionOverlayFrame() and any
-        // direct reader of the last-good overlay (for example VerifyingMarkerState) supplied.
+        // publishes overlay frames while a Reader is alive, so this handler holds one for the
+        // lifetime of its detectors - and every read of those channels goes through THESE
+        // handles, via the accessors below. Callers elsewhere must not create their own
+        // Reader just to read: demand that exists for the duration of one expression is
+        // demand the detector never observes, so the channel would simply never publish.
         pubsub::Reader<cv::Mat> m_rdMainCamOverlay;
         pubsub::Reader<cv::Mat> m_rdMainCamLastGoodOverlay;
         pubsub::Reader<cv::Mat> m_rdRearCamOverlay;
         pubsub::Reader<cv::Mat> m_rdRearCamLastGoodOverlay;
+
+        /////////////////////////////////////////
+        // Declare private methods.
+        /////////////////////////////////////////
+
+        cv::Mat CopyOverlaySnapshot(const pubsub::Reader<cv::Mat>& rdOverlayReader, const std::string& szChannelName);
 
     public:
         /////////////////////////////////////////
@@ -75,6 +83,8 @@ class TagDetectionHandler
         std::shared_ptr<TagDetector> GetTagDetector(TagDetectors eDetectorName);
 
         cv::Mat GetDetectionOverlayFrame(TagDetectors eDetector = TagDetectors::eHeadMainCam);
+        cv::Mat GetLastGoodOverlayFrame(TagDetectors eDetector = TagDetectors::eHeadMainCam);
+        cv::Mat GetLastGoodOverlayFrameForDetector(const std::string& szDetectorUUID);
 };
 
 #endif

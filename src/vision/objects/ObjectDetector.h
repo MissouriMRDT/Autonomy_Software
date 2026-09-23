@@ -100,6 +100,25 @@ class ObjectDetector : public AutonomyThread<void>
         pubsub::Reader<std::vector<objectdetectutils::Object>> GetDetectedObjectsReader() { return m_pubDetectedObjects.CreateReader(); }
 
         /******************************************************************************
+         * @brief Read the newest published object list directly, without the caller having
+         *      to hold a Reader.
+         *
+         *      Safe ONLY because the objects channel is published unconditionally - the
+         *      objects are already computed by the detection pass. To keep that consistent
+         *      with the demand model rather than merely convention, this detector holds its
+         *      own Reader on the channel, so demand genuinely always exists.
+         *
+         *      Do NOT copy this pattern to the overlay channels; those are demand gated.
+         *
+         * @return pubsub::SharedSnapshot<std::vector<objectdetectutils::Object>> - The newest
+         *                  immutable object list, or nullptr if nothing has been published.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-07
+         ******************************************************************************/
+        pubsub::SharedSnapshot<std::vector<objectdetectutils::Object>> GetLatestDetectedObjects() const { return m_rdSelfDetectedObjects.Get(); }
+
+        /******************************************************************************
          * @brief Accessor for the number of detection passes skipped because the camera
          *      had not published a new frame since the last pass. Used to verify that the
          *      sequence-number short circuit is actually saving work.
@@ -110,6 +129,17 @@ class ObjectDetector : public AutonomyThread<void>
          * @date 2026-07-24
          ******************************************************************************/
         unsigned long long GetSkippedFrameCount() const { return m_ullSkippedFrameCount.load(std::memory_order_relaxed); }
+
+        /******************************************************************************
+         * @brief Accessor for the number of detection passes skipped because the frame and
+         *      the point cloud came from different camera grabs.
+         *
+         * @return unsigned long long - The cumulative number of mismatched-grab skips.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-07
+         ******************************************************************************/
+        unsigned long long GetMismatchedGrabCount() const { return m_ullMismatchedGrabCount.load(std::memory_order_relaxed); }
 
     private:
         /////////////////////////////////////////
@@ -180,6 +210,7 @@ class ObjectDetector : public AutonomyThread<void>
         // to skip an entire detection pass when the camera has not published a new frame yet.
 
         unsigned long long m_ullLastProcessedFrameSequence = 0;
+        std::atomic<unsigned long long> m_ullMismatchedGrabCount{0};    // Passes skipped because frame and cloud came from different grabs.
         std::atomic<unsigned long long> m_ullSkippedFrameCount{0};
 
         // Publish-latest data channels out (see accessors above). Each is given an explicit
@@ -192,6 +223,14 @@ class ObjectDetector : public AutonomyThread<void>
         pubsub::Publisher<cv::Mat> m_pubDetectionOverlay{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
         pubsub::Publisher<cv::Mat> m_pubLastGoodOverlay{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
         pubsub::Publisher<std::vector<objectdetectutils::Object>> m_pubDetectedObjects{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+
+        // This detector's own demand on its objects channel. See GetLatestDetectedObjects().
+        pubsub::Reader<std::vector<objectdetectutils::Object>> m_rdSelfDetectedObjects{m_pubDetectedObjects.CreateReader()};
+
+        // The camera snapshots this pass is working from. Held rather than deep copied: a
+        // published snapshot is immutable and reference counted for as long as we hold it.
+        pubsub::SharedSnapshot<cv::Mat> m_pFrameSnapshot;
+        pubsub::SharedSnapshot<cv::Mat> m_pPointCloudSnapshot;
 };
 
 #endif

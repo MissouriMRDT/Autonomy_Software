@@ -114,8 +114,12 @@ namespace searchpattern
         std::string szSearchPatternPoints = "Search Pattern Points (Spiral): ";
         for (geoops::Waypoint& stWaypoint : vWaypoints)
         {
-            szSearchPatternPoints +=
-                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+            // Append piecewise. "(" + std::to_string(...) trips a GCC 12 -Wstringop-overflow false positive.
+            szSearchPatternPoints += "(";
+            szSearchPatternPoints += std::to_string(stWaypoint.GetGPSCoordinate().dLatitude);
+            szSearchPatternPoints += ", ";
+            szSearchPatternPoints += std::to_string(stWaypoint.GetGPSCoordinate().dLongitude);
+            szSearchPatternPoints += "), ";
         }
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
@@ -278,8 +282,12 @@ namespace searchpattern
         std::string szSearchPatternPoints = "Search Pattern Points (Spiral): ";
         for (geoops::Waypoint& stWaypoint : vWaypoints)
         {
-            szSearchPatternPoints +=
-                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+            // Append piecewise. "(" + std::to_string(...) trips a GCC 12 -Wstringop-overflow false positive.
+            szSearchPatternPoints += "(";
+            szSearchPatternPoints += std::to_string(stWaypoint.GetGPSCoordinate().dLatitude);
+            szSearchPatternPoints += ", ";
+            szSearchPatternPoints += std::to_string(stWaypoint.GetGPSCoordinate().dLongitude);
+            szSearchPatternPoints += "), ";
         }
         // Submit logger message.
         LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
@@ -365,8 +373,12 @@ namespace searchpattern
         std::string szSearchPatternPoints = "Search Pattern Points (Snake): ";
         for (const geoops::Waypoint& stWaypoint : vWaypoints)
         {
-            szSearchPatternPoints +=
-                "(" + std::to_string(stWaypoint.GetGPSCoordinate().dLatitude) + ", " + std::to_string(stWaypoint.GetGPSCoordinate().dLongitude) + "), ";
+            // Append piecewise. "(" + std::to_string(...) trips a GCC 12 -Wstringop-overflow false positive.
+            szSearchPatternPoints += "(";
+            szSearchPatternPoints += std::to_string(stWaypoint.GetGPSCoordinate().dLatitude);
+            szSearchPatternPoints += ", ";
+            szSearchPatternPoints += std::to_string(stWaypoint.GetGPSCoordinate().dLongitude);
+            szSearchPatternPoints += "), ";
         }
         LOG_DEBUG(logging::g_qSharedLogger, "{}", szSearchPatternPoints);
 

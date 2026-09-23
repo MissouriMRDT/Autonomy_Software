@@ -17,6 +17,7 @@
 #include <RoveComm/RoveComm.h>
 #include <RoveComm/RoveCommManifest.h>
 #include <chrono>
+#include <atomic>
 #include <shared_mutex>
 
 /// \endcond
@@ -66,23 +67,49 @@ class NavigationBoard
         // Declare private member variables.
         /////////////////////////////////////////
 
-        geoops::GPSCoordinate m_stLocation;                                 // Store current global position in UTM format.
-        double m_dHeading;                                                  // Store current GPS heading.
-        double m_dHeadingAccuracy;                                          // Store current GPS heading accuracy in degrees.
-        double m_dVelocity;                                                 // Store current GPS-based velocity.
-        double m_dAngularVelocity;                                          // Store current compass-based angular velocity.
-        std::shared_mutex m_muLocationMutex;                                // Mutex for acquiring read and write lock on location member variable.
-        std::shared_mutex m_muHeadingMutex;                                 // Mutex for acquiring read and write lock on heading member variable.
-        std::shared_mutex m_muVelocityMutex;                                // Mutex for acquiring read and write lock on velocity member variable.
-        std::shared_mutex m_muAngularVelocityMutex;                         // Mutex for acquiring read and write lock on angular velocity member variable.
-        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // A time point for storing the timestamp of the last GPS update. Also used for velocity.
-        std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // A time point for storing the time of the last compass update. Used for angular velocity.
-        bool m_bNavBoardOutOfDate;                                          // A boolean to store whether the GPS is out of date.
+        // LOCKING RULES FOR THIS CLASS.
+        //
+        // Every member below names the ONE mutex that guards it, and nothing may be read or
+        // written without holding that mutex. Two rules follow from how this class is used,
+        // and both were being broken before:
+        //
+        //   1. Never take the same std::shared_mutex twice on one thread. It is not
+        //      recursive, so a second acquisition is undefined behaviour - it happens to
+        //      work under glibc's reader-preferring rwlock and deadlocks under a
+        //      writer-preferring one. The public accessors used to take a lock and then call
+        //      another public accessor that took the same lock again. Anything that needs
+        //      data-age arithmetic from inside a critical section calls the *Locked() helper
+        //      below, which assumes the lock is already held.
+        //
+        //   2. A member is guarded by ITS OWN mutex, not by whichever one happens to be held.
+        //      m_tmLastGPSUpdateTime belongs to m_muLocationMutex even when the code reading
+        //      it is in the middle of updating velocity.
+        //
+        // Lock ordering, where two are genuinely needed at once: Location -> Heading. Nothing
+        // else nests, and no writer holds two at once except ProcessAccuracyData().
+
+        geoops::GPSCoordinate m_stLocation;                                 // Guarded by m_muLocationMutex.
+        double m_dHeading;                                                  // Guarded by m_muHeadingMutex.
+        double m_dHeadingAccuracy;                                          // Guarded by m_muHeadingMutex.
+        double m_dVelocity;                                                 // Guarded by m_muVelocityMutex.
+        double m_dAngularVelocity;                                          // Guarded by m_muAngularVelocityMutex.
+        std::shared_mutex m_muLocationMutex;                                // Guards m_stLocation and m_tmLastGPSUpdateTime.
+        std::shared_mutex m_muHeadingMutex;                                 // Guards m_dHeading, m_dHeadingAccuracy and m_tmLastCompassUpdateTime.
+        std::shared_mutex m_muVelocityMutex;                                // Guards m_dVelocity.
+        std::shared_mutex m_muAngularVelocityMutex;                         // Guards m_dAngularVelocity.
+        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // Guarded by m_muLocationMutex. Timestamp of the last GPS update.
+        std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // Guarded by m_muHeadingMutex. Timestamp of the last compass update.
+        // Written from accessors holding three different mutexes, so no single mutex could
+        // ever have guarded it. Atomic instead: it is one independent boolean, and every
+        // writer is simply publishing "the data I just looked at was stale".
+        std::atomic<bool> m_bNavBoardOutOfDate{false};
 
         /////////////////////////////////////////
         // Declare private methods.
         /////////////////////////////////////////
 
+        std::chrono::system_clock::duration GetGPSLastUpdateTimeLocked() const;
+        std::chrono::system_clock::duration GetCompassLastUpdateTimeLocked() const;
         void ProcessGPSData(const rovecomm::RoveCommPacket<double>& stPacket);
         void ProcessAccuracyData(const rovecomm::RoveCommPacket<float>& stPacket);
         void ProcessCompassData(const rovecomm::RoveCommPacket<float>& stPacket);

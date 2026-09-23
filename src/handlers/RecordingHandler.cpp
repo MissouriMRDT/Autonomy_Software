@@ -32,6 +32,8 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
     m_eRecordingMode = eRecordingMode;
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(constants::RECORDER_FPS);
+    // Name the OS thread so profilers and system tools can identify it.
+    this->SetMainThreadName("Recorder");
 
     // Resize vectors to match number of video feeds.
     switch (eRecordingMode)

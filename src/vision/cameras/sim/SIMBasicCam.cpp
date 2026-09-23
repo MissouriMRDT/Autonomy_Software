@@ -68,6 +68,8 @@ SIMBasicCam::SIMBasicCam(const std::string szCameraPath,
 
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(nPropFramesPerSecond);
+    // Name the OS thread so profilers and system tools can identify it.
+    this->SetMainThreadName("SIMBasicCam");
 }
 
 /******************************************************************************

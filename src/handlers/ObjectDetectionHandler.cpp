@@ -202,13 +202,100 @@ cv::Mat ObjectDetectionHandler::GetDetectionOverlayFrame(ObjectDetectors eDetect
         return cvFrame;
     }
 
-    // Load the newest published overlay snapshot once into a local. This handler holds a
-    // Reader for the detector's lifetime, so the detector is publishing this channel.
-    pubsub::SharedSnapshot<cv::Mat> pSnapshot = pDetector->GetDetectionOverlayReader().Get();
+    // Read through the Reader this handler has held since StartAllDetectors(). Creating a
+    // Reader here instead would register demand for the length of this expression only,
+    // which the detector's once-per-iteration HasReaders() check would never see.
+    return this->CopyOverlaySnapshot(eDetector == ObjectDetectors::eRearCam ? m_rdRearCamOverlay : m_rdMainCamOverlay, "detection overlay");
+}
+
+/******************************************************************************
+ * @brief Returns a snapshot of the last overlay frame that actually contained a
+ *      detection. Does not block: it copies whatever the detector published most
+ *      recently.
+ *
+ * @param eDetector - The detector to read the frame from.
+ * @return cv::Mat - The last good overlay frame, or an empty cv::Mat if the detector is
+ *                  invalid, not ready, or has not published one yet.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-07
+ ******************************************************************************/
+cv::Mat ObjectDetectionHandler::GetLastGoodOverlayFrame(ObjectDetectors eDetector)
+{
+    // Create an empty frame to store the result.
+    cv::Mat cvFrame;
+    // Get the specific detector (e.g., Head Main Cam).
+    std::shared_ptr<ObjectDetector> pDetector = this->GetObjectDetector(eDetector);
+
+    // Check if the detector is valid and running.
+    if (pDetector == nullptr || !pDetector->GetIsReady())
+    {
+        // Submit logger message.
+        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: Requested snapshot from invalid or unready detector.");
+        // Return the empty frame; the caller handles that case.
+        return cvFrame;
+    }
+
+    // Read through this handler's persistent Reader, for the same reason as above.
+    return this->CopyOverlaySnapshot(eDetector == ObjectDetectors::eRearCam ? m_rdRearCamLastGoodOverlay : m_rdMainCamLastGoodOverlay, "last good overlay");
+}
+
+/******************************************************************************
+ * @brief Returns the last good overlay frame belonging to the detector with the given
+ *      thread UUID. States identify a winning detection by the UUID of the detector
+ *      that produced it, and this handler is what holds demand on those channels, so
+ *      the lookup belongs here rather than in the state.
+ *
+ * @param szDetectorUUID - The GetThreadUUID() of the detector to read from.
+ * @return cv::Mat - The last good overlay frame, or an empty cv::Mat if no detector
+ *                  matches or nothing has been published yet.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-07
+ ******************************************************************************/
+cv::Mat ObjectDetectionHandler::GetLastGoodOverlayFrameForDetector(const std::string& szDetectorUUID)
+{
+    // Match the UUID against each detector we own.
+    if (m_pObjectDetectorMainCam != nullptr && m_pObjectDetectorMainCam->GetThreadUUID() == szDetectorUUID)
+    {
+        // Read the main camera detector's last good overlay.
+        return this->GetLastGoodOverlayFrame(ObjectDetectors::eHeadMainCam);
+    }
+    if (m_pObjectDetectorRearCam != nullptr && m_pObjectDetectorRearCam->GetThreadUUID() == szDetectorUUID)
+    {
+        // Read the rear camera detector's last good overlay.
+        return this->GetLastGoodOverlayFrame(ObjectDetectors::eRearCam);
+    }
+
+    // Submit logger message.
+    LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: No detector matches UUID {}; cannot read its last good overlay.", szDetectorUUID);
+    // No match; hand back an empty frame.
+    return cv::Mat();
+}
+
+/******************************************************************************
+ * @brief Copy the newest snapshot from one of this handler's overlay Readers into a
+ *      frame the caller owns.
+ *
+ * @param rdOverlayReader - The persistent Reader for the channel to read.
+ * @param szChannelName - Human readable channel name, used only for logging.
+ * @return cv::Mat - A deep copy of the newest snapshot, or an empty cv::Mat if nothing
+ *                  has been published yet.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-07
+ ******************************************************************************/
+cv::Mat ObjectDetectionHandler::CopyOverlaySnapshot(const pubsub::Reader<cv::Mat>& rdOverlayReader, const std::string& szChannelName)
+{
+    // Create an empty frame to store the result.
+    cv::Mat cvFrame;
+
+    // Load the newest published snapshot once into a local.
+    pubsub::SharedSnapshot<cv::Mat> pSnapshot = rdOverlayReader.Get();
     if (pSnapshot == nullptr)
     {
         // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: No detection overlay has been published yet.");
+        LOG_WARNING(logging::g_qSharedLogger, "ObjectDetectionHandler: No {} has been published yet.", szChannelName);
         // Return the empty frame.
         return cvFrame;
     }

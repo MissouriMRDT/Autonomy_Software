@@ -371,3 +371,59 @@ TEST_F(CommandQueueTests, CancelPendingDoesNotPermanentlyShutDown)
     cq.DrainAll();
     EXPECT_EQ(fuLater.get(), 5);
 }
+
+/******************************************************************************
+ * @brief A caller that gives up withdraws only its OWN command. This used to call
+ *      CancelPending(), which discarded every other caller's queued work too - so one
+ *      impatient waiter during a transient stop destroyed commands that would have
+ *      run correctly a moment later.
+ ******************************************************************************/
+TEST_F(CommandQueueTests, CancelCommandWithdrawsOnlyTheNamedCommand)
+{
+    CommandQueue cqQueue;
+
+    // Queue three result-bearing commands and remember the middle one's id.
+    unsigned long long ullFirstId  = 0;
+    unsigned long long ullSecondId = 0;
+    unsigned long long ullThirdId  = 0;
+    std::future<int> fuFirst       = cqQueue.PostWithResult<int>([]() { return 1; }, &ullFirstId);
+    std::future<int> fuSecond      = cqQueue.PostWithResult<int>([]() { return 2; }, &ullSecondId);
+    std::future<int> fuThird       = cqQueue.PostWithResult<int>([]() { return 3; }, &ullThirdId);
+    ASSERT_EQ(cqQueue.GetPendingCount(), 3U);
+    ASSERT_NE(ullSecondId, 0U);
+
+    // Withdraw only the middle command.
+    EXPECT_TRUE(cqQueue.CancelCommand(ullSecondId));
+    EXPECT_EQ(cqQueue.GetPendingCount(), 2U);
+
+    // The other two still run and return their values.
+    cqQueue.DrainAll();
+    EXPECT_EQ(fuFirst.get(), 1);
+    EXPECT_EQ(fuThird.get(), 3);
+    // The withdrawn one reports cancellation rather than hanging.
+    EXPECT_THROW(fuSecond.get(), std::runtime_error);
+}
+
+/******************************************************************************
+ * @brief Cancelling an id that is not queued is a no-op that reports false, rather
+ *      than disturbing anything else.
+ ******************************************************************************/
+TEST_F(CommandQueueTests, CancelCommandOnUnknownIdIsHarmless)
+{
+    CommandQueue cqQueue;
+
+    // Queue one command.
+    unsigned long long ullId = 0;
+    std::future<int> fuOnly  = cqQueue.PostWithResult<int>([]() { return 42; }, &ullId);
+
+    // An id of 0 means "never queued", and an unrelated id was never ours.
+    EXPECT_FALSE(cqQueue.CancelCommand(0));
+    EXPECT_FALSE(cqQueue.CancelCommand(ullId + 9999));
+    EXPECT_EQ(cqQueue.GetPendingCount(), 1U);
+
+    // Our command is untouched.
+    cqQueue.DrainAll();
+    EXPECT_EQ(fuOnly.get(), 42);
+    // Cancelling after it has already run reports false too.
+    EXPECT_FALSE(cqQueue.CancelCommand(ullId));
+}

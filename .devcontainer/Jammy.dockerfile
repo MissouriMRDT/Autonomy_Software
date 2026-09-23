@@ -62,11 +62,20 @@ RUN echo "${TZ}" > /etc/localtime && \
     echo "${TZ}" > /etc/timezone
 
 # Install gcc/g++
-RUN apt-get install  --no-install-recommends -y \
-    gcc-10 g++-10 && \
+# GCC 12, not 10. src/util/threading/Publisher.hpp needs a real std::atomic<std::shared_ptr<T>>,
+# which libstdc++ only ships from 12 onwards; on 10 the header silently fell back to the
+# deprecated free-function shared_ptr atomics, which libstdc++ implements with a process-global
+# table of 16 spinlocks - so unrelated publish channels serialized against each other by pointer
+# address collision. CMakeLists.txt enforces this minimum.
+#
+# Nothing else needs rebuilding for this: CUDA 12.6 supports host GCC up to 13.2, and Ubuntu
+# 22.04 already ships libstdc++.so.6.0.30 (the GCC 12 runtime), so every prebuilt .deb
+# dependency below keeps the same C++11 ABI.
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    gcc-12 g++-12 && \
     rm -rf /var/lib/apt/lists/* && \
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ \
-    g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 100 --slave /usr/bin/g++ \
+    g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
 
 # Install CMake
 ARG CMAKE_VERSION="3.30.2"
@@ -81,7 +90,7 @@ WORKDIR /opt
 
 # Install ZED SDK
 ARG ZED_MAJOR="5"
-ARG ZED_MINOR="0"
+ARG ZED_MINOR="5"
 RUN wget -q -O ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run \
     https://download.stereolabs.com/zedsdk/${ZED_MAJOR}.${ZED_MINOR}/cu${CUDA_MAJOR}/ubuntu${UBUNTU_MAJOR} && \
     chmod +x ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run ; ./ZED_SDK_Linux_Ubuntu${UBUNTU_MAJOR}.run silent && \
@@ -156,7 +165,7 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pcl/amd64
     rm pcl_${PCL_VERSION}_amd64.deb
 
 # Install Quill
-ARG QUILL_VERSION="10.1.0"
+ARG QUILL_VERSION="12.2.2"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/quill/amd64/quill_${QUILL_VERSION}_amd64.deb && \
     dpkg -i quill_${QUILL_VERSION}_amd64.deb && \
     rm quill_${QUILL_VERSION}_amd64.deb

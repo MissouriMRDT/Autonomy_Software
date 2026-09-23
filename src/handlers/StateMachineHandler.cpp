@@ -48,6 +48,8 @@ StateMachineHandler::StateMachineHandler()
 
     // State machine doesn't need to run at an unlimited speed. Cap main thread to a certain amount of iterations per second.
     this->SetMainThreadIPSLimit(constants::STATEMACHINE_MAX_IPS);
+    // Name the OS thread so profilers and system tools can identify it.
+    this->SetMainThreadName("StateMachine");
 }
 
 /******************************************************************************
@@ -115,17 +117,25 @@ std::shared_ptr<statemachine::State> StateMachineHandler::CreateState(statemachi
 void StateMachineHandler::ChangeState(statemachine::States eNextState, const bool bSaveCurrentState)
 {
     ZoneScopedC(tracy::Color::Yellow);
-    // Acquire write lock for changing states.
-    std::unique_lock lkStateProcessLock(m_muStateMutex);
+    // PRECONDITION: runs on the state machine thread only, either from StartStateMachine()
+    // before that thread exists or from HandleEventOnOwningThread() during a drain. Nothing
+    // else may touch m_pCurrentState, which is why there is no lock here any more and why
+    // there is no longer an m_bSwitchingStates flag to get the timing of.
 
     // Check if we are already in this state.
     if (m_pCurrentState->GetState() != eNextState)
     {
-        // Set atomic toggle saying we are in the process if switching states.
-        m_bSwitchingStates = true;
-
-        // Save the current state as the previous state
-        m_pPreviousState = m_pCurrentState;
+        // Save the current state as the previous state, and publish it for foreign readers.
+        // ClearSavedStates() also writes m_pPreviousState, and it is reachable from a RoveComm
+        // thread, so this write takes the same lock. Nothing reads the pointer across threads
+        // any more - GetPreviousState() reads the published enum - but two threads assigning
+        // the same shared_ptr is still a race.
+        {
+            // Lock the saved-states/previous-state group while we reassign it.
+            std::unique_lock lkSavedStatesLock(m_muSavedStatesMutex);
+            m_pPreviousState = m_pCurrentState;
+        }
+        m_aePreviousState.store(m_pCurrentState->GetState(), std::memory_order_release);
 
         // Check if we should save this current state so it can be recalled in the future.
         if (bSaveCurrentState)
@@ -134,14 +144,27 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState, const boo
             SaveCurrentState();
         }
 
-        // Check if the state exists in exitedStates
-        std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = m_umSavedStates.find(eNextState);
-        if (itState != m_umSavedStates.end())
+        // Look for a previously saved instance of the state we are entering. The saved-states
+        // map is the one piece of this that a foreign thread can still reach, via
+        // ClearSavedStates(), so it keeps its own lock.
+        std::shared_ptr<statemachine::State> pRecalledState;
+        {
+            // Lock the saved states map while we search it.
+            std::unique_lock lkSavedStatesLock(m_muSavedStatesMutex);
+            std::unordered_map<statemachine::States, std::shared_ptr<statemachine::State>>::iterator itState = m_umSavedStates.find(eNextState);
+            if (itState != m_umSavedStates.end())
+            {
+                // Take the saved instance and drop it from the map.
+                pRecalledState = itState->second;
+                m_umSavedStates.erase(itState);
+            }
+        }
+
+        // Check whether we recalled a saved state or need a fresh one.
+        if (pRecalledState != nullptr)
         {
             // Load the existing state
-            m_pCurrentState = itState->second;
-            // Remove new current state state from saved states.
-            m_umSavedStates.erase(eNextState);
+            m_pCurrentState = pRecalledState;
 
             // Submit logger message.
             LOG_INFO(logging::g_qSharedLogger, "Recalling State: {}", m_pCurrentState->ToString());
@@ -152,8 +175,9 @@ void StateMachineHandler::ChangeState(statemachine::States eNextState, const boo
             m_pCurrentState = CreateState(eNextState);
         }
 
-        // Set atomic toggle saying we are done switching states.
-        m_bSwitchingStates = false;
+        // Publish the new state for lock-free reads from every other thread. Release ordering
+        // so a reader that sees this value also sees the fully constructed state behind it.
+        m_aeCurrentState.store(m_pCurrentState->GetState(), std::memory_order_release);
     }
 
     // Send current state to all subscribers.
@@ -176,7 +200,9 @@ void StateMachineHandler::SaveCurrentState()
     ZoneScopedC(tracy::Color::Yellow);
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "Saving State: {}", m_pCurrentState->ToString());
-    // Add state to map.
+    // Add state to map. ClearSavedStates() can be reached from a RoveComm thread, so the map
+    // needs its own lock even though m_pCurrentState does not.
+    std::unique_lock lkSavedStatesLock(m_muSavedStatesMutex);
     m_umSavedStates[m_pCurrentState->GetState()] = m_pCurrentState;
 }
 
@@ -190,9 +216,21 @@ void StateMachineHandler::SaveCurrentState()
 void StateMachineHandler::StartStateMachine()
 {
     ZoneScopedC(tracy::Color::Yellow);
-    // Initialize the state machine with the initial state
-    m_pCurrentState    = CreateState(statemachine::States::eIdle);
-    m_bSwitchingStates = false;
+    // Initialize the state machine with the initial state. Safe without a lock: the state
+    // machine thread does not exist yet, so this thread is the only one that can touch it.
+    m_pCurrentState = CreateState(statemachine::States::eIdle);
+    m_aeCurrentState.store(m_pCurrentState->GetState(), std::memory_order_release);
+
+    // Teach the command queue how to tell whether this handler's thread can still drain it,
+    // so an event posted after the state machine has stopped is dropped rather than queued
+    // forever.
+    m_cmdQueue.SetDrainerLivenessCheck(
+        [this]()
+        {
+            // Only a starting or running thread will reach DrainAll() again.
+            const AutonomyThreadState eThreadState = this->GetThreadState();
+            return eThreadState == AutonomyThreadState::eStarting || eThreadState == AutonomyThreadState::eRunning;
+        });
 
     // Clear any saved states.
     this->ClearSavedStates();
@@ -216,12 +254,20 @@ void StateMachineHandler::StartStateMachine()
 void StateMachineHandler::StopStateMachine()
 {
     ZoneScopedC(tracy::Color::Yellow);
-    // No matter the current state, abort back to idle.
-    this->HandleEvent(statemachine::Event::eAbort);
+    // No matter the current state, abort back to idle. Events are queued for the state
+    // machine thread now, so wait for this one to actually be applied rather than racing
+    // RequestStop() - otherwise the abort could be dropped and we would tear down from
+    // whatever state we happened to be in.
+    globals::g_pDriveBoard->SendStop();
+    m_cmdQueue.PostAndWait<void>([this]() { this->HandleEventOnOwningThread(statemachine::Event::eAbort, false); }).wait();
 
     // Stop main thread.
     this->RequestStop();
     this->Join();
+
+    // The thread is joined, so this thread is now the only one that can reach the queue.
+    // Shut it down so any event posted during teardown is dropped instead of queued forever.
+    m_cmdQueue.Shutdown();
 
     // Send multimedia command to update state display.
     globals::g_pMultimediaBoard->SendLightingState(MultimediaBoard::MultimediaBoardLightingState::eOff);
@@ -244,15 +290,21 @@ void StateMachineHandler::StopStateMachine()
 void StateMachineHandler::ThreadedContinuousCode()
 {
     ZoneScopedC(tracy::Color::Yellow);
-    /*
-        Verify that the state machine has been initialized so that it doesn't
-        try to run before a state has been initialized. Also verify that the
-        state machine is not currently switching states. This prevents the
-        state machine from running while it is in the middle of switching
-        states. And verify that the state machine is not exiting. This prevents
-        the state machine from running after it has been stopped.
-    */
-    if (!m_bSwitchingStates)
+
+    // Record which thread owns the state, so HandleEvent() can tell a state transitioning
+    // itself (apply inline) from a foreign thread posting an event (queue it). Written every
+    // iteration by the only thread that ever writes it; read by foreign threads.
+    m_stStateMachineThreadId.store(std::this_thread::get_id(), std::memory_order_release);
+
+    // 1. Control channel in. Every event posted by a foreign thread - a RoveComm command, a
+    //    low battery abort, main() shutting us down - is applied here, on this thread. That
+    //    is what makes m_pCurrentState single-owner: no other thread ever reassigns it, so
+    //    running it below needs no lock and cannot race a transition mid-Run().
+    m_cmdQueue.DrainAll();
+
+    // 2. Run the current state. A transition can only have happened in step 1, so this
+    //    pointer is stable for the whole call.
+    if (m_pCurrentState != nullptr)
     {
         // Run the current state
         m_pCurrentState->Run();
@@ -286,21 +338,59 @@ void StateMachineHandler::PooledLinearCode() {}
 void StateMachineHandler::HandleEvent(statemachine::Event eEvent, const bool bSaveCurrentState)
 {
     ZoneScopedC(tracy::Color::Yellow);
-    // Acquire write lock for handling events.
-    std::unique_lock lkEventProcessLock(m_muEventMutex);
 
-    // Stop the drive.
+    // Stop the drive immediately, on the calling thread. This deliberately does NOT wait for
+    // the state machine to drain: an abort has to cut power now, not one loop iteration from
+    // now, and DriveBoard is safe to call from any thread.
     globals::g_pDriveBoard->SendStop();
 
-    // Check if the current state is not null and the state machine is running.
-    if (m_pCurrentState != nullptr && this->GetThreadState() == AutonomyThreadState::eRunning)
+    // If we ARE the state machine thread - a state calling HandleEvent() on itself - applying
+    // the event inline is both correct and necessary. Posting would defer it to the next
+    // iteration, and a state that transitions itself expects that to take effect immediately.
+    if (this->GetThreadState() == AutonomyThreadState::eRunning && std::this_thread::get_id() == m_stStateMachineThreadId.load(std::memory_order_acquire))
     {
-        // Trigger the event on the current state
-        statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
-
-        // Transition to the next state
-        ChangeState(eNextState, bSaveCurrentState);
+        // Apply directly; we already own the state.
+        this->HandleEventOnOwningThread(eEvent, bSaveCurrentState);
+        return;
     }
+
+    // Otherwise hand the event to the owning thread. Foreign threads - RoveComm receive
+    // threads, main() - never touch m_pCurrentState themselves; that is what removed the
+    // data race on it. The event is applied at the top of the next state machine iteration,
+    // at most one loop period (1/STATEMACHINE_MAX_IPS) away.
+    m_cmdQueue.Post([this, eEvent, bSaveCurrentState]() { this->HandleEventOnOwningThread(eEvent, bSaveCurrentState); });
+}
+
+/******************************************************************************
+ * @brief Apply one event to the current state and transition if it asks for it.
+ *
+ * @param eEvent - The Event enum to handle.
+ * @param bSaveCurrentState - Whether or not to save the current state so it can be recalled
+ *          next time it is triggered.
+ *
+ * @note PRECONDITION: runs on the state machine thread only, either from a CommandQueue
+ *      drain or from a state transitioning itself. This is the only place m_pCurrentState is
+ *      read for transition purposes, which is what makes the pointer safe to use unlocked.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-07
+ ******************************************************************************/
+void StateMachineHandler::HandleEventOnOwningThread(statemachine::Event eEvent, const bool bSaveCurrentState)
+{
+    ZoneScopedC(tracy::Color::Yellow);
+
+    // Nothing to transition if the machine was never started or is already torn down.
+    if (m_pCurrentState == nullptr)
+    {
+        // No state to hand the event to.
+        return;
+    }
+
+    // Trigger the event on the current state
+    statemachine::States eNextState = m_pCurrentState->TriggerEvent(eEvent);
+
+    // Transition to the next state
+    this->ChangeState(eNextState, bSaveCurrentState);
 }
 
 /******************************************************************************
@@ -314,11 +404,13 @@ void StateMachineHandler::ClearSavedStates()
 {
     ZoneScopedC(tracy::Color::Yellow);
     // Acquire write lock for clearing saved states.
-    std::unique_lock lkStateProcessLock(m_muStateMutex);
+    std::unique_lock lkSavedStatesLock(m_muSavedStatesMutex);
     // Clear all saved states.
     m_umSavedStates.clear();
-    // Reset previous state to nullptr;
+    // Reset previous state to Idle. Under the saved-states lock, which is also what the state
+    // machine thread holds when it writes into the map during a transition.
     m_pPreviousState = std::make_shared<statemachine::IdleState>();
+    m_aePreviousState.store(statemachine::States::eIdle, std::memory_order_release);
 }
 
 /******************************************************************************
@@ -333,7 +425,7 @@ void StateMachineHandler::ClearSavedState(statemachine::States eState)
 {
     ZoneScopedC(tracy::Color::Yellow);
     // Acquire write lock for clearing saved states.
-    std::unique_lock lkStateProcessLock(m_muStateMutex);
+    std::unique_lock lkSavedStatesLock(m_muSavedStatesMutex);
     // Remove all states that match the given state.
     m_umSavedStates.erase(eState);
 }
@@ -348,7 +440,10 @@ void StateMachineHandler::ClearSavedState(statemachine::States eState)
  ******************************************************************************/
 statemachine::States StateMachineHandler::GetCurrentState() const
 {
-    return m_pCurrentState->GetState();
+    // Read the published enum, not m_pCurrentState. Every thread in the system calls this,
+    // and dereferencing the shared_ptr from a foreign thread was a data race against the
+    // state machine thread reassigning it during a transition.
+    return m_aeCurrentState.load(std::memory_order_acquire);
 }
 
 /******************************************************************************
@@ -361,8 +456,9 @@ statemachine::States StateMachineHandler::GetCurrentState() const
  ******************************************************************************/
 statemachine::States StateMachineHandler::GetPreviousState() const
 {
-    // Check if the previous state exists and return it if it does otherwise return Idle
-    return m_pPreviousState ? m_pPreviousState->GetState() : statemachine::States::eIdle;
+    // Read the published enum, not m_pPreviousState. Dereferencing the shared_ptr from a
+    // foreign thread raced the state machine thread reassigning it during a transition.
+    return m_aePreviousState.load(std::memory_order_acquire);
 }
 
 /******************************************************************************
@@ -401,7 +497,7 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
             double dCurrentZEDHeading = pSensorSnapshot->tData.imu.pose.getEulerAngles(false).y;
             // Realign offset.
             // If driving forward fast enough (> Xm/s) and NOT turning. (angular vel near 0)
-            if ((m_pCurrentState != nullptr && m_pCurrentState->GetState() == statemachine::States::eIdle) ||
+            if ((this->GetCurrentState() == statemachine::States::eIdle) ||
                 (std::abs(dVelocity) > constants::ZED_REALIGN_VEL_THRESH && std::abs(dAngularVel) < constants::ZED_REALIGN_ROT_THRESH))
             {
                 this->RealignZEDHeading(dCurrentGPSHeading, dCurrentZEDHeading);

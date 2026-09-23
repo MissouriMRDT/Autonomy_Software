@@ -120,6 +120,29 @@ class TagDetector : public AutonomyThread<void>
         pubsub::Reader<std::vector<tagdetectutils::ArucoTag>> GetDetectedTagsReader() { return m_pubDetectedTags.CreateReader(); }
 
         /******************************************************************************
+         * @brief Read the newest published tag list directly, without the caller having to
+         *      hold a Reader.
+         *
+         *      This is safe ONLY because the tags channel is published unconditionally: the
+         *      tags are already computed by the detection pass, so publishing them costs a
+         *      small vector copy and is never gated on HasReaders(). To keep that consistent
+         *      with the demand model rather than merely convention, this detector holds its
+         *      own Reader on the channel (m_rdSelfDetectedTags) - so demand genuinely always
+         *      exists, and this read genuinely goes through a Reader.
+         *
+         *      Do NOT copy this pattern to the overlay channels. Those ARE demand gated,
+         *      because cloning a frame per iteration is expensive, and a caller that wants
+         *      one must hold a real Reader for as long as it intends to read.
+         *
+         * @return pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> - The newest
+         *                  immutable tag list, or nullptr if nothing has been published yet.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-07
+         ******************************************************************************/
+        pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> GetLatestDetectedTags() const { return m_rdSelfDetectedTags.Get(); }
+
+        /******************************************************************************
          * @brief Accessor for the number of detection passes skipped because the camera
          *      had not published a new frame since the last pass. Used to verify that the
          *      sequence-number short circuit is actually saving work.
@@ -130,6 +153,19 @@ class TagDetector : public AutonomyThread<void>
          * @date 2026-07-24
          ******************************************************************************/
         unsigned long long GetSkippedFrameCount() const { return m_ullSkippedFrameCount.load(std::memory_order_relaxed); }
+
+        /******************************************************************************
+         * @brief Accessor for the number of detection passes skipped because the frame and
+         *      the point cloud came from different camera grabs. Should be near zero; a
+         *      steadily rising value means this detector's loop is racing the camera's
+         *      publish often enough to be worth publishing the two together instead.
+         *
+         * @return unsigned long long - The cumulative number of mismatched-grab skips.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-07
+         ******************************************************************************/
+        unsigned long long GetMismatchedGrabCount() const { return m_ullMismatchedGrabCount.load(std::memory_order_relaxed); }
 
     private:
         /////////////////////////////////////////
@@ -202,6 +238,7 @@ class TagDetector : public AutonomyThread<void>
         // to skip an entire detection pass when the camera has not published a new frame yet.
 
         unsigned long long m_ullLastProcessedFrameSequence = 0;
+        std::atomic<unsigned long long> m_ullMismatchedGrabCount{0};    // Passes skipped because frame and cloud came from different grabs.
         std::atomic<unsigned long long> m_ullSkippedFrameCount{0};
 
         // Publish-latest data channels out (see accessors above). Each is given an explicit
@@ -214,6 +251,20 @@ class TagDetector : public AutonomyThread<void>
         pubsub::Publisher<cv::Mat> m_pubDetectionOverlay{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
         pubsub::Publisher<cv::Mat> m_pubLastGoodOverlay{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
         pubsub::Publisher<std::vector<tagdetectutils::ArucoTag>> m_pubDetectedTags{constants::PUBLISHER_POOL_PREALLOC, constants::PUBLISHER_POOL_GROWTH_CEILING};
+
+        // This detector's own demand on its tags channel. The tags are published every pass
+        // regardless of consumers, and free functions such as statemachine::LoadDetectedTags
+        // have nowhere natural to keep a Reader - so the detector holds one itself. That makes
+        // "this channel always has demand" a fact about the object rather than a comment, and
+        // gives GetLatestDetectedTags() a real Reader to read through.
+        pubsub::Reader<std::vector<tagdetectutils::ArucoTag>> m_rdSelfDetectedTags{m_pubDetectedTags.CreateReader()};
+
+        // The camera snapshots this pass is working from. Held (rather than deep copied into
+        // member Mats) because a published snapshot is immutable and reference counted for as
+        // long as we hold it - copying it again just to read it duplicated a full frame and a
+        // full point cloud on every pass.
+        pubsub::SharedSnapshot<cv::Mat> m_pFrameSnapshot;
+        pubsub::SharedSnapshot<cv::Mat> m_pPointCloudSnapshot;
 };
 
 #endif

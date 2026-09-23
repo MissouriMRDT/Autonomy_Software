@@ -5,7 +5,7 @@ set -euo pipefail
 cd /tmp
 
 # Install Variables
-QUILL_VERSION="10.1.0"
+QUILL_VERSION="12.2.2"
 
 # Build Arguments
 FORCE_BUILD=false

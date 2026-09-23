@@ -335,3 +335,127 @@ TEST_F(PublisherTests, ConcurrentPublishAndGetNoTears)
     EXPECT_EQ(allTears.load(), 0);
     EXPECT_LT(pub.GetPoolAllocated(), 100u);
 }
+
+/******************************************************************************
+ * @brief A recycled slot still carries the previous publish's data. This is
+ *      deliberate - it is what lets copyTo() and std::vector reuse capacity - but it
+ *      is the single sharpest edge on this API, so pin it down: a producer that
+ *      writes only some fields republishes the rest of the last frame.
+ ******************************************************************************/
+TEST_F(PublisherTests, AcquireReturnsRecycledSlotStillHoldingPreviousData)
+{
+    // Enough slots that we recycle rather than allocate fresh ones.
+    pubsub::Publisher<Payload> pubChannel(4, 0);
+
+    // Publish twice so the first slot is definitely back on the free list.
+    {
+        std::shared_ptr<pubsub::Snapshot<Payload>> pSlot = pubChannel.Acquire();
+        pSlot->tData.vData                               = {9, 9, 9, 9};
+        pubChannel.Publish(std::move(pSlot));
+    }
+    {
+        std::shared_ptr<pubsub::Snapshot<Payload>> pSlot = pubChannel.Acquire();
+        pSlot->tData.vData                               = {8, 8, 8, 8};
+        pubChannel.Publish(std::move(pSlot));
+    }
+
+    // The third Acquire() reuses the first slot, contents and all.
+    std::shared_ptr<pubsub::Snapshot<Payload>> pRecycled = pubChannel.Acquire();
+    EXPECT_FALSE(pRecycled->tData.vData.empty()) << "Acquire() is documented to hand back a DIRTY slot; if this is ever "
+                                                    "empty the pooling contract changed and every publish site needs re-auditing.";
+    EXPECT_EQ(pRecycled->tData.vData.size(), 4U);
+    EXPECT_EQ(pRecycled->tData.vData.front(), 9);
+    // No pool misses: this really was a recycled slot, not a fresh allocation.
+    EXPECT_EQ(pubChannel.GetPoolMisses(), 0U);
+}
+
+/******************************************************************************
+ * @brief WaitForNewer() returns as soon as the producer publishes past the given
+ *      sequence, so consumers never have to spin on Get().
+ ******************************************************************************/
+TEST_F(PublisherTests, WaitForNewerWakesOnPublish)
+{
+    pubsub::Publisher<int> pubChannel(4, 0);
+    pubsub::Reader<int> rdReader = pubChannel.CreateReader();
+
+    // Publish one value so the reader has a sequence to wait past.
+    std::shared_ptr<pubsub::Snapshot<int>> pFirst = pubChannel.Acquire();
+    pFirst->tData                                 = 1;
+    pubChannel.Publish(std::move(pFirst));
+    const unsigned long long ullFirstSequence = rdReader.Get()->ullSequence;
+
+    // Publish a second value from another thread after a short delay.
+    std::thread thProducer(
+        [&pubChannel]()
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(40));
+            std::shared_ptr<pubsub::Snapshot<int>> pSecond = pubChannel.Acquire();
+            pSecond->tData                                 = 2;
+            pubChannel.Publish(std::move(pSecond));
+        });
+
+    // Block for it. This must return the new value, not time out.
+    const std::chrono::steady_clock::time_point tmStart = std::chrono::steady_clock::now();
+    pubsub::SharedSnapshot<int> pWoken                  = rdReader.WaitForNewer(ullFirstSequence, std::chrono::milliseconds(2000));
+    const std::chrono::milliseconds tmElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - tmStart);
+    thProducer.join();
+
+    ASSERT_NE(pWoken, nullptr);
+    EXPECT_EQ(pWoken->tData, 2);
+    EXPECT_GT(pWoken->ullSequence, ullFirstSequence);
+    // It woke on the publish, not on the timeout.
+    EXPECT_LT(tmElapsed.count(), 1000);
+}
+
+/******************************************************************************
+ * @brief WaitForNewer() returns null (rather than hanging) when nothing new is
+ *      published inside the timeout, so a stopped producer cannot pin a consumer's
+ *      shutdown open.
+ ******************************************************************************/
+TEST_F(PublisherTests, WaitForNewerTimesOutWhenProducerIsSilent)
+{
+    pubsub::Publisher<int> pubChannel(4, 0);
+    pubsub::Reader<int> rdReader = pubChannel.CreateReader();
+
+    // Publish once, then go quiet.
+    std::shared_ptr<pubsub::Snapshot<int>> pSlot = pubChannel.Acquire();
+    pSlot->tData                                 = 7;
+    pubChannel.Publish(std::move(pSlot));
+    const unsigned long long ullSequence = rdReader.Get()->ullSequence;
+
+    // Waiting past the newest sequence must time out and report nothing.
+    EXPECT_EQ(rdReader.WaitForNewer(ullSequence, std::chrono::milliseconds(60)), nullptr);
+    // Waiting past an older sequence returns immediately without blocking.
+    EXPECT_NE(rdReader.WaitForNewer(ullSequence - 1, std::chrono::milliseconds(60)), nullptr);
+}
+
+/******************************************************************************
+ * @brief The growth ceiling handler fires on the producer thread at the exact
+ *      allocation that breaches it, and exactly once. The old design only set a flag
+ *      that a periodic sweep read seconds later, by which point a leaking consumer of
+ *      full resolution frames has already allocated gigabytes.
+ ******************************************************************************/
+TEST_F(PublisherTests, GrowthCeilingHandlerFiresOnceAtTheBreach)
+{
+    // Prealloc 2, ceiling 4: the 5th live slot is the breach.
+    pubsub::Publisher<int> pubChannel(2, 4);
+
+    // Record every breach report.
+    std::vector<std::pair<size_t, size_t>> vReports;
+    pubChannel.SetGrowthCeilingHandler([&vReports](size_t siAllocated, size_t siCeiling) { vReports.emplace_back(siAllocated, siCeiling); });
+
+    // Hold every slot so the pool is forced to grow.
+    std::vector<std::shared_ptr<pubsub::Snapshot<int>>> vHeld;
+    for (int nIter = 0; nIter < 8; ++nIter)
+    {
+        vHeld.push_back(pubChannel.Acquire());
+    }
+
+    // Reported exactly once, with the numbers needed to log something actionable.
+    ASSERT_EQ(vReports.size(), 1U);
+    EXPECT_EQ(vReports.front().first, 5U);
+    EXPECT_EQ(vReports.front().second, 4U);
+    // The flag is still raised for the periodic sweep, and the pool still grew.
+    EXPECT_TRUE(pubChannel.GetGrowthCeilingBreached());
+    EXPECT_EQ(pubChannel.GetPoolAllocated(), 8U);
+}

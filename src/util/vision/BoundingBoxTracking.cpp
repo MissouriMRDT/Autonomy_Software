@@ -76,7 +76,7 @@ namespace tracking
         bool bMatchedOldTracker = false;
 
         // Loop through the existing trackers to find the best match for the given bounding box.
-        for (const std::pair<int, std::shared_ptr<cv::Rect2d>>& stdEntry : m_mBoundingBoxes)
+        for (const std::pair<const int, std::shared_ptr<cv::Rect2d>>& stdEntry : m_mBoundingBoxes)
         {
             int nID     = stdEntry.first;
             double dIOU = this->CalculateIOU(*stdEntry.second, *cvBoundingBox);
@@ -231,7 +231,7 @@ namespace tracking
         m_mTimeSinceLastGroundTruthDetection.clear();
 
         // Set the bounding boxes to 0,0,0,0.
-        for (const std::pair<int, std::shared_ptr<cv::Rect2d>>& stdEntry : m_mBoundingBoxes)
+        for (const std::pair<const int, std::shared_ptr<cv::Rect2d>>& stdEntry : m_mBoundingBoxes)
         {
             stdEntry.second->x      = 0;
             stdEntry.second->y      = 0;

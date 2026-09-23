@@ -679,6 +679,58 @@ class ZEDCamera : public Camera<cv::Mat>
             }
         }
 
+        /******************************************************************************
+         * @brief Wire every snapshot pool on this camera to report a growth-ceiling breach
+         *      the moment it happens, on the producer thread, instead of waiting for the
+         *      periodic diagnostics sweep to notice the flag.
+         *
+         *      The sweep runs every ZED_POOL_DIAGNOSTICS_INTERVAL iterations - about ten
+         *      seconds at 60 FPS. A consumer leaking point-cloud snapshots allocates roughly
+         *      840 MB per second at that frame rate, so the sweep is several gigabytes too
+         *      late to be a useful alarm. On the rover those slots are CUDA device memory,
+         *      where running out is not recoverable.
+         *
+         * @note Call once from the derived camera's constructor, before Start().
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-07
+         ******************************************************************************/
+        void InstallPoolCeilingHandlers()
+        {
+            // Build one handler per channel so the log names the channel that actually grew.
+            auto MakeHandler = [this](const char* szChannelName)
+            {
+                return [this, szChannelName](const size_t siAllocated, const size_t siCeiling)
+                {
+                    // Submit logger message. Runs on the producer thread inside Acquire(), so
+                    // it must not block or take other locks - logging only.
+                    LOG_ERROR(logging::g_qSharedLogger,
+                              "Stereo camera {} snapshot pool for the '{}' channel just grew past its ceiling ({} slots allocated, ceiling {}). A consumer is "
+                              "almost certainly holding or leaking snapshots; the pool will keep growing until it exhausts memory.",
+                              m_unCameraSerialNumber,
+                              szChannelName,
+                              siAllocated,
+                              siCeiling);
+                };
+            };
+
+            // Install on every channel this camera can publish.
+            m_pubFrameCPU.SetGrowthCeilingHandler(MakeHandler("frame (CPU)"));
+            m_pubFrameGPU.SetGrowthCeilingHandler(MakeHandler("frame (GPU)"));
+            m_pubDepthMeasureCPU.SetGrowthCeilingHandler(MakeHandler("depth measure (CPU)"));
+            m_pubDepthMeasureGPU.SetGrowthCeilingHandler(MakeHandler("depth measure (GPU)"));
+            m_pubDepthImageCPU.SetGrowthCeilingHandler(MakeHandler("depth image (CPU)"));
+            m_pubDepthImageGPU.SetGrowthCeilingHandler(MakeHandler("depth image (GPU)"));
+            m_pubPointCloudCPU.SetGrowthCeilingHandler(MakeHandler("point cloud (CPU)"));
+            m_pubPointCloudGPU.SetGrowthCeilingHandler(MakeHandler("point cloud (GPU)"));
+            m_pubPose.SetGrowthCeilingHandler(MakeHandler("pose"));
+            m_pubFloorPlane.SetGrowthCeilingHandler(MakeHandler("floor plane"));
+            m_pubSensors.SetGrowthCeilingHandler(MakeHandler("sensors"));
+            m_pubObjects.SetGrowthCeilingHandler(MakeHandler("objects"));
+            m_pubBatchedObjects.SetGrowthCeilingHandler(MakeHandler("batched objects"));
+            m_pubStatus.SetGrowthCeilingHandler(MakeHandler("status"));
+        }
+
         /////////////////////////////////////////
         // Declare protected member variables.
         /////////////////////////////////////////

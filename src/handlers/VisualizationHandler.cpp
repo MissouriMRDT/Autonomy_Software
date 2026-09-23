@@ -57,6 +57,8 @@ VisualizationHandler::VisualizationHandler(int nPort)
 
     // Set main thread's max iteration rate.
     this->SetMainThreadIPSLimit(20);    // 20 Hz
+    // Name the OS thread so profilers and system tools can identify it.
+    this->SetMainThreadName("Visualizer");
 }
 
 /******************************************************************************

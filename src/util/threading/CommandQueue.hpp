@@ -31,7 +31,7 @@
 #include <functional>
 #include <future>
 #include <mutex>
-#include <queue>
+#include <deque>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -63,6 +63,7 @@ class CommandQueue
         struct QueuedCommand
         {
             public:
+                unsigned long long ullId = 0;       // Identity, so a single waiter can withdraw exactly its own command.
                 std::function<void()> fnExecute;    // Runs the command.
                 std::function<void()> fnCancel;     // Fulfills the result promise with a cancellation error. May be empty.
         };
@@ -177,23 +178,17 @@ class CommandQueue
          ******************************************************************************/
         void Post(std::function<void()> fnCommand)
         {
-            // Check liveness before taking the lock; the predicate reads owner state.
-            if (!this->IsDrainerLive())
-            {
-                // Nothing will ever run this command; drop it rather than queue it forever.
-                return;
-            }
-
-            // Lock the queue to check shutdown state and enqueue atomically.
+            // Check shutdown state AND liveness under the same lock that enqueues, so the
+            // drainer cannot stop in between and leave the command queued forever.
             std::lock_guard<std::mutex> lkQueue(m_muQueue);
-            // Drop the command if we are shutting down; there is no owner left to run it.
-            if (m_bShutdown)
+            // Drop the command if we are shutting down or nothing will drain the queue.
+            if (m_bShutdown || (m_fnIsDrainerLive && !m_fnIsDrainerLive()))
             {
                 // Nothing to fulfill for a fire-and-forget command; simply drop it.
                 return;
             }
             // Enqueue the command with no cancel action (nothing waits on it).
-            m_qCommands.push(QueuedCommand{std::move(fnCommand), std::function<void()>{}});
+            m_qCommands.push_back(QueuedCommand{m_ullNextCommandId++, std::move(fnCommand), std::function<void()>{}});
         }
 
         /******************************************************************************
@@ -205,14 +200,31 @@ class CommandQueue
          *
          * @tparam R - The return type of the command.
          * @param fnCommand - The command to execute.
+         * @param pullOutCommandId - Optional. Receives the id of the queued command so the
+         *                  caller can later withdraw exactly this one via CancelCommand().
+         *                  Set to 0 if the command was cancelled instead of queued.
          * @return std::future<R> - A future for the command's result.
+         *
+         * @warning Do NOT call .get() on the returned future with no timeout. This method
+         *      only guarantees the future is satisfied for a drainer that is dead at the
+         *      moment of posting; a drainer that stops AFTERWARDS strands the command, and
+         *      a bare .get() then blocks forever. PostAndWait() exists precisely because it
+         *      re-checks liveness while waiting, and is what every caller in this codebase
+         *      should use. This method is public only so it can be unit tested directly and
+         *      used for genuinely fire-and-check patterns that poll with wait_for().
          *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2026-07-24
          ******************************************************************************/
         template<typename R>
-        std::future<R> PostWithResult(std::function<R()> fnCommand)
+        std::future<R> PostWithResult(std::function<R()> fnCommand, unsigned long long* pullOutCommandId = nullptr)
         {
+            // Default the caller's id to "not queued" until we actually enqueue.
+            if (pullOutCommandId != nullptr)
+            {
+                // Nothing queued yet.
+                *pullOutCommandId = 0;
+            }
             // Create a shared promise so both the execute and cancel paths can fulfill it.
             std::shared_ptr<std::promise<R>> pmResult = std::make_shared<std::promise<R>>();
             std::future<R> fuResult                   = pmResult->get_future();
@@ -262,18 +274,25 @@ class CommandQueue
                 }
             };
 
-            // Check liveness before taking the lock; the predicate reads owner state.
-            const bool bDrainerLive = this->IsDrainerLive();
-
-            // Enqueue under lock, honoring shutdown state.
+            // Check liveness and enqueue under the SAME lock. Sampling liveness first and
+            // acting on it afterwards left a window in which the drainer could stop in
+            // between, leaving the command queued with nothing to run it and any caller
+            // doing a bare .get() blocked forever.
             {
-                // Lock the queue to check shutdown state and enqueue atomically.
+                // Lock the queue to check shutdown state, liveness, and enqueue atomically.
                 std::lock_guard<std::mutex> lkQueue(m_muQueue);
                 // If not shutting down and a drainer is alive, enqueue for the owner to run.
-                if (!m_bShutdown && bDrainerLive)
+                if (!m_bShutdown && (!m_fnIsDrainerLive || m_fnIsDrainerLive()))
                 {
-                    // Enqueue with both the execute and cancel actions.
-                    m_qCommands.push(QueuedCommand{std::move(fnExecute), std::move(fnCancel)});
+                    // Enqueue with both the execute and cancel actions, and hand the caller
+                    // the id so it can withdraw exactly this command later.
+                    const unsigned long long ullCommandId = m_ullNextCommandId++;
+                    if (pullOutCommandId != nullptr)
+                    {
+                        // Report the id we assigned.
+                        *pullOutCommandId = ullCommandId;
+                    }
+                    m_qCommands.push_back(QueuedCommand{ullCommandId, std::move(fnExecute), std::move(fnCancel)});
                     // Return the future to the caller.
                     return fuResult;
                 }
@@ -297,29 +316,90 @@ class CommandQueue
          * @return std::future<R> - A ready future holding the result, the command's
          *                  exception, or a cancellation error. Never returns unsatisfied.
          *
+         * @note This withdraws only ITS OWN command when it gives up. It used to call
+         *      CancelPending(), which discards every queued command from every caller - so
+         *      one impatient waiter during a transient stop (a camera reboot's Join/Start
+         *      window, say) destroyed work that would have run correctly a moment later.
+         *
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2026-07-24
          ******************************************************************************/
         template<typename R>
         std::future<R> PostAndWait(std::function<R()> fnCommand, const std::chrono::milliseconds tmPollInterval = std::chrono::milliseconds(25))
         {
-            // Post the command. This already cancels immediately if the drainer is known dead.
-            std::future<R> fuResult = this->PostWithResult<R>(std::move(fnCommand));
+            // Post the command, keeping its id so we can withdraw exactly this one.
+            unsigned long long ullCommandId = 0;
+            std::future<R> fuResult         = this->PostWithResult<R>(std::move(fnCommand), &ullCommandId);
 
             // Wait for the owning thread to run it, re-checking liveness on every tick.
             while (fuResult.wait_for(tmPollInterval) == std::future_status::timeout)
             {
                 // If the owning thread can no longer drain, nothing will ever run this
-                // command, so cancel everything still queued (including ours) and stop waiting.
+                // command, so withdraw ours - and only ours - and stop waiting.
                 if (!this->IsDrainerLive())
                 {
-                    // Release this caller and any other stranded ones.
-                    this->CancelPending();
+                    // Release this caller without touching anyone else's queued work.
+                    this->CancelCommand(ullCommandId);
                 }
             }
 
             // Return the now-satisfied future.
             return fuResult;
+        }
+
+        /******************************************************************************
+         * @brief Withdraw one specific queued command, fulfilling its result future with a
+         *      cancellation error. Other callers' commands are left untouched.
+         *
+         * @param ullCommandId - The id handed back by PostWithResult(). Ignored if 0.
+         * @return true - The command was found in the queue and cancelled.
+         * @return false - It was not queued: either already taken by a DrainAll() batch,
+         *                  already cancelled, or never enqueued at all.
+         *
+         * @note A command already swept into a DrainAll() batch cannot be withdrawn. If the
+         *      drainer then dies mid-batch its promise would be stranded, so DrainAll()
+         *      cancels whatever it did not manage to execute.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-07
+         ******************************************************************************/
+        bool CancelCommand(const unsigned long long ullCommandId)
+        {
+            // Nothing was queued, so there is nothing to withdraw.
+            if (ullCommandId == 0)
+            {
+                // Report that no command was cancelled.
+                return false;
+            }
+
+            // Take the matching command out of the queue under lock, then cancel it unlocked.
+            std::function<void()> fnCancel;
+            {
+                // Lock only long enough to find and remove our entry.
+                std::lock_guard<std::mutex> lkQueue(m_muQueue);
+                for (std::deque<QueuedCommand>::iterator itCommand = m_qCommands.begin(); itCommand != m_qCommands.end(); ++itCommand)
+                {
+                    // Check whether this is the command we are withdrawing.
+                    if (itCommand->ullId == ullCommandId)
+                    {
+                        // Take its cancel action and drop the entry.
+                        fnCancel = std::move(itCommand->fnCancel);
+                        m_qCommands.erase(itCommand);
+                        break;
+                    }
+                }
+            }
+
+            // Not in the queue any more; the drainer already has it.
+            if (!fnCancel)
+            {
+                // Report that nothing was withdrawn.
+                return false;
+            }
+
+            // Release the waiting caller.
+            fnCancel();
+            return true;
         }
 
         /******************************************************************************
@@ -333,7 +413,7 @@ class CommandQueue
         void CancelPending()
         {
             // Take the queued commands under lock so we can cancel them unlocked.
-            std::queue<QueuedCommand> qBatch;
+            std::deque<QueuedCommand> qBatch;
             {
                 // Lock only long enough to take ownership of the current commands.
                 std::lock_guard<std::mutex> lkQueue(m_muQueue);
@@ -345,7 +425,7 @@ class CommandQueue
             {
                 // Take the next command.
                 QueuedCommand stCommand = std::move(qBatch.front());
-                qBatch.pop();
+                qBatch.pop_front();
                 // Fulfill the result promise with a cancellation error if there is one.
                 if (stCommand.fnCancel)
                 {
@@ -367,7 +447,7 @@ class CommandQueue
         void DrainAll()
         {
             // Swap the queued commands into a local batch so we can run them unlocked.
-            std::queue<QueuedCommand> qBatch;
+            std::deque<QueuedCommand> qBatch;
             std::function<void(std::exception_ptr)> fnExceptionHandler;
             {
                 // Lock only long enough to take ownership of the current commands.
@@ -382,7 +462,7 @@ class CommandQueue
             {
                 // Take the next command.
                 QueuedCommand stCommand = std::move(qBatch.front());
-                qBatch.pop();
+                qBatch.pop_front();
                 try
                 {
                     // Execute the command. Result-bearing commands route their own errors to
@@ -392,11 +472,19 @@ class CommandQueue
                 catch (...)
                 {
                     // Never let one command kill the loop. Hand the error to the owner if it
-                    // registered a handler, otherwise swallow it.
+                    // registered a handler, otherwise swallow it. The handler itself is
+                    // guarded too: a throwing logger must not strand the rest of the batch,
+                    // whose promises are no longer reachable from the queue.
                     if (fnExceptionHandler)
                     {
-                        // Report the exception without rethrowing.
-                        fnExceptionHandler(std::current_exception());
+                        try
+                        {
+                            // Report the exception without rethrowing.
+                            fnExceptionHandler(std::current_exception());
+                        }
+                        catch (...)
+                        {
+                        }
                     }
                 }
             }
@@ -461,7 +549,8 @@ class CommandQueue
         /////////////////////////////////////////
 
         mutable std::mutex m_muQueue;                                    // Guards the command queue, shutdown flag, and callbacks.
-        std::queue<QueuedCommand> m_qCommands;                           // Pending commands awaiting DrainAll().
+        std::deque<QueuedCommand> m_qCommands;                          // Pending commands awaiting DrainAll(). Deque so one entry can be withdrawn.
+        unsigned long long m_ullNextCommandId = 1;                       // Source of per-command identities.
         bool m_bShutdown = false;                                        // Once true, new commands are dropped/cancelled.
         std::function<void(std::exception_ptr)> m_fnExceptionHandler;    // Optional handler for fire-and-forget command exceptions.
         std::function<bool()> m_fnIsDrainerLive;                         // Optional predicate: is the owning thread still draining?

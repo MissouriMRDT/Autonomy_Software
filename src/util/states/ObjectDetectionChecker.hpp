@@ -57,7 +57,7 @@ namespace statemachine
             }
 
             // Load the newest snapshot once into a local so it cannot change while we read it.
-            pubsub::SharedSnapshot<std::vector<objectdetectutils::Object>> pSnapshot = pObjectDetector->GetDetectedObjectsReader().Get();
+            pubsub::SharedSnapshot<std::vector<objectdetectutils::Object>> pSnapshot = pObjectDetector->GetLatestDetectedObjects();
             // Nothing has been published yet.
             if (pSnapshot == nullptr)
             {

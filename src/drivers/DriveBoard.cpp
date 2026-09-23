@@ -225,23 +225,29 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
     // -------------------------------------------------------------------------
     // If the min and max drive effort have been set to 0, then just send zero powers.
     // Limit the power to max and min effort defined in constants (Slope Safety).
-    m_stDrivePowers.dLeftDrivePower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
-    m_stDrivePowers.dRightDrivePower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    const float fLeftPower  = std::clamp(float(dLeftSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    const float fRightPower = std::clamp(float(dRightSpeed), constants::DRIVE_MIN_POWER, constants::DRIVE_MAX_POWER);
+    {
+        // Publish the new powers under the same lock that guards the effort fields, so
+        // GetDrivePowers() (called from main()'s telemetry loop and the VisualizationHandler)
+        // cannot observe a half-updated pair.
+        std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+        m_stDrivePowers.dLeftDrivePower  = fLeftPower;
+        m_stDrivePowers.dRightDrivePower = fRightPower;
+    }
 
-    // Send drive command over RoveComm to drive board.
+    // Send drive command over RoveComm to drive board. Use the locals rather than re-reading
+    // the members, which would be an unsynchronized read.
     if (network::g_pRoveCommUDPNode)
     {
         // Check if we should send packets to the SIM or board.
         const manifest::AddressEntry& stIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS : manifest::Core::IP_ADDRESS;
         // Send packet.
-        network::g_pRoveCommUDPNode->Send<manifest::Core::Commands::DRIVELEFTRIGHT>(
-            {static_cast<float>(m_stDrivePowers.dLeftDrivePower), static_cast<float>(m_stDrivePowers.dRightDrivePower)},
-            stIPAddress,
-            constants::ROVECOMM_OUTGOING_UDP_PORT);
+        network::g_pRoveCommUDPNode->Send<manifest::Core::Commands::DRIVELEFTRIGHT>({fLeftPower, fRightPower}, stIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
 
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", m_stDrivePowers.dLeftDrivePower, m_stDrivePowers.dRightDrivePower);
+    LOG_DEBUG(logging::g_qSharedLogger, "Driving at: ({}, {})", fLeftPower, fRightPower);
 }
 
 /******************************************************************************
@@ -253,19 +259,19 @@ void DriveBoard::SendDrive(const diffdrive::DrivePowers& stDrivePowers, const bo
  ******************************************************************************/
 void DriveBoard::SendStop()
 {
-    // Update member variables with new target speeds.
-    m_stDrivePowers.dLeftDrivePower  = 0.0;
-    m_stDrivePowers.dRightDrivePower = 0.0;
+    {
+        // Update member variables with new target speeds, under the lock that guards them.
+        std::unique_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
+        m_stDrivePowers.dLeftDrivePower  = 0.0;
+        m_stDrivePowers.dRightDrivePower = 0.0;
+    }
 
     // Check if we should send packets to the SIM or board.
     const manifest::AddressEntry& stIPAddress = constants::MODE_SIM ? constants::SIM_IP_ADDRESS : manifest::Core::IP_ADDRESS;
     // Send drive command over RoveComm to drive board.
     if (network::g_pRoveCommUDPNode)
     {
-        network::g_pRoveCommUDPNode->Send<manifest::Core::Commands::DRIVELEFTRIGHT>(
-            {static_cast<float>(m_stDrivePowers.dLeftDrivePower), static_cast<float>(m_stDrivePowers.dRightDrivePower)},
-            stIPAddress,
-            constants::ROVECOMM_OUTGOING_UDP_PORT);
+        network::g_pRoveCommUDPNode->Send<manifest::Core::Commands::DRIVELEFTRIGHT>({0.0F, 0.0F}, stIPAddress, constants::ROVECOMM_OUTGOING_UDP_PORT);
     }
     // Submit logger message.
     LOG_DEBUG(logging::g_qSharedLogger, "Sent stop powers to drivetrain.");
@@ -283,15 +289,24 @@ void DriveBoard::SendStop()
  ******************************************************************************/
 float DriveBoard::VariableDriveEffort()
 {
-    // Get pointer to camera.
-    std::shared_ptr<ZEDCamera> ExampleZEDCam1 = globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam);
+    // Default multiplier used when no sensor data is available yet, or when there is no
+    // camera to read from at all.
+    float fMultiplier = 1;
+
+    // Get pointer to camera. This can legitimately be null - the camera handler may not be
+    // constructed yet during startup, and some builds have no head camera - so check before
+    // dereferencing. std::call_once would otherwise latch a segfault on the very first call.
+    std::shared_ptr<ZEDCamera> pMainCamera = globals::g_pCameraHandler != nullptr ? globals::g_pCameraHandler->GetZED(CameraHandler::ZEDCamName::eHeadMainCam) : nullptr;
+    if (pMainCamera == nullptr)
+    {
+        // No camera to read slope from; drive at the undamped multiplier.
+        return fMultiplier;
+    }
+
     // Register demand for the camera's sensor data exactly once. The camera only retrieves and
     // publishes sensor data while a Reader is alive, and this member holds ours for the
     // lifetime of the DriveBoard.
-    std::call_once(m_ocSensorReaderOnce, [this, &ExampleZEDCam1]() { m_rdMainCamSensors = ExampleZEDCam1->GetSensorsReader(); });
-
-    // Default multiplier used when no sensor data is available yet.
-    float fMultiplier = 1;
+    std::call_once(m_ocSensorReaderOnce, [this, &pMainCamera]() { m_rdMainCamSensors = pMainCamera->GetSensorsReader(); });
 
     // Load the newest published sensor snapshot once into a local. Lock free and non-blocking;
     // null until the camera has published its first sensor snapshot.
@@ -306,11 +321,10 @@ float DriveBoard::VariableDriveEffort()
         // Calculate the risk factor to be applied to the linear polarization equation
         float fTheta = fRoll * (m_fRoll_w) + fPitch * (m_fPitch_w) + fYaw * (m_fYaw_w);
 
-        // Clamp damping based on slope angle: Max damping on flat terrain, Min damping on risky terrain
-        if (fTheta <= m_fMinSlope)
-            fMultiplier = m_fMaxDamp;
-        if (fTheta >= m_fMaxSlope)
-            fMultiplier = m_fMinDamp;
+        // Damping is a straight line between (m_fMinSlope, m_fMaxDamp) and
+        // (m_fMaxSlope, m_fMinDamp), clamped at both ends - so the endpoints need no special
+        // casing. There used to be two assignments here for exactly that, both dead stores
+        // overwritten by the clamp below with the same values.
 
         // Calculate multiplier using linear polarization
         const float fK = (m_fMaxDamp - m_fMinDamp) / (m_fMaxSlope - m_fMinSlope);
@@ -352,6 +366,8 @@ void DriveBoard::SetMaxDriveEffort(const float fMaxDriveEffortMultiplier)
  ******************************************************************************/
 diffdrive::DrivePowers DriveBoard::GetDrivePowers() const
 {
+    // Acquire read lock so we cannot observe a half-updated left/right pair.
+    std::shared_lock<std::shared_mutex> lkDriveEffortLock(m_muDriveEffortMutex);
     // Return the current drive powers.
     return m_stDrivePowers;
 }

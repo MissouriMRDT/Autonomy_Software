@@ -61,6 +61,11 @@ ObjectDetector::ObjectDetector(std::shared_ptr<BasicCamera> pBasicCam,
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
+    // Name the OS thread after the camera it consumes, so Tracy, gdb and htop can tell the
+    // detectors apart instead of showing every AutonomyThread under the process name. Linux
+    // truncates thread names to 15 characters, so keep only the distinguishing tail of the
+    // camera name (a ZED serial, or the end of a /dev path).
+    this->SetMainThreadName("ObjDet" + m_szCameraName.substr(m_szCameraName.size() > 9 ? m_szCameraName.size() - 9 : 0));
 
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "ObjectDetector created for camera at path/index: {}", m_szCameraName);
@@ -107,6 +112,11 @@ ObjectDetector::ObjectDetector(std::shared_ptr<ZEDCamera> pZEDCam,
 
     // Set max IPS of main thread.
     this->SetMainThreadIPSLimit(nDetectorMaxFPS);
+    // Name the OS thread after the camera it consumes, so Tracy, gdb and htop can tell the
+    // detectors apart instead of showing every AutonomyThread under the process name. Linux
+    // truncates thread names to 15 characters, so keep only the distinguishing tail of the
+    // camera name (a ZED serial, or the end of a /dev path).
+    this->SetMainThreadName("ObjDet" + m_szCameraName.substr(m_szCameraName.size() > 9 ? m_szCameraName.size() - 9 : 0));
 
     // Submit logger message.
     LOG_INFO(logging::g_qSharedLogger, "ObjectDetector created for camera: {}", m_szCameraName);
@@ -192,6 +202,11 @@ bool ObjectDetector::LoadLatestCameraFrames()
     // The sequence number of the frame snapshot we are about to process.
     unsigned long long ullFrameSequence = 0;
 
+    // Release last pass's snapshots so their pooled slots go back to the camera immediately,
+    // rather than being pinned for a whole extra iteration.
+    m_pFrameSnapshot.reset();
+    m_pPointCloudSnapshot.reset();
+
     // Check whether we are consuming from a ZED camera or a basic camera.
     if (m_bUsingZedCamera)
     {
@@ -219,7 +234,20 @@ bool ObjectDetector::LoadLatestCameraFrames()
                 m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
                 return false;
             }
-            // Download mats from GPU memory. Done here, on this thread, off the camera's critical path.
+            // The frame and the point cloud come from two independent channels, so the camera
+            // can publish a new grab between the two loads above and hand us a frame from
+            // iteration N with a cloud from N+1. Geolocation indexes the cloud by pixel
+            // coordinates taken from the frame, so a one-grab mismatch is a real position
+            // error while the rover is moving. Skip the pass; the next one will match.
+            if (pFrameSnapshot->ullSourceSequence != pCloudSnapshot->ullSourceSequence)
+            {
+                // Count it as a skip and wait for a matched pair.
+                m_ullMismatchedGrabCount.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+            // Download from GPU memory. Done here, on this thread, off the camera's critical
+            // path. A download has to materialise host memory, so unlike the CPU path there
+            // is no way to avoid a copy here.
             pFrameSnapshot->tData.download(m_cvFrame);
             pCloudSnapshot->tData.download(m_cvPointCloud);
             // Drop alpha channel.
@@ -245,9 +273,26 @@ bool ObjectDetector::LoadLatestCameraFrames()
                 m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
                 return false;
             }
-            // Copy the immutable snapshots into our working frames.
-            pFrameSnapshot->tData.copyTo(m_cvFrame);
-            pCloudSnapshot->tData.copyTo(m_cvPointCloud);
+            // Reject a frame and cloud that came from different grabs. See the GPU path above.
+            if (pFrameSnapshot->ullSourceSequence != pCloudSnapshot->ullSourceSequence)
+            {
+                // Count it as a skip and wait for a matched pair.
+                m_ullMismatchedGrabCount.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+            // Hold the snapshots for the duration of the pass instead of deep copying them.
+            // They are immutable and reference counted, so the camera cannot recycle their
+            // pooled slots while we hold them - copying was duplicating a 3.5 MB frame and a
+            // 14 MB point cloud on every single pass for no benefit.
+            m_pFrameSnapshot      = pFrameSnapshot;
+            m_pPointCloudSnapshot = pCloudSnapshot;
+            // Point the working Mats at the snapshot buffers. cv::Mat assignment is a shallow
+            // reference, so this shares the pixels rather than copying them.
+            //
+            // These two Mats are therefore READ ONLY on this path. Never write through them
+            // in place - that would mutate a snapshot every other consumer is also reading.
+            m_cvFrame      = m_pFrameSnapshot->tData;
+            m_cvPointCloud = m_pPointCloudSnapshot->tData;
         }
     }
     else
@@ -269,8 +314,10 @@ bool ObjectDetector::LoadLatestCameraFrames()
             m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
             return false;
         }
-        // Copy the immutable snapshot into our working frame.
-        pFrameSnapshot->tData.copyTo(m_cvFrame);
+        // Hold the immutable snapshot rather than deep copying it, and point the working Mat
+        // at its buffer. Read only: see the note on the ZED CPU path above.
+        m_pFrameSnapshot = pFrameSnapshot;
+        m_cvFrame        = m_pFrameSnapshot->tData;
     }
 
     // Remember which frame we processed so the next pass can detect a repeat.

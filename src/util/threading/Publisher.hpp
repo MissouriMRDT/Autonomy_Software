@@ -4,9 +4,24 @@
  *
  *      A producer thread copies each new value into a pooled, reference-counted,
  *      immutable snapshot and stores it atomically; any number of consumer threads read
- *      the newest snapshot without blocking the producer and without blocking each other.
- *      This single primitive replaces the per-consumer request/queue/promise fan-out that
- *      the camera and detector classes previously reimplemented.
+ *      the newest snapshot on their own schedule, never waiting for the producer to finish
+ *      an iteration and never forcing it to wait for them to finish reading. This single
+ *      primitive replaces the per-consumer request/queue/promise fan-out that the camera
+ *      and detector classes previously reimplemented.
+ *
+ *      WHAT "NON-BLOCKING" DOES AND DOES NOT MEAN HERE. The guarantee this channel makes is
+ *      about the DATA, not about the pointer swap: a consumer reading frame N never delays
+ *      the producer from grabbing, filling and publishing frame N+1, and a slow consumer can
+ *      never stall the pipeline. That is the property the design exists for and it holds.
+ *
+ *      It is NOT lock free. libstdc++ implements std::atomic<std::shared_ptr<T>> with a lock
+ *      bit in the pointer word (is_lock_free() returns false), so the pointer swap itself is
+ *      serialized per channel for the few nanoseconds it takes to bump a refcount. Measured
+ *      on the dev container: ~5 ns uncontended, and flat across threads reading DIFFERENT
+ *      channels. Threads hammering the SAME channel in a tight loop do serialize - ~1.4 us
+ *      per Get() with eight spinning readers - which is why Reader deliberately offers
+ *      WaitForNewer() and no spin-poll helper. Call Get() once per loop iteration, or block
+ *      in WaitForNewer(); never spin on Get() waiting for a sequence to change.
  *
  *      The write and read faces are deliberately separate types over one shared channel:
  *
@@ -43,6 +58,7 @@
 /// \cond
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -54,23 +70,27 @@
 
 /// \endcond
 
-// Decide exactly once, here, whether the toolchain provides a real
-// std::atomic<std::shared_ptr<T>> specialization (C++20 libraries). If it does
-// we use it; otherwise we fall back to the pre-C++20 free-function atomics on a
-// plain shared_ptr member. Those free functions are deprecated in C++20 and
-// removed in C++26, but they are the only portable option on libstdc++ < 12
-// (the GCC 10.x toolchain this project currently builds with). No other file in
-// the codebase needs to care which path is active.
-#if defined(__cpp_lib_atomic_shared_ptr) && (__cpp_lib_atomic_shared_ptr >= 201711L)
-#define PUBSUB_HAS_ATOMIC_SHARED_PTR 1
-#else
-#define PUBSUB_HAS_ATOMIC_SHARED_PTR 0
+// This channel requires a real std::atomic<std::shared_ptr<T>>, which libstdc++ provides
+// from GCC 12 on. There used to be a fallback here to the pre-C++20 free-function
+// shared_ptr atomics for the GCC 10 toolchain. It was correct but quietly bad: libstdc++
+// implements those with a PROCESS-GLOBAL table of 16 spinlocks hashed on the pointer's
+// address, so unrelated channels - a camera's frame channel and a detector's overlay
+// channel, say - could serialize against each other purely by address collision. Measured
+// on the dev container, eight readers on eight separate channels cost 47.7 ns per Get()
+// on that path versus a flat 7.8 ns with the real specialization. The free functions are
+// also deprecated in C++20 and removed in C++26.
+//
+// CMakeLists.txt enforces GCC >= 12 for exactly this reason; this is the backstop for
+// anyone building outside it.
+#if !defined(__cpp_lib_atomic_shared_ptr) || (__cpp_lib_atomic_shared_ptr < 201711L)
+#error "pubsub::Publisher requires std::atomic<std::shared_ptr<T>> (libstdc++ 12 / GCC 12+). \
+Install g++-12 and configure with -DCMAKE_CXX_COMPILER=g++-12."
 #endif
 
 /******************************************************************************
  * @brief Namespace containing the publish-latest data channel primitives used
  *      to hand immutable snapshots of a value from one producer thread to many
- *      consumer threads without locking or blocking.
+ *      consumer threads without either side waiting on the other's work.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
@@ -95,8 +115,14 @@ namespace pubsub
     {
         public:
             // Declare and define public struct member variables.
-            T tData;                                             // The published value. Written by the producer before Publish().
-            unsigned long long ullSequence = 0;                  // Monotonic publish sequence number. Stamped by Publish().
+            T tData;                               // The published value. Written by the producer before Publish().
+            unsigned long long ullSequence = 0;    // Monotonic publish sequence number, per channel. Stamped by Publish().
+            // Identifies the producer iteration this value was derived from. A producer that
+            // publishes several channels from one source event (a camera publishing the frame,
+            // depth and point cloud from a single grab()) stamps them all with the same value,
+            // so a consumer reading two of those channels can tell whether it got a matched
+            // pair or straddled a publish. Zero means the producer did not supply one.
+            unsigned long long ullSourceSequence = 0;
             std::chrono::system_clock::time_point tmPublished;    // Wall-clock time the value was published. Stamped by Publish().
     };
 
@@ -156,6 +182,8 @@ namespace pubsub
                 std::atomic<size_t> siPoolMisses{0};               // Slots allocated because the free list was empty.
                 std::atomic<size_t> siAllocated{0};                // Total slots ever allocated (free + in use).
                 std::atomic<bool> bCeilingBreached{false};         // Set once total allocation passes the ceiling.
+                std::atomic<bool> bBreachReported{false};          // Ensures the breach callback fires exactly once.
+                std::function<void(size_t, size_t)> fnOnCeilingBreached;    // Called once, on the producer thread, at the breach.
                 std::atomic<long> nReaderCount{0};                 // Number of live Readers expressing demand.
                 std::atomic<unsigned long long> ullSequence{0};    // Monotonic publish sequence source.
                 size_t siGrowthCeiling = 0;                        // Soft cap on total allocation (0 = unlimited).
@@ -202,6 +230,16 @@ namespace pubsub
                     {
                         // Surface the (probable) leak to diagnostics without blocking.
                         bCeilingBreached.store(true, std::memory_order_relaxed);
+                        // Report it exactly once, right here on the producer thread, rather than
+                        // waiting for a periodic diagnostic sweep. A leaking consumer of a
+                        // 14 MB point cloud at 60 FPS allocates ~840 MB per second, so a poll
+                        // every 600 iterations (~10 s) is several gigabytes too late - and on the
+                        // rover these slots are CUDA device memory, where that is fatal.
+                        if (fnOnCeilingBreached && !bBreachReported.exchange(true, std::memory_order_acq_rel))
+                        {
+                            // Hand the owner the numbers it needs to log something actionable.
+                            fnOnCeilingBreached(siNowAllocated, siGrowthCeiling);
+                        }
                     }
                     // Pre-size the slot's data if an initializer was provided.
                     if (fnSlotInitializer)
@@ -239,9 +277,16 @@ namespace pubsub
                     }
                 }
 
-#if PUBSUB_HAS_ATOMIC_SHARED_PTR
-                // Modern path: a real atomic shared_ptr.
+                // The newest published snapshot. Requires libstdc++ 12+ (see the #error at the
+                // top of this file for why there is no longer a fallback).
                 std::atomic<SharedSnapshot<T>> atomLatest;
+
+                // Wake-up channel for Reader::WaitForNewer(). Only threads that choose to block
+                // ever touch these, so a channel nobody waits on pays nothing beyond one
+                // relaxed atomic read per Publish().
+                std::mutex muWaiters;                          // Guards the condition variable only.
+                std::condition_variable cdNewSnapshot;         // Notified once per publish.
+                std::atomic<long> nWaiterCount{0};             // Live WaitForNewer() calls; lets Publish() skip notify.
 
                 /******************************************************************************
                  * @brief Atomically load the newest snapshot with acquire ordering.
@@ -252,21 +297,35 @@ namespace pubsub
                  * @brief Atomically store the newest snapshot with release ordering.
                  ******************************************************************************/
                 void StoreLatest(SharedSnapshot<T> pSnapshot) { atomLatest.store(std::move(pSnapshot), std::memory_order_release); }
-#else
-                // Fallback path: a plain shared_ptr accessed through the deprecated
-                // free-function atomics (the only option on libstdc++ < 12).
-                SharedSnapshot<T> pLatest;
 
                 /******************************************************************************
-                 * @brief Atomically load the newest snapshot with acquire ordering.
+                 * @brief Wake every consumer blocked in Reader::WaitForNewer(). Called after
+                 *      StoreLatest() so a woken waiter is guaranteed to see the new snapshot.
+                 *
+                 * @note Skipped entirely when no consumer is waiting, so the common case
+                 *      (everyone polls once per loop iteration) costs one relaxed load.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2026-09-07
                  ******************************************************************************/
-                SharedSnapshot<T> LoadLatest() const { return std::atomic_load_explicit(&pLatest, std::memory_order_acquire); }
+                void NotifyWaiters()
+                {
+                    // Nobody is blocked; skip the lock and the notify entirely.
+                    if (nWaiterCount.load(std::memory_order_acquire) <= 0)
+                    {
+                        // No waiters to wake.
+                        return;
+                    }
 
-                /******************************************************************************
-                 * @brief Atomically store the newest snapshot with release ordering.
-                 ******************************************************************************/
-                void StoreLatest(SharedSnapshot<T> pSnapshot) { std::atomic_store_explicit(&pLatest, std::move(pSnapshot), std::memory_order_release); }
-#endif
+                    // Take and immediately release the waiter lock so a consumer that has
+                    // evaluated its predicate but not yet slept cannot miss this notification.
+                    {
+                        // Lock only to close the wait/notify race window.
+                        std::lock_guard<std::mutex> lkWaiters(muWaiters);
+                    }
+                    // Wake everyone; each re-checks the sequence it was waiting past.
+                    cdNewSnapshot.notify_all();
+                }
         };
     }    // namespace internal
 
@@ -296,6 +355,11 @@ namespace pubsub
      * @note Load a snapshot ONCE into a local and work from that local. Calling Get()
      *      repeatedly returns whatever is newest each time, which is not a stable value.
      *      Published snapshots are immutable and shared; clone before modifying.
+     *
+     * @note A Reader must be held for as long as you intend to read - reading through a
+     *      temporary (obj.GetSomethingReader().Get()) does not compile, because the demand
+     *      it registers is gone before the producer can observe it. Use WaitForNewer() to
+     *      block for fresh data; never spin on Get().
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
      * @date 2026-07-26
@@ -394,9 +458,13 @@ namespace pubsub
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-26
              ******************************************************************************/
-            SharedSnapshot<T> Get() const
+            SharedSnapshot<T> Get() const&
             {
-                ZoneScoped;
+                // Deliberately NOT instrumented with a Tracy zone. An uncontended Get() costs
+                // about 5 ns; a zone costs roughly 30-50 ns plus queue bytes from every
+                // consumer thread, so instrumenting it would make the profiler the dominant
+                // cost of the thing being profiled. Acquire() and Publish() do real work and
+                // keep their zones.
 
                 // An inactive reader has nothing to read.
                 if (m_pChannel == nullptr)
@@ -407,6 +475,100 @@ namespace pubsub
 
                 // Atomically load the newest published snapshot.
                 return m_pChannel->LoadLatest();
+            }
+
+            // Reading through a temporary Reader is a bug, so it does not compile.
+            //
+            //     pDetector->GetDetectionOverlayReader().Get()      // <- rejected here
+            //
+            // That expression creates a Reader, registers demand, reads, and destroys the
+            // Reader, all within one full-expression. The producer gates production on
+            // HasReaders() once per loop iteration, so it essentially never observes demand
+            // that exists for a few nanoseconds: measured over one second at 60 Hz, a
+            // consumer polling this way got 0 snapshots from a demand-gated channel because
+            // the producer published 0 times. Any call site that appeared to work did so
+            // only because some OTHER object happened to hold a persistent Reader - exactly
+            // the invisible coupling invariant #2 at the top of this file exists to prevent.
+            //
+            // Hold the Reader as a member for as long as you intend to read the channel.
+            SharedSnapshot<T> Get() const&& = delete;
+
+            /******************************************************************************
+             * @brief Block until the producer publishes a snapshot newer than the given
+             *      sequence number, or until the timeout expires.
+             *
+             *      This exists so that nobody has to spin on Get(). Get() is cheap but its
+             *      cost is not free of contention: threads hammering one channel in a tight
+             *      loop serialize on libstdc++'s per-object lock (~1.4 us per call with eight
+             *      spinning readers, versus ~5 ns uncontended). It also removes up to a full
+             *      loop period of latency per pipeline hop for a consumer that would
+             *      otherwise poll on a fixed timer.
+             *
+             * @param ullAfterSequence - Return as soon as a snapshot newer than this is
+             *                  available. Pass 0 to accept the very first publish, or the
+             *                  ullSequence of the snapshot you last processed.
+             * @param tmTimeout - Maximum time to wait. Keep this comfortably shorter than
+             *                  the caller's shutdown deadline so a stopped producer cannot
+             *                  hold the consumer's loop open.
+             * @return SharedSnapshot<T> - The newest snapshot, which is guaranteed newer than
+             *                  ullAfterSequence, or nullptr on timeout / inactive Reader.
+             *
+             * @note Returns the NEWEST snapshot, not the next one. If the producer published
+             *      several times while the caller was busy, the intermediate values are gone -
+             *      this is a publish-latest channel, not a queue.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2026-09-07
+             ******************************************************************************/
+            SharedSnapshot<T> WaitForNewer(const unsigned long long ullAfterSequence, const std::chrono::milliseconds tmTimeout) const&
+            {
+                ZoneScoped;
+
+                // An inactive reader has nothing to wait for.
+                if (m_pChannel == nullptr)
+                {
+                    // Report that no value is available.
+                    return nullptr;
+                }
+
+                // Fast path: something newer is already published, so never touch the lock.
+                SharedSnapshot<T> pSnapshot = m_pChannel->LoadLatest();
+                if (pSnapshot != nullptr && pSnapshot->ullSequence > ullAfterSequence)
+                {
+                    // Hand back the newer value immediately.
+                    return pSnapshot;
+                }
+
+                // Register as a waiter so Publish() knows it has to notify. Held for the whole
+                // wait, including early returns, by the guard below.
+                m_pChannel->nWaiterCount.fetch_add(1, std::memory_order_acq_rel);
+                // Decrement on every exit path, exception included.
+                struct WaiterGuard
+                {
+                        internal::Channel<T>* pChannel;
+                        ~WaiterGuard() { pChannel->nWaiterCount.fetch_sub(1, std::memory_order_acq_rel); }
+                } stGuard{m_pChannel.get()};
+
+                // Block until the producer publishes something newer, or we run out of time.
+                std::unique_lock<std::mutex> lkWaiters(m_pChannel->muWaiters);
+                m_pChannel->cdNewSnapshot.wait_for(lkWaiters,
+                                                   tmTimeout,
+                                                   [this, ullAfterSequence, &pSnapshot]()
+                                                   {
+                                                       // Re-load under the predicate so a spurious wake re-checks properly.
+                                                       pSnapshot = m_pChannel->LoadLatest();
+                                                       return pSnapshot != nullptr && pSnapshot->ullSequence > ullAfterSequence;
+                                                   });
+
+                // Nothing newer arrived in time.
+                if (pSnapshot == nullptr || pSnapshot->ullSequence <= ullAfterSequence)
+                {
+                    // Report the timeout.
+                    return nullptr;
+                }
+
+                // Return the newer snapshot.
+                return pSnapshot;
             }
 
             /******************************************************************************
@@ -533,16 +695,41 @@ namespace pubsub
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-26
              ******************************************************************************/
-            Reader<T> CreateReader() { return Reader<T>(m_pChannel); }
+            [[nodiscard]] Reader<T> CreateReader() { return Reader<T>(m_pChannel); }
 
             /******************************************************************************
              * @brief Acquire a pooled snapshot slot for the producer to write into.
-             *      Returns a recycled slot from the free list, or allocates a new one
-             *      if the free list is empty. NEVER blocks and never waits on a
-             *      consumer. When the last holder of the returned shared_ptr drops it,
-             *      the slot is returned to the free list instead of being freed.
+             *      Returns a recycled slot from the free list, or allocates a new one if
+             *      the free list is empty. Never waits on a consumer: a slot only returns
+             *      to the free list once the last holder has dropped it, so an in-flight
+             *      read can never be overwritten. When the last holder of the returned
+             *      shared_ptr drops it, the slot is recycled rather than freed.
              *
              * @return std::shared_ptr<Snapshot<T>> - A writable, pooled snapshot slot.
+             *
+             * @warning THE RETURNED SLOT IS NOT EMPTY. A recycled slot still holds
+             *      everything the previous publish left in its tData - that is the whole
+             *      point of pooling, because it lets cv::Mat::copyTo() and std::vector
+             *      reuse their existing capacity instead of reallocating every frame. It
+             *      also means a producer that writes only the fields it thinks changed
+             *      publishes stale data in the rest.
+             *
+             *      Every publish site must therefore FULLY overwrite tData. Whole-object
+             *      assignment and cv::Mat::copyTo() do this correctly. Two cases do not:
+             *
+             *        - Containers of types whose assignment is shallow or whose elements
+             *          own external memory. std::vector::operator= reuses existing elements
+             *          rather than destroying them, so assigning a vector<sl::ObjectData>
+             *          over a recycled slot overwrites the owning sl::Mat handles inside it
+             *          and leaks their buffers. Call tData.clear() first: that runs the
+             *          element destructors, which release the memory properly.
+             *        - Partial field updates of a struct. Assign a fresh instance instead.
+             *
+             * @note Pool slots are recycled, never trimmed. Once a channel has published a
+             *      full-resolution frame, its slots keep those buffers until the Publisher
+             *      itself is destroyed - releasing every Reader does not hand the memory
+             *      back. That is deliberate (it is what makes steady state allocation free)
+             *      but it does mean peak footprint is sticky for the process lifetime.
              *
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-24
@@ -599,6 +786,10 @@ namespace pubsub
              *      ordering so consumers see the data and its metadata together.
              *
              * @param pSnapshot - The slot (from Acquire()) whose tData has been written.
+             * @param ullSourceSequence - Optional. Identifies the producer iteration this
+             *                  value came from. Pass the same value to every channel published
+             *                  from one source event so consumers reading two of them can
+             *                  detect a straddled read. 0 means "not supplied".
              *
              * @note Never publish a slot that has already been published. Acquire a
              *      fresh slot per publish.
@@ -606,7 +797,7 @@ namespace pubsub
              * @author clayjay3 (claytonraycowen@gmail.com)
              * @date 2026-07-24
              ******************************************************************************/
-            void Publish(std::shared_ptr<Snapshot<T>> pSnapshot)
+            void Publish(std::shared_ptr<Snapshot<T>> pSnapshot, const unsigned long long ullSourceSequence = 0)
             {
                 ZoneScoped;
                 // Ignore a null publish rather than crashing.
@@ -618,11 +809,16 @@ namespace pubsub
 
                 // Stamp the sequence number and publish time inside the snapshot so they
                 // are atomic with the data.
-                pSnapshot->ullSequence = m_pChannel->ullSequence.fetch_add(1, std::memory_order_relaxed) + 1;
-                pSnapshot->tmPublished = std::chrono::system_clock::now();
+                pSnapshot->ullSequence       = m_pChannel->ullSequence.fetch_add(1, std::memory_order_relaxed) + 1;
+                pSnapshot->ullSourceSequence = ullSourceSequence;
+                pSnapshot->tmPublished       = std::chrono::system_clock::now();
 
                 // Atomically store the (now immutable) snapshot as the newest value.
                 m_pChannel->StoreLatest(SharedSnapshot<T>(std::move(pSnapshot)));
+
+                // Wake anyone blocked in Reader::WaitForNewer(). Costs one relaxed load when
+                // nobody is waiting, which is the normal case.
+                m_pChannel->NotifyWaiters();
             }
 
             /******************************************************************************
@@ -658,6 +854,26 @@ namespace pubsub
              * @date 2026-07-24
              ******************************************************************************/
             bool HasReaders() const { return m_pChannel->nReaderCount.load(std::memory_order_acquire) > 0; }
+
+            /******************************************************************************
+             * @brief Install a callback invoked exactly once, at the moment total allocation
+             *      first passes the growth ceiling. The pool still grows (the producer must
+             *      never block), but the owner learns about it immediately instead of on the
+             *      next periodic diagnostic sweep.
+             *
+             * @param fnHandler - Called with (slots allocated, configured ceiling). Runs on
+             *                  the producer thread, inside Acquire(), with the free-list lock
+             *                  held - so it must not block, publish, or take other locks.
+             *                  Logging is fine.
+             *
+             * @note Set this before Start(). It is not synchronized against concurrent
+             *      Acquire() calls, because there is no configuration phase during which the
+             *      producer is also running.
+             *
+             * @author clayjay3 (claytonraycowen@gmail.com)
+             * @date 2026-09-07
+             ******************************************************************************/
+            void SetGrowthCeilingHandler(std::function<void(size_t, size_t)> fnHandler) { m_pChannel->fnOnCeilingBreached = std::move(fnHandler); }
 
             /******************************************************************************
              * @brief Accessor for the number of pool misses (slots allocated because

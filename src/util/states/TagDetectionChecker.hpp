@@ -57,7 +57,7 @@ namespace statemachine
             }
 
             // Load the newest snapshot once into a local so it cannot change while we read it.
-            pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pSnapshot = pTagDetector->GetDetectedTagsReader().Get();
+            pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pSnapshot = pTagDetector->GetLatestDetectedTags();
             // Nothing has been published yet.
             if (pSnapshot == nullptr)
             {

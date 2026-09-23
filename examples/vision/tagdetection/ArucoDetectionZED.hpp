@@ -140,7 +140,7 @@ void RunExample()
         }
 
         // Load the newest detected tags snapshot and report it.
-        pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pTags = ExampleTagDetector1->GetDetectedTagsReader().Get();
+        pubsub::SharedSnapshot<std::vector<tagdetectutils::ArucoTag>> pTags = ExampleTagDetector1->GetLatestDetectedTags();
         if (pTags != nullptr)
         {
             // Print length of detections vector. Read straight from the snapshot; no copy needed

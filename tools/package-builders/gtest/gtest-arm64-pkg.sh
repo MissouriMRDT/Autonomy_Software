@@ -103,7 +103,8 @@ else
 
         # Build Google Test
         cmake \
-        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local ..
+        -D CMAKE_INSTALL_PREFIX=/tmp/pkg/gtest_${GTEST_VERSION}_arm64/usr/local \
+        -D CMAKE_BUILD_TYPE=Release ..
 
         # Install Google Test
         make

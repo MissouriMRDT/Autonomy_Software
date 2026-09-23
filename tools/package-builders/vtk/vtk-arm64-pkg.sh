@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Define Package URL
-FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/arm64/vtk_${VTK_VERSION}arm64.deb"
+FILE_URL="https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/vtk/arm64/vtk_${VTK_VERSION}_arm64.deb"
 
 # Helper: safely write GitHub Actions outputs if available, otherwise echo
 gh_out() {
@@ -82,8 +82,8 @@ else
         rm -rf /tmp/VTK
 
         # Create Package Directory
-        mkdir -p /tmp/pkg/vtk_${VTK_VERSION}arm64/usr/local
-        mkdir -p /tmp/pkg/vtk_${VTK_VERSION}arm64/DEBIAN
+        mkdir -p /tmp/pkg/vtk_${VTK_VERSION}_arm64/usr/local
+        mkdir -p /tmp/pkg/vtk_${VTK_VERSION}_arm64/DEBIAN
 
         # Create Control File
         {
@@ -94,7 +94,7 @@ else
             echo "Architecture: arm64"
             echo "Homepage: https://github.com/Kitware/VTK.git"
             echo "Description: A prebuilt version of VTK. Made by the Mars Rover Design Team."
-        } > /tmp/pkg/vtk_${VTK_VERSION}arm64/DEBIAN/control
+        } > /tmp/pkg/vtk_${VTK_VERSION}_arm64/DEBIAN/control
 
         # Download VTK
         git clone --recurse-submodules --depth 1 --branch v${VTK_VERSION} https://github.com/Kitware/VTK.git
@@ -103,14 +103,13 @@ else
         cd VTK
         mkdir build && cd build
         cmake \
-            -DCMAKE_INSTALL_PREFIX=/tmp/pkg/vtk_${VTK_VERSION}arm64/usr/local \
+            -DCMAKE_INSTALL_PREFIX=/tmp/pkg/vtk_${VTK_VERSION}_arm64/usr/local \
+            -DCMAKE_BUILD_TYPE=Release \
             -DVTK_QT_VERSION=6 \
             -DVTK_GROUP_ENABLE_Qt=YES \
             -DQt6_DIR="/usr/local/lib/cmake/Qt6" \
             -DQt6Quick_DIR="/usr/local/lib/cmake/Qt6Quick" \
             -DCMAKE_PREFIX_PATH="/usr/local/" \
-            -DCMAKE_FIND_DEBUG_MODE=TRUE \
-            -DQT_DEBUG_FIND_PACKAGE=ON \
             ..
         make -j8
         make install
@@ -120,12 +119,12 @@ else
         rm -rf VTK
 
         # Create Package
-        dpkg --build /tmp/pkg/vtk_${VTK_VERSION}arm64
+        dpkg --build /tmp/pkg/vtk_${VTK_VERSION}_arm64
 
         # Create Package Directory
         mkdir -p /tmp/pkg/deb
 
         # Copy Package
-        cp /tmp/pkg/vtk_${VTK_VERSION}arm64.deb /tmp/pkg/deb/vtk_${VTK_VERSION}arm64.deb
+        cp /tmp/pkg/vtk_${VTK_VERSION}_arm64.deb /tmp/pkg/deb/vtk_${VTK_VERSION}_arm64.deb
     fi
 fi

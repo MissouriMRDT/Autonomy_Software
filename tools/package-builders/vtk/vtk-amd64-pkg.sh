@@ -104,13 +104,12 @@ else
         mkdir build && cd build
         cmake \
             -DCMAKE_INSTALL_PREFIX=/tmp/pkg/vtk_${VTK_VERSION}_amd64/usr/local \
+            -DCMAKE_BUILD_TYPE=Release \
             -DVTK_QT_VERSION=6 \
             -DVTK_GROUP_ENABLE_Qt=YES \
             -DQt6_DIR="/usr/local/lib/cmake/Qt6" \
             -DQt6Quick_DIR="/usr/local/lib/cmake/Qt6Quick" \
             -DCMAKE_PREFIX_PATH="/usr/local/" \
-            -DCMAKE_FIND_DEBUG_MODE=TRUE \
-            -DQT_DEBUG_FIND_PACKAGE=ON \
             ..
         make
         make install
