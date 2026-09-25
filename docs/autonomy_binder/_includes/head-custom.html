@@ -1,3 +1,25 @@
+<!-- MathJax for rendering LaTeX equations -->
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+      processEscapes: true
+    },
+    svg: {
+      fontCache: 'global'
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'annotation', 'annotation-xml'],
+      ignoreHtmlClass: 'tex2jax_ignore',
+      processHtmlClass: 'tex2jax_process'
+    }
+  };
+</script>
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+</script>
+
 <style>
   /* =========================================================
      Responsive & Wide Layout Scaling for Autonomy Binder
@@ -119,6 +141,17 @@
     overflow-x: auto;
     border-radius: 6px;
     margin: 20px 0;
+  }
+
+  /* MathJax equation styling */
+  mjx-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+  }
+
+  mjx-container[display="true"] {
+    margin: 1.2em 0 !important;
   }
 
   /* Sidebar navigation enhancements */
