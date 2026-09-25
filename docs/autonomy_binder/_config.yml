@@ -7,6 +7,7 @@ baseurl: "/autonomy/_j"
 remote_theme: "godalming123/minimal"
 plugins:
   - jekyll-remote-theme
+  - jekyll-optional-front-matter
 
 repository: "MissouriMRDT/Autonomy_Software"
 
@@ -31,8 +32,21 @@ kramdown:
   input: GFM
   hard_wrap: false
 
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+
 exclude:
+  - vendor
+  - vendor/*
+  - .bundle
+  - .sass-cache
+  - .jekyll-cache
+  - gemfiles
   - Gemfile
   - Gemfile.lock
+  - node_modules
   - "*.pdf"
   - "Autonomy_Binder_Pandoc.md"

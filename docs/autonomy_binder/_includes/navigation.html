@@ -1,0 +1,16 @@
+<ul>
+	{% for item in site.navigation %}
+		<li>
+			{% if item.link contains "://" %}
+				<a href="{{ item.link }}">{{ item.name }}</a>
+			{% else %}
+				{% assign item_url = item.link | relative_url %}
+				{% if page.url == item.link or page.url == item_url or page.url == '/' and item.link == '/' or page.url == '/index.html' and item.link == '/' %}
+					<strong>{{ item.name }}</strong>
+				{% else %}
+					<a href="{{ item_url }}">{{ item.name }}</a>
+				{% endif %}
+			{% endif %}
+		</li>
+	{% endfor %}
+</ul>
