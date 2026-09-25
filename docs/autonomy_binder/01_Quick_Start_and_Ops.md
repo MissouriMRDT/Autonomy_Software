@@ -35,6 +35,11 @@ The container environment provides:
 - **Storage and Networking**: DuckDB (USGS LiDAR point cloud queries), RoveComm (in-house UDP/TCP protocol), LibDataChannel (WebRTC for simulator camera feeds), nlohmann-json.
 - **Logging**: Quill asynchronous logging engine.
 
+> [!TIP] Comprehensive Installation & Contribution Documentation
+> - **Full Installation Guide**: For native Linux configuration, bare-metal toolchains, and NVIDIA Jetson deployment steps, refer to [INSTALL.md](https://github.com/MissouriMRDT/Autonomy_Software/blob/development/INSTALL.md).
+> - **Contributing & Git Workflow**: For branch naming conventions, pull request workflows, review procedures, and C++ code style requirements, see [CONTRIBUTING.md](https://github.com/MissouriMRDT/Autonomy_Software/blob/development/CONTRIBUTING.md).
+> - **Team Documentation**: Broad team-wide architecture guides and subsystem documentation are hosted on the [MRDT Documentation Portal](https://docs.themrdt.org/) and mirrored in the [MissouriMRDT/RoveSoDocs repository](https://github.com/MissouriMRDT/RoveSoDocs). Internal packages and datasets are hosted on the [MRDT GitLab Organization](https://gitlab.themrdt.org/MissouriMRDT).
+
 ---
 
 ## 2. Building the Code

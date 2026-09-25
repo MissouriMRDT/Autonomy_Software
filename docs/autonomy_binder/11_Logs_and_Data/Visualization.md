@@ -149,3 +149,16 @@ When `src/main.cpp` executes its shutdown sequence (upon receiving `SIGINT` or u
      slSpatialMap.save(szFilePath.c_str(), sl::MESH_FILE_FORMAT::PLY);
      ```
    - The resulting `.ply` mesh can be loaded into CloudCompare, MeshLab, or Blender for detailed geometric inspection of terrain obstacles.
+
+---
+
+## 7. Hosted MRDT Web Visualizer Suite
+
+In addition to the onboard lightweight web server running on port 8080, the team maintains an ecosystem of cloud-hosted web applications deployed at [visualizer.themrdt.org](https://visualizer.themrdt.org/):
+
+| Web Application | Direct URL | Description & Capabilities |
+| :--- | :--- | :--- |
+| **Main Visualizer Hub** | [visualizer.themrdt.org](https://visualizer.themrdt.org/) | Central landing portal for MRDT telemetry tools, flight software digital twins, and spatial data tooling. |
+| **Autonomy Task & Route Visualizer** | [visualizer.themrdt.org/autonomy-task/](https://visualizer.themrdt.org/autonomy-task/) | Pre-mission planning, waypoint layout design, simulated route traversal, and state machine search geometry verification. Enables operators to visualize GPS coordinates, test obstacle clearances, and review planned A* splines. |
+| **LiDAR Inspection Tool** | [visualizer.themrdt.org/lidar-tool/](https://visualizer.themrdt.org/lidar-tool/) | 3D web-based point cloud analyzer for inspecting USGS LAS/LAZ terrain tiles. Features cross-sectional elevation slicing, gradient angle filters, contour mapping, and traversability threshold tuning before importing into DuckDB. |
+

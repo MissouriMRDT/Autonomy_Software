@@ -65,6 +65,22 @@ Welcome to the Autonomy Binder! This is the centralized engineering reference an
 
 ---
 
+## External Resources & Team Portals
+
+| Resource | URL | Description |
+| :--- | :--- | :--- |
+| **MRDT Documentation Portal** | [docs.themrdt.org](https://docs.themrdt.org/) | Central organization wiki, systems specifications, and team-wide documentation. |
+| **Software Documentation Repo** | [MissouriMRDT/RoveSoDocs](https://github.com/MissouriMRDT/RoveSoDocs) | Source repository for team documentation and technical binders. |
+| **MRDT GitLab Organization** | [gitlab.themrdt.org/MissouriMRDT](https://gitlab.themrdt.org/MissouriMRDT) | Team GitLab instance hosting internal repositories, CI pipelines, and large datasets. |
+| **USGS LiDAR Data Repository** | [MissouriMRDT/USGS_Data](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data) | Primary storage for preprocessed USGS 3DEP LiDAR point clouds and DuckDB spatial databases. |
+| **Autonomy Installation Guide** | [INSTALL.md](https://github.com/MissouriMRDT/Autonomy_Software/blob/development/INSTALL.md) | Step-by-step native and container installation guide for development and Jetson deployment. |
+| **Contributing Guidelines** | [CONTRIBUTING.md](https://github.com/MissouriMRDT/Autonomy_Software/blob/development/CONTRIBUTING.md) | Branching guidelines, coding conventions, Git workflow, and pull request requirements. |
+| **Web Visualizer Suite** | [visualizer.themrdt.org](https://visualizer.themrdt.org/) | Hosted web-based mission planning and data inspection suite. |
+| **Autonomy Task Visualizer** | [visualizer.themrdt.org/autonomy-task/](https://visualizer.themrdt.org/autonomy-task/) | Web tool for planning, simulating, and reviewing autonomy waypoints and navigation trajectories. |
+| **LiDAR Visualizer Tool** | [visualizer.themrdt.org/lidar-tool/](https://visualizer.themrdt.org/lidar-tool/) | Web tool for 3D point cloud inspection, terrain cross-sections, and slope visualization. |
+
+---
+
 ## Operational Cheat Sheet
 
 | Operation | Command |

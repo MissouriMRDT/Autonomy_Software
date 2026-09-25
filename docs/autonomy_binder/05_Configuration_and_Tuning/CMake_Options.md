@@ -73,7 +73,7 @@ Options are toggled via `-D<OPTION>=ON|OFF` during configuration:
 | :--- | :---: | :---: | :--- |
 | **`BUILD_SIM_MODE`** | `OFF` | `Autonomy_Software_Sim` (when ON) | Defines `__AUTONOMY_SIM_MODE__=1`. Switches sensor streams to consume WebRTC pixel streaming and local loopback sockets from Unreal Engine RoveSoSimulator. |
 | **`BUILD_TESTS_MODE`** | `OFF` | `tests/*` | Enables `CTest` and builds GoogleTest unit and integration test suites in `tests/`. |
-| **`ENABLE_LIDAR_GEO_UTESTS`** | `OFF` | N/A | Enables specialized LiDAR database query and GeoPlanner unit tests that require physical USGS LiDAR data tiles. |
+| **`ENABLE_LIDAR_GEO_UTESTS`** | `OFF` | N/A | Enables specialized LiDAR database query and GeoPlanner unit tests that require physical USGS LiDAR data tiles (available from [MissouriMRDT/USGS_Data](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)). |
 | **`BUILD_CODE_COVERAGE`** | `OFF` | N/A | Injects GCC profiling flags (`-O0 -g -fprofile-arcs -ftest-coverage --coverage`) to generate `gcov`/`lcov` coverage reports in CI pipelines. |
 | **`BUILD_COVERAGE_WATCH`** | `OFF` | N/A | Enables real-time code coverage file-watching mode for development workflows. |
 | **`BUILD_VERBOSE_MODE`** | `OFF` | N/A | Generates verbose Makefiles displaying all raw compiler and linker commands during compilation. |

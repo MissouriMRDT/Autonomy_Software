@@ -36,7 +36,7 @@ Path planning is orchestrated through two primary components: the **`GeoPlanner`
 The `GeoPlanner` (`src/algorithms/planners/GeoPlanner.cpp`) is a specialized geospatial path planner designed for rough natural environments:
 
 ### A. 2.5D Costmap Generation
-Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner` constructs a continuous 2.5D costmap using preprocessed USGS LiDAR data from `LiDARHandler`:
+Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner` constructs a continuous 2.5D costmap using preprocessed USGS LiDAR data from `LiDARHandler` (sourced from the team's [USGS_Data repository](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)):
 - **Terrain Metrics**: Each spatial cell evaluates local surface normal vectors ($N_x, N_y, N_z$), slope gradient, surface roughness, and curvature.
 - **Traversal Score**: A composite traversal score ($0.0 = \text{impassable cliff/boulder}$, $1.0 = \text{flat open ground}$) is assigned to each cell. Cells with scores below `dMinTravScore` are marked non-traversable.
 - **Obstacle Dilation**: To prevent the rover chassis from clipping edges, non-traversable cells undergo multiple morphological dilation passes (`nDilationPasses`, default 2), expanding obstacles by an inflation margin.
@@ -56,6 +56,9 @@ Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner`
 To maintain high runtime performance:
 - `GeoPlanner` caches evaluated grid tiles in memory.
 - When traversing long distances, distant tiles can be cleared using `UnloadLiDARTiles()` or `ClearGeoCache()`.
+
+> [!TIP] Route Pre-Planning & Inspection
+> Mission routes, waypoint sequences, and A* navigation splines can be validated and previewed using the hosted [Autonomy Task Visualizer](https://visualizer.themrdt.org/autonomy-task/). Underlying point cloud terrain tiles and slope hazards can be inspected in 3D using the [LiDAR Tool](https://visualizer.themrdt.org/lidar-tool/), both part of the hosted [MRDT Visualizer Suite](https://visualizer.themrdt.org/).
 
 ---
 

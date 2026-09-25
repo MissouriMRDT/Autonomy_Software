@@ -46,6 +46,11 @@ The container environment provides:
 - **Storage and Networking**: DuckDB (USGS LiDAR point cloud queries), RoveComm (in-house UDP/TCP protocol), LibDataChannel (WebRTC for simulator camera feeds), nlohmann-json.
 - **Logging**: Quill asynchronous logging engine.
 
+> [!TIP] Comprehensive Installation & Contribution Documentation
+> - **Full Installation Guide**: For native Linux configuration, bare-metal toolchains, and NVIDIA Jetson deployment steps, refer to [INSTALL.md](https://github.com/MissouriMRDT/Autonomy_Software/blob/development/INSTALL.md).
+> - **Contributing & Git Workflow**: For branch naming conventions, pull request workflows, review procedures, and C++ code style requirements, see [CONTRIBUTING.md](https://github.com/MissouriMRDT/Autonomy_Software/blob/development/CONTRIBUTING.md).
+> - **Team Documentation**: Broad team-wide architecture guides and subsystem documentation are hosted on the [MRDT Documentation Portal](https://docs.themrdt.org/) and mirrored in the [MissouriMRDT/RoveSoDocs repository](https://github.com/MissouriMRDT/RoveSoDocs). Internal packages and datasets are hosted on the [MRDT GitLab Organization](https://gitlab.themrdt.org/MissouriMRDT).
+
 ---
 
 ## 2. Building the Code
@@ -706,7 +711,7 @@ Path planning is orchestrated through two primary components: the **`GeoPlanner`
 The `GeoPlanner` (`src/algorithms/planners/GeoPlanner.cpp`) is a specialized geospatial path planner designed for rough natural environments:
 
 ### A. 2.5D Costmap Generation
-Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner` constructs a continuous 2.5D costmap using preprocessed USGS LiDAR data from `LiDARHandler`:
+Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner` constructs a continuous 2.5D costmap using preprocessed USGS LiDAR data from `LiDARHandler` (sourced from the team's [USGS_Data repository](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)):
 - **Terrain Metrics**: Each spatial cell evaluates local surface normal vectors ($N_x, N_y, N_z$), slope gradient, surface roughness, and curvature.
 - **Traversal Score**: A composite traversal score ($0.0 = \text{impassable cliff/boulder}$, $1.0 = \text{flat open ground}$) is assigned to each cell. Cells with scores below `dMinTravScore` are marked non-traversable.
 - **Obstacle Dilation**: To prevent the rover chassis from clipping edges, non-traversable cells undergo multiple morphological dilation passes (`nDilationPasses`, default 2), expanding obstacles by an inflation margin.
@@ -726,6 +731,9 @@ Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner`
 To maintain high runtime performance:
 - `GeoPlanner` caches evaluated grid tiles in memory.
 - When traversing long distances, distant tiles can be cleared using `UnloadLiDARTiles()` or `ClearGeoCache()`.
+
+> [!TIP] Route Pre-Planning & Inspection
+> Mission routes, waypoint sequences, and A* navigation splines can be validated and previewed using the hosted [Autonomy Task Visualizer](https://visualizer.themrdt.org/autonomy-task/). Underlying point cloud terrain tiles and slope hazards can be inspected in 3D using the [LiDAR Tool](https://visualizer.themrdt.org/lidar-tool/), both part of the hosted [MRDT Visualizer Suite](https://visualizer.themrdt.org/).
 
 ---
 
@@ -1872,6 +1880,24 @@ stFilter.dSlope    = LiDARHandler::PointFilter::Range<double>{25.0, 90.0};
 std::vector<LiDARHandler::PointRow> vSteepObstacles;
 vSteepObstacles = globals::g_pLiDARHandler->GetPointsWithFilter(stFilter);
 ```
+
+---
+
+## 5. LiDAR Data Sources & Web Inspection Tools
+
+### A. USGS LiDAR Point Cloud Storage Repository
+The spatial elevation and terrain point clouds queried by `LiDARHandler` are sourced from the USGS 3D Elevation Program (3DEP) and processed into indexed DuckDB databases. Raw LAS/LAZ point cloud tiles, pre-generated DuckDB database artifacts, and ingestion scripts are hosted on the team's GitLab server:
+- **USGS LiDAR Dataset Repository**: [MissouriMRDT/USGS_Data](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)
+- **MRDT GitLab Organization**: [MissouriMRDT GitLab](https://gitlab.themrdt.org/MissouriMRDT)
+
+Developers running simulations or offline tests requiring local terrain maps should acquire the appropriate regional `.duckdb` tiles from `USGS_Data` and place them at the path configured in `constants::LIDAR_HANDLER_DB_PATH` (`data/LiDAR/` by default).
+
+### B. Online LiDAR Visualizer Tool
+Terrain point clouds, cross-sectional elevation profiles, and traversability slopes can be visualized interactively in the web browser without launching local DuckDB instances:
+- **Interactive LiDAR Visualizer**: [visualizer.themrdt.org/lidar-tool/](https://visualizer.themrdt.org/lidar-tool/)
+
+This tool supports inspecting 3D colored point distributions, evaluating elevation gradients, and testing traversability threshold configurations across competition terrains.
+
 
 
 
@@ -3046,6 +3072,19 @@ When `src/main.cpp` executes its shutdown sequence (upon receiving `SIGINT` or u
      ```
    - The resulting `.ply` mesh can be loaded into CloudCompare, MeshLab, or Blender for detailed geometric inspection of terrain obstacles.
 
+---
+
+## 7. Hosted MRDT Web Visualizer Suite
+
+In addition to the onboard lightweight web server running on port 8080, the team maintains an ecosystem of cloud-hosted web applications deployed at [visualizer.themrdt.org](https://visualizer.themrdt.org/):
+
+| Web Application | Direct URL | Description & Capabilities |
+| :--- | :--- | :--- |
+| **Main Visualizer Hub** | [visualizer.themrdt.org](https://visualizer.themrdt.org/) | Central landing portal for MRDT telemetry tools, flight software digital twins, and spatial data tooling. |
+| **Autonomy Task & Route Visualizer** | [visualizer.themrdt.org/autonomy-task/](https://visualizer.themrdt.org/autonomy-task/) | Pre-mission planning, waypoint layout design, simulated route traversal, and state machine search geometry verification. Enables operators to visualize GPS coordinates, test obstacle clearances, and review planned A* splines. |
+| **LiDAR Inspection Tool** | [visualizer.themrdt.org/lidar-tool/](https://visualizer.themrdt.org/lidar-tool/) | 3D web-based point cloud analyzer for inspecting USGS LAS/LAZ terrain tiles. Features cross-sectional elevation slicing, gradient angle filters, contour mapping, and traversability threshold tuning before importing into DuckDB. |
+
+
 
 
 ewpage
@@ -3313,7 +3352,7 @@ Options are toggled via `-D<OPTION>=ON|OFF` during configuration:
 | :--- | :---: | :---: | :--- |
 | **`BUILD_SIM_MODE`** | `OFF` | `Autonomy_Software_Sim` (when ON) | Defines `__AUTONOMY_SIM_MODE__=1`. Switches sensor streams to consume WebRTC pixel streaming and local loopback sockets from Unreal Engine RoveSoSimulator. |
 | **`BUILD_TESTS_MODE`** | `OFF` | `tests/*` | Enables `CTest` and builds GoogleTest unit and integration test suites in `tests/`. |
-| **`ENABLE_LIDAR_GEO_UTESTS`** | `OFF` | N/A | Enables specialized LiDAR database query and GeoPlanner unit tests that require physical USGS LiDAR data tiles. |
+| **`ENABLE_LIDAR_GEO_UTESTS`** | `OFF` | N/A | Enables specialized LiDAR database query and GeoPlanner unit tests that require physical USGS LiDAR data tiles (available from [MissouriMRDT/USGS_Data](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)). |
 | **`BUILD_CODE_COVERAGE`** | `OFF` | N/A | Injects GCC profiling flags (`-O0 -g -fprofile-arcs -ftest-coverage --coverage`) to generate `gcov`/`lcov` coverage reports in CI pipelines. |
 | **`BUILD_COVERAGE_WATCH`** | `OFF` | N/A | Enables real-time code coverage file-watching mode for development workflows. |
 | **`BUILD_VERBOSE_MODE`** | `OFF` | N/A | Generates verbose Makefiles displaying all raw compiler and linker commands during compilation. |
