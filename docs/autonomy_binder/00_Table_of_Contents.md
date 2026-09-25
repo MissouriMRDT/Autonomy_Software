@@ -78,6 +78,7 @@ Welcome to the Autonomy Binder! This is the centralized engineering reference an
 | **Web Visualizer Suite** | [visualizer.themrdt.org](https://visualizer.themrdt.org/) | Hosted web-based mission planning and data inspection suite. |
 | **Autonomy Task Visualizer** | [visualizer.themrdt.org/autonomy-task/](https://visualizer.themrdt.org/autonomy-task/) | Web tool for planning, simulating, and reviewing autonomy waypoints and navigation trajectories. |
 | **LiDAR Visualizer Tool** | [visualizer.themrdt.org/lidar-tool/](https://visualizer.themrdt.org/lidar-tool/) | Web tool for 3D point cloud inspection, terrain cross-sections, and slope visualization. |
+| **URC Official Rules & Guidelines** | [urc.marssociety.org/...](https://urc.marssociety.org/home/requirements-guidelines) | Official Mars Society University Rover Challenge rulebooks, requirements, and Q&A. |
 
 ---
 

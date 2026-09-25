@@ -17,6 +17,7 @@ The `NavigationBoard` driver (`src/drivers/NavigationBoard.h` & `NavigationBoard
 ## 2. Ingested Data Streams
 
 The driver registers RoveComm callbacks for two primary telemetry packets:
+
 - **`GPSLATLON`**: Contains double-precision latitude, longitude, altitude, and fix accuracy metrics.
 - **`IMUDATA`**: Contains double-precision compass heading ($0^\circ$ to $360^\circ$ clockwise from North) and heading accuracy estimate in degrees.
 
@@ -25,6 +26,7 @@ The driver registers RoveComm callbacks for two primary telemetry packets:
 ## 3. Data Freshness Guard (`IsOutOfDate`)
 
 GPS antennas can lose satellite lock, and network lines can experience dropped packets.
+
 - Every incoming GPS packet updates `m_tmLastGPSUpdateTime`.
 - Every incoming compass packet updates `m_tmLastCompassUpdateTime`.
 - The `IsOutOfDate()` method checks:
@@ -38,6 +40,7 @@ GPS antennas can lose satellite lock, and network lines can experience dropped p
 ## 4. Concurrency and Thread Safety
 
 Telemetry arrives on the `RoveCommUDP` background thread while multiple autonomy threads (`StateMachineHandler`, `GeoPlanner`, `VisualizationHandler`, `DriveBoard`) read navigation state simultaneously.
+
 - Thread safety is enforced through granular `std::shared_mutex` instances:
   - `m_muLocationMutex`
   - `m_muHeadingMutex`

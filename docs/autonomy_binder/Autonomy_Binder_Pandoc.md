@@ -39,6 +39,7 @@ The Autonomy Software project uses Docker and Visual Studio Code Dev Containers 
 
 ### Container Environment Details
 The container environment provides:
+
 - **Compilers and Toolchain**: GCC 10.0 (strictly enforced by `CMakeLists.txt`), CMake 3.24.3+, LLD linker (`-fuse-ld=lld`), C++20 standard, CUDA 12 / 11 matching the ZED SDK.
 - **Machine Learning**: LibTorch (PyTorch C++ frontend) with CUDA acceleration for YOLO object and tag detection.
 - **Computer Vision**: OpenCV 4.x with CUDA modules, Stereolabs ZED SDK 4.x.
@@ -84,6 +85,7 @@ make -j$(nproc)
 ```
 
 In simulation mode:
+
 - The output binary is named `Autonomy_Software_Sim`.
 - The software connects to Unreal Engine RoveSoSimulator via WebRTC (LibDataChannel) and local RoveComm endpoints rather than physical hardware boards and cameras.
 
@@ -181,9 +183,7 @@ Text logging is powered by the **Quill** asynchronous engine, ensuring logging o
 | **Run Unit Tests** | `cd build && ctest --output-on-failure` |
 
 
-
-ewpage
-
+\newpage
 
 # Architecture Overview
 
@@ -272,6 +272,7 @@ Communication between the Jetson computing platform and distributed rover subsys
 
 ### Manifest Binding
 All communication relies on `RoveCommManifest.h`. Packet headers define:
+
 - `unDataId`: Unique 16-bit identifier for the command or telemetry stream.
 - `unDataCount`: Number of elements contained in the payload array.
 - `eDataType`: Primitive type (`UINT8_T`, `INT32_T`, `FLOAT_T`, `DOUBLE_T`).
@@ -313,9 +314,7 @@ Navigational calculations span three distinct reference frames. Maintaining math
   $$U_o = U_c + Y_c$$
 
 
-
-ewpage
-
+\newpage
 
 # The State Machine
 
@@ -440,117 +439,168 @@ The state machine monitors battery metrics via RoveComm PMS telemetry. If `BATTE
 
 ### Heading and Odometry Dynamic Realignment
 In `StateMachineHandler::SmartRetrieveRoverPose()`, the system monitors the drift between the ZED visual-inertial odometry and absolute GPS/magnetometer heading.
+
 - When the rover drives forward at speeds exceeding `constants::ZED_REALIGN_VEL_THRESH` with angular rates below `constants::ZED_REALIGN_ROT_THRESH`, or while resting in `eIdle`, `RealignZEDHeading()` computes the offset:
   $$\text{Offset} = \text{Heading}_{\text{Actual}} - \text{Heading}_{\text{Raw ZED}}$$
 - During high-rate point-turns or evasive maneuvers where magnetic interference spikes, the system uses the high-frequency ZED IMU fused with this calibrated offset, avoiding erratic steering from compass distortion.
 
 
+\newpage
 
-ewpage
+# URC 2027 Autonomous Navigation Mission Rules
 
+This section contains the official University Rover Challenge (URC) 2027 specifications and requirements for the Autonomy Mission, serving as the definitive baseline for tuning state machine behaviors, navigation tolerances, detection algorithms, and recovery strategies.
 
-# URC Autonomous Navigation Mission Rules
-
-This section contains the official University Rover Challenge (URC) specifications and rules for the Autonomous Navigation Mission, providing a reference for tuning state machine constraints, tolerance radiuses, and detection thresholds.
-
----
-
-## 1. General Mission Constraints
-
-- **Course Duration and Length**: The total mission window is **30 minutes**, with a cumulative course distance up to **2.0 km**.
-- **Mission Turnaround**: Teams may be required to begin the Autonomous Navigation Mission as soon as 10 minutes following the completion of the Equipment Servicing Mission, operating from the same Command and Control (C2) station.
-- **Reference Start Gate**: Teams are provided with a reference GNSS coordinate at a designated start gate. Differential GNSS (RTK) is permitted and strongly recommended for base station and rover ground-truth positioning.
+Official Competition Reference: [URC Requirements & Guidelines](https://urc.marssociety.org/home/requirements-guidelines)  
+Local Source Rulebook: `docs/autonomy_binder/University Rover Challenge Rules 2027.pdf`
 
 ---
 
-## 2. Mission Target Specifications (7 Total Targets)
+## 1. General Mission Overview & Operational Parameters
 
-The course features **7 distinct targets** distributed across desert terrain. Teams are permitted to attempt and clear targets in any operational sequence.
+The URC 2027 Autonomy Mission represents a major evolution from prior years, expanding from 30 to **40 minutes** total course time and dividing the mission into two distinct 50-point sub-missions totaling **100 points**:
 
-### A. GNSS-Only Locations (2 Targets)
-- **Description**: Target coordinates provided as pure GNSS coordinates with no physical visual markers or posts at the site.
-- **Objective**: Autonomously navigate to the designated coordinate and come to a complete stop.
-- **Success Criteria**: The rover must come to a complete halt within **3.0 meters** of the target GNSS coordinate.
-- **Search Radius**: Target coordinates are provided with high precision. No expanded search pattern is required.
-
-### B. AR Tag Posts (2 Targets)
-- **Description**: Vertical posts equipped with three-sided visual markers displaying black and white ArUco tags.
-- **Physical Specifications**:
-  - Markers have 20 cm x 20 cm faces mounted 0.5 to 1.5 meters above ground level.
-  - ArUco dictionary: **`DICT_4X4_50`**.
-  - Marker grid: 4x4 data cells with a 1-cell wide white border. Each individual cell measures **2.5 cm**.
-  - All three sides of the post display identical marker IDs to ensure 360-degree visibility.
-- **Objective**: Navigate to vicinity coordinates, locate the post using optical cameras, and approach.
-- **Success Criteria**: The rover must autonomously halt within **2.0 meters** of the marker post.
-- **GNSS Offset and Search Radiuses**:
-  - **Post 1**: Provided vicinity GNSS coordinate is **5 to 10 meters** from the physical post.
-  - **Post 2**: Provided vicinity GNSS coordinate is **10 to 20 meters** from the physical post.
-  - Software must trigger `eSearchPattern` upon entering the vicinity to locate the marker visually.
-
-### C. Ground Objects (3 Targets)
-- **Description**: Loose objects placed on terrain requiring autonomous optical identification. Objects may be located near obstacles (such as rock gardens or berms) requiring autonomous obstacle avoidance.
-- **Target Prop Specifications**:
-  1. An orange rubber mallet.
-  2. A rock pick hammer.
-  3. A standard 1-liter wide-mouthed plastic water bottle (approximately 21.5 cm height, 9.0 cm diameter, unconstrained color/labeling).
-- **Objective**: Detect the target prop visually and highlight it on the operator C2 display. Physical contact or manipulation is not required.
-- **Success Criteria**:
-  - The rover must come to a complete stop at any distance with the target object in clear optical view.
-  - The C2 operator display must autonomously and distinctly highlight exactly one bounding box around the target object to verify computer vision recognition to the judging panel.
-- **GNSS Offset and Search Radiuses**:
-  - **Objects 1 and 2**: Provided vicinity coordinates have an error offset of **< 3.0 meters**.
-  - **Object 3**: Provided vicinity coordinates have an error offset of **< 10.0 meters**.
+- **Course Duration**: **40 minutes** total time on course (Section 1.e.i).
+- **Sub-Mission Architecture**:
+  1. **Astronaut Assistance Sub-Mission** (50 points maximum)
+  2. **Autonomous Route-Finding Sub-Mission** (50 points maximum)
+- **Execution Order**: Teams may attempt the two sub-missions in any sequence (Section 1.e.i).
+- **Operating Environment**: Desert terrain at the Mars Desert Research Station (MDRS) near Hanksville, Utah. The route-finding terrain spans a state-owned square mile bounded approximately by **(38.411°N, -110.786°W)** and **(38.425°N, -110.768°W)** (Section 1.e.xiii).
+- **Coordinate Datum**: All coordinates are distributed in the **WGS 84** datum in latitude/longitude format (Section 3.d.v).
+- **Mission Turnaround**: Teams may be scheduled to start the Equipment Servicing Mission as soon as 10 minutes following the Autonomy Mission (or vice-versa), operating from the same Command and Control (C2) station (Section 1.a).
 
 ---
 
-## 3. Communication, Telemetry, and Lighting
+## 2. Status Indicators & In-Run Reprogramming
 
-### Visual Status Indicators
-The rover must carry an externally visible status LED assembly (controlled via the `MultimediaBoard` driver) meeting the following operational conventions:
+### A. Rear LED Status Indicator (Section 1.e.ii)
+The rover must feature an externally visible LED array or high-power LED indicator mounted on the rear of the chassis, clearly distinguishable in direct sunlight:
+
 - **Solid Red**: Autonomous mode active (state machine executing).
-- **Solid Blue**: Manual teleoperation active (operator joystick override).
-- **Flashing Green**: Objective arrival confirmed (state machine completed target verification).
+- **Solid Blue**: Manual teleoperation active (operator joystick/teleop override).
+- **Flashing Green**: Successful arrival at a target location or completion of a task.
 
-### Arrival Confirmation Protocol
-Upon reaching a target location, the rover must autonomously:
-1. Cease all drive motor commands (`SendStop()`).
-2. Activate the flashing green LED indicator.
-3. Broadcast telemetry to the C2 display over RoveComm, triggering an unambiguous visual prompt for judges.
+### B. In-Run Reprogramming Policy (Section 1.e.iii)
+A critical rule modernization allows operators to reprogram the rover during an active run:
 
----
-
-## 4. Operational Protocols: Aborts, Returns, and Reprogramming
-
-### Aborts and Location Returns
-Operators may command an autonomous abort at any point:
-- The rover may autonomously return to any previously visited target location or reference coordinate.
-- The rover must halt within **5.0 meters** of the prior target coordinate.
-- **Autonomous Return Penalty**: 0% penalty.
-- **Teleoperated Return Penalty**: If operators manually pilot the rover back to a previously visited target, a **20% penalty** is assessed against the maximum points available for that target. Teleoperation must follow the most direct navigable route back without scouting unvisited areas.
-
-### Reprogramming Conditions
-Operators may only transmit waypoint coordinates, modify configuration parameters, or alter software logic under strict mission conditions:
-- While halted following a successful target arrival confirmation.
-- While halted following an abort return to a previously visited location.
-
-No manual waypoint input or parameter changes are permitted while the rover is in motion or stopped at unverified vicinity coordinates.
+- While the rover is **stopped at any time**, operators may perform any programming, including entering GNSS points, waypoints, or keep-out/stay-out zones, and tuning control algorithms or parameters.
+- Operators **may not drive** the rover while performing programming.
 
 ---
 
-## 5. Technical Summary Cheat Sheet
+## 3. Sub-Mission 1: Astronaut Assistance (50 Points Total)
 
-| Target Type | Required Stop Distance | Initial Coordinate Offset (Search Radius) | Visual Specification | State Machine Event Trigger |
-| :--- | :--- | :--- | :--- | :--- |
-| **GNSS 1 & 2** | $\le$ 3.0 meters | 0 meters (exact) | None | `eReachedGpsCoordinate` |
-| **AR Post 1** | $\le$ 2.0 meters | 5 to 10 meters | `DICT_4X4_50`, 20x20 cm | `eMarkerSeen` $\rightarrow$ `eReachedMarker` |
-| **AR Post 2** | $\le$ 2.0 meters | 10 to 20 meters | `DICT_4X4_50`, 20x20 cm | `eMarkerSeen` $\rightarrow$ `eReachedMarker` |
-| **Object 1 & 2** | Any (optical lock) | $\le$ 3.0 meters | Mallet / Rock Pick | `eObjectSeen` $\rightarrow$ `eReachedObject` |
-| **Object 3** | Any (optical lock) | $\le$ 10.0 meters | 1-Liter Water Bottle | `eObjectSeen` $\rightarrow$ `eReachedObject` |
+A designated team member acts as an "astronaut in the field" whom the rover must assist through visual, auditory, and manipulation tasks (Section 1.e.iv - 1.e.x).
+
+### Task Breakdown & Scoring
+
+| Task ID | Task Name | Description & Success Criteria | Points |
+| :--- | :--- | :--- | :---: |
+| **1.e.iv** | **EVA Suit System** | The team must provide an EVA suit for the astronaut. The suit does not need to be flight-rated for Mars (no pressurization or oxygen tanks needed), but **must include an onboard camera and microphone** streamable to and monitored by the C2 station operators. Helmets must be easily removable for heat safety. | **5 pts** |
+| **1.e.v** | **Drive to Astronaut** | The rover must autonomously navigate from the starting area to a provided GNSS coordinate where the astronaut is waiting. Success is achieved by autonomously coming to a complete stop within **3.0 meters** of the GNSS location. | **5 pts** |
+| **1.e.vi** | **Follow! Command** | The astronaut gives a command to follow and walks toward a destination designated during setup. The rover must autonomously follow the walking astronaut and stop within **3.0 meters** when the astronaut halts.<br><br>Scoring scales by command complexity:<br>• **Device-based**: Command transmitted via handheld device carried by astronaut $\rightarrow$ **5 pts** (1/3 value)<br>• **Visual Sign**: Astronaut presents a physical sign displaying an AR tag, written words, or pictures $\rightarrow$ **5 pts** (1/3 value)<br>• **Audio Speech**: Voice recognition of spoken word/phrase (e.g., *"follow"*) $\rightarrow$ **10 pts** (2/3 value)<br>• **Visual Gesture**: Vision model recognizes a quiet **beckoning gesture** made by the astronaut $\rightarrow$ **15 pts** (Full value) | **15 pts** max |
+| **1.e.vii** | **Stay! Command** | The astronaut commands the rover to stay in place while the astronaut walks $>20$ meters away. The rover must remain completely stationary until commanded again. | **5 pts** |
+| **1.e.viii** | **Fetch! Tool Pick-Up** | The astronaut commands the rover to fetch a tool. The rover must **autonomously locate and pick up a rock pick hammer** from the ground using its robotic manipulator. (Teleoperated pick-up is permitted for recovery but awards 0 points). | **10 pts** |
+| **1.e.ix** | **Come! Command** | The astronaut commands the rover to drive to the astronaut's new location. The rover must navigate and stop within **3.0 meters** of the astronaut. | **5 pts** |
+| **1.e.x** | **Give! Tool Hand-Off** | On command, the rover must autonomously place the rock pick hammer onto the ground or drop it safely. | **5 pts** |
+
+### Aborts & Exiting Autonomous Mode (Section 1.e.xi)
+- **Autonomous Recovery (0% penalty)**: The rover may autonomously abort, stop, or return to the astronaut with zero point penalty. The command may be re-issued.
+- **C2 Signal Abort (20% penalty)**: C2 operators may send an electronic signal commanding the rover to stop or return to the astronaut, incurring a **20% penalty** on that specific task.
+- **Teleoperated Return (50% penalty)**: Operators may manually teleoperate the rover back to any previously visited location, incurring a **50% penalty** on that specific task.
+- **Penalty Cap**: Exiting autonomous mode penalties are capped at **50%** per task. Subsequent aborts or teleoperation on that task consume mission time but incur no additional point deductions.
+
+---
+
+## 4. Sub-Mission 2: Autonomous Route-Finding (50 Points Total)
+
+In this sub-mission, the rover is deployed in complex desert badlands and hills to navigate challenging topological routes without real-time human guidance (Section 1.e.xii - 1.e.xviii).
+
+### Course Architecture & Targets
+
+1. **Mission Start Location**:
+   - Located on flat, accessible terrain.
+   - Operators receive GNSS coordinates for the start gate and may manually teleoperate the rover to this location.
+
+2. **Hilly Target Locations (2 Targets, 25 Points Each)**:
+   - **Target 1 (Navigable Hill Ascent - Section 1.e.xv)**: Situated atop a hill. The location is selected such that not all approach vectors are traversable; the rover's planning pipeline (`GeoPlanner`) must evaluate terrain slope and contour to find an achievable ascent route.
+   - **Target 2 (Non-Line-of-Sight Behind Hill - Section 1.e.xvi)**: Intentionally positioned behind the hill, completely **severing radio line-of-sight communications** with the C2 station. The rover must navigate completely autonomously without operator telemetry or remote abort links.
+
+3. **Target Visual Identification Markers**:
+   - Both targets are marked with **3-sided AR marker posts**:
+     - **Post Dimensions**: 20 cm $\times$ 20 cm faces mounted 0.5 to 1.5 meters above ground level.
+     - **Fiducial Tag Library**: ArUco dictionary **`DICT_4X4_50`**.
+     - **Cell Geometry**: 4x4 data cells with a 1-cell wide white border (cells are **2.5 cm** across).
+     - Identical tags appear on all three sides for 360-degree detection coverage.
+
+4. **Success Criteria & Scoring (Section 1.e.xvii)**:
+   - **25 points** per target reached.
+   - The rover must autonomously stop within **1.0 meter** of the target location (stricter tolerance than the 3.0 m astronaut radius).
+   - Must signal arrival via flashing green LED and telemetry.
+   - Partial points are awarded for successfully completing portions of the route.
+
+5. **Route-Finding Aborts & Penalties (Section 1.e.xviii)**:
+   - **Autonomous Return (20% penalty)**: Operators transmit a command for the rover to autonomously retrace its steps or return to the mapping start point, assessing a **20% penalty** on the attempted target.
+   - **Teleoperation (50% penalty)**: Operators teleoperate back to a previously visited location, assessing a **50% penalty** on that target. Teleoperation is strictly forbidden in areas not yet autonomously explored.
+   - Mode penalties are capped at **50%** per target.
+
+---
+
+## 5. Aerial Drone Integration (Sections 1.e.xiv & 2.b)
+
+URC 2027 permits and incentivizes the integration of a reconnaissance drone:
+
+- **Reconnaissance Window**: A drone may be flown for aerial scouting during the Astronaut Assistance sub-mission to survey the route-finding terrain and map hills.
+- **Landing Requirement**: The drone must return and land at the designated landing pad before the rover departs the route-finding start location (Section 1.e.xiv).
+- **Technical Restrictions**:
+  - Rotary-wing aircraft only (hover capable); fixed-wing and lighter-than-air craft prohibited.
+  - Maximum take-off mass: **5.0 kg** (11 lbs).
+  - Must carry an **inert dummy mass equal to battery weight** to simulate Mars atmospheric lift deficits (Section 2.b.v).
+  - FAA compliance required: Remote ID broadcast, FAA TRUST certification for pilots, visual line-of-sight spotter in field, ceiling $\le 400$ ft AGL.
+
+---
+
+## 6. Physical Interventions & Equipment Regulations
+
+### A. Team Interventions (Section 3.e)
+- Any physical contact with the rover in the field constitutes an intervention.
+- **Penalty**: **20% deduction** of the total points scored in the mission per intervention. Penalties are additive (e.g., 2 interventions = 40% penalty; final score is 60% of points earned).
+- The 40-minute mission clock continues running during interventions.
+- Only C2 operators may request an intervention; team members acting as "runners" in the field cannot re-enter the C2 station to operate during that mission.
+
+### B. Rover Physical Constraints (Section 2.a)
+- **Deployed Mass Limit**: Maximum **50.0 kg** (rounded down to nearest whole kg). Exceeding 50 kg incurs a **5% penalty per kilogram over 50 kg**.
+- **Transport Envelope**: Rover must fit inside a **1.2 m $\times$ 1.2 m $\times$ 1.2 m** volume during pre-mission weigh-in without disassembly (wheels and antennas may fold). Failure to fit incurs a **40% penalty**.
+- **Emergency Stop (E-Stop)**: A prominent red push-button emergency stop must be externally mounted to instantly sever all battery power.
+
+---
+
+## 7. Autonomous Features in Other Missions
+
+### Equipment Servicing Mission - Autonomous Typing (Section 1.d.ii)
+In addition to the Autonomy Mission, the Equipment Servicing Mission includes a dedicated autonomous scoring task:
+
+- Operators are given a 3 to 6-letter launch key before the mission.
+- The rover must autonomously position its robotic manipulator and type this launch key onto a physical keyboard.
+- Operators must declare autonomous mode to judges and remain hands-off the controls.
+
+---
+
+## 8. State Machine & Pipeline Requirements Matrix
+
+| Mission Phase / Task | Detection Modality | State Machine State | Tolerance / Threshold | Scoring Weight |
+| :--- | :--- | :--- | :--- | :---: |
+| **Astronaut Rendezvous** | Absolute GNSS coordinate | `eNavigating` | $\le$ 3.0 m radius stop | 5 pts |
+| **Follow! Astronaut** | Computer vision gesture / Speech audio / Visual sign | `eApproachingMarker` / Custom Follow State | $\le$ 3.0 m following stop | 15 pts max |
+| **Stay! In Place** | Zero velocity command hold | `eIdle` / `ePaused` | Complete standstill | 5 pts |
+| **Fetch! Hammer** | YOLOv8s object detection (`RockPick`) | `eApproachingObject` + Manipulator Planner | Autonomous grasp & lift | 10 pts |
+| **Come! To Astronaut** | Person detection / Relative beacon | `eNavigating` | $\le$ 3.0 m radius stop | 5 pts |
+| **Give! Release Tool** | Manipulator release trigger | End-effector open | Autonomous drop/place | 5 pts |
+| **Route Finding: Hill Target** | USGS DEM + 2.5D A* (`GeoPlanner`) + ArUco (`DICT_4X4_50`) | `eNavigating` $\rightarrow$ `eApproachingMarker` | $\le$ 1.0 m radius stop | 25 pts |
+| **Route Finding: Non-LOS Target** | Pure offline autonomous navigation (no C2 link) | `eNavigating` $\rightarrow$ `eApproachingMarker` | $\le$ 1.0 m radius stop | 25 pts |
 
 
-
-ewpage
-
+\newpage
 
 # Perception Subsystem
 
@@ -669,9 +719,7 @@ Converting 2D pixel coordinates $(u, v)$ into 3D global UTM waypoints is perform
 - **Rotational Blur**: High angular turn rates cause pixel smearing across the CMOS sensor. The drive kinematics damp turning rates during active tracking to preserve frame sharpness.
 
 
-
-ewpage
-
+\newpage
 
 # Path Planning Subsystem
 
@@ -712,6 +760,7 @@ The `GeoPlanner` (`src/algorithms/planners/GeoPlanner.cpp`) is a specialized geo
 
 ### A. 2.5D Costmap Generation
 Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner` constructs a continuous 2.5D costmap using preprocessed USGS LiDAR data from `LiDARHandler` (sourced from the team's [USGS_Data repository](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)):
+
 - **Terrain Metrics**: Each spatial cell evaluates local surface normal vectors ($N_x, N_y, N_z$), slope gradient, surface roughness, and curvature.
 - **Traversal Score**: A composite traversal score ($0.0 = \text{impassable cliff/boulder}$, $1.0 = \text{flat open ground}$) is assigned to each cell. Cells with scores below `dMinTravScore` are marked non-traversable.
 - **Obstacle Dilation**: To prevent the rover chassis from clipping edges, non-traversable cells undergo multiple morphological dilation passes (`nDilationPasses`, default 2), expanding obstacles by an inflation margin.
@@ -729,6 +778,7 @@ Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner`
 
 ### C. Tile Management and Caching
 To maintain high runtime performance:
+
 - `GeoPlanner` caches evaluated grid tiles in memory.
 - When traversing long distances, distant tiles can be cleared using `UnloadLiDARTiles()` or `ClearGeoCache()`.
 
@@ -773,6 +823,7 @@ When the rover reaches the vicinity coordinate of an ArUco post or ground object
 ## 4. Path Splicing and Dynamic Recovery (`StuckState.cpp`)
 
 If the rover encounters an unmapped obstruction or becomes stuck during transit:
+
 - **Obstacle Injection (`DeclareObstacle`)**:
   When `StuckState::Start()` initiates, it computes an obstacle position projected `constants::STUCK_OBSTACLE_DISTANCE` (default 1.0 m) ahead along the rover's current heading:
   $$E_{\text{obs}} = E_{\text{rover}} + d_{\text{obs}} \cos(\theta), \quad N_{\text{obs}} = N_{\text{rover}} + d_{\text{obs}} \sin(\theta)$$
@@ -809,9 +860,7 @@ If the rover encounters an unmapped obstruction or becomes stuck during transit:
 - **Grid Resolution vs Compute**: Reducing `dGridResolution` below 0.25 meters dramatically increases open-set node evaluations. A resolution of 0.5 meters provides optimal balance between path fidelity and real-time responsiveness.
 
 
-
-ewpage
-
+\newpage
 
 # Control and Actuation Subsystem
 
@@ -857,17 +906,20 @@ The autonomy software includes three lateral controllers:
 
 ### 1. PID Controller (`PIDController.cpp`)
 Used for orienting the rover toward single waypoints, search legs, or during visual servoing:
+
 - Evaluates heading error: $e_\theta = \theta_{\text{goal}} - \theta_{\text{actual}}$.
 - Continuous angle wraparound ($0^\circ$ to $360^\circ$) prevents $350^\circ \rightarrow 10^\circ$ boundary wraps from triggering full reverse spins.
 - Output produces a normalized turn effort ($u \in [-1.0, 1.0]$).
 
 ### 2. Predictive Stanley Controller (`PredictiveStanleyController.cpp`)
 Used for following continuous, multi-waypoint paths generated by `GeoPlanner`:
+
 - Simultaneously minimizes **heading error** ($\theta_e$) and **cross-track error** ($e_{\text{ct}}$, perpendicular distance to the reference path line).
 - Implements a unicycle kinematic prediction model (`UnicycleModel.hpp`) projecting the rover state $N$ timesteps into the future to compensate for chassis mass and actuation lag.
 
 ### 3. Pure Pursuit Controller (`PurePursuitController.cpp`)
 Alternative geometric path follower:
+
 - Identifies a lookahead waypoint at a defined lookahead distance ($L_d$) along the path.
 - Calculates the constant curvature arc required to reach that point from the rover's current pose.
 
@@ -890,6 +942,7 @@ $$\text{Left} = \frac{\text{Left}}{\text{Power}_{\text{max}}}, \quad \text{Right
 
 ### C. Curvature Drive Kinematics
 Controls the radius of curvature rather than raw turning rate:
+
 - At higher speeds, steering sensitivity is dynamically scaled down to prevent violent rollovers.
 - When forward velocity is near zero, point-turning is permitted if `DRIVE_CURVATURE_KINEMATICS_ALLOW_TURN_WHILE_STOPPED` is true.
 
@@ -906,6 +959,7 @@ Raw kinematic commands pass through multi-layered safety conditioning before tra
 
 ### Inclinometer Slope Damping
 The `DriveBoard` subscribes to telemetry from the rover's onboard inclinometer:
+
 - Computes effective slope angle $\phi$ as a weighted combination of roll and pitch:
   $$\phi = w_{\text{roll}} \cdot |\text{Roll}| + w_{\text{pitch}} \cdot |\text{Pitch}|$$
   (Roll is weighted higher because skid-steer rovers are more susceptible to lateral roll-overs).
@@ -932,9 +986,7 @@ All final track outputs are clamped to `constants::DRIVE_MAX_SAFE_POWER` (e.g., 
 - `manifest::Core::COMMANDS["DRIVELEFTRIGHT"]`: RoveComm UDP packet containing two 32-bit floats $[P_{\text{left}}, P_{\text{right}}] \in [-1.0, 1.0]$.
 
 
-
-ewpage
-
+\newpage
 
 # PID Controller
 
@@ -945,6 +997,7 @@ The `PIDController` class (`src/algorithms/controllers/PIDController.h`) impleme
 ## 1. Primary Use Cases
 
 The primary application in Autonomy Software is **Heading and Steering Control**:
+
 - When turning the rover toward a goal waypoint or orienting the chassis toward an ArUco marker, the difference between goal heading and current heading is evaluated as an error signal.
 - The PID controller outputs a normalized rotational effort $u \in [-1.0, 1.0]$ passed to the differential drive kinematics.
 
@@ -978,20 +1031,24 @@ The `PIDController` class includes several features designed for physical ground
 
 ### Continuous Input Wraparound
 Compass headings wrap from $360^\circ$ to $0^\circ$. Without handling, navigating from $355^\circ$ to $5^\circ$ would compute an error of $-350^\circ$, causing a full counter-clockwise rotation instead of a $10^\circ$ clockwise turn.
+
 - Calling `EnableContinuousInput(0.0, 360.0)` automatically detects the shortest angular distance across the boundary.
 
 ### Integral Windup Prevention
 If the rover is physically obstructed, the integral term can accumulate unbounded error, causing massive overshoot or violent motor spin once the obstacle clears.
+
 - `SetMaxIntegralEffort(double dMaxEffort)` clamps the maximum contribution of $u_I$:
   $$|u_I(k)| \le \text{constants::DRIVE\_PID\_MAX\_INTEGRAL\_TERM}$$
 
 ### Output Slew Rate Limiting (Ramp Rate)
 Instantaneous step changes from $0.0$ to $1.0$ effort can strip motor gearbox teeth or trigger overcurrent cutoffs.
+
 - `SetOutputRampRate(double dMaxRatePerSecond)` limits the rate of change of the output:
   $$|u(k) - u(k-1)| \le \text{constants::DRIVE\_PID\_MAX\_RAMP\_RATE} \cdot \Delta t$$
 
 ### Output Low-Pass Filter
 Noisy IMU data can cause high-frequency derivative chatter.
+
 - `SetOutputFilter(double dFilterAlpha)` applies an exponential moving average to smooth output signals before passing them to motor drivers:
   $$u_{\text{filtered}}(k) = \alpha \cdot u(k) + (1 - \alpha) \cdot u_{\text{filtered}}(k-1)$$
 
@@ -1011,9 +1068,7 @@ Noisy IMU data can cause high-frequency derivative chatter.
 | `DRIVE_PID_TOLERANCE` | `double` | Deadband tolerance | Error threshold within which the controller declares alignment achieved. |
 
 
-
-ewpage
-
+\newpage
 
 # Predictive Stanley Controller
 
@@ -1113,9 +1168,7 @@ globals::g_pDriveBoard->SendDrive();
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Pure Pursuit Controller
 
@@ -1208,9 +1261,7 @@ globals::g_pDriveBoard->SendDrive();
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Cameras
 
@@ -1260,6 +1311,7 @@ if (fuFrameReady.get() && fuPointcloudReady.get())
 ```
 
 Behind the scenes:
+
 - `m_qFrameCopySchedule` queues incoming subscriber requests.
 - An internal thread pool (`BS::thread_pool`) processes the queue, copying data into destination buffers in parallel.
 
@@ -1268,6 +1320,7 @@ Behind the scenes:
 ## 3. Basic Camera Interface (`BasicCamera.hpp` & `BasicCam.cpp`)
 
 For non-stereoscopic tasks (such as inspecting ground clearance, verifying robotic arm end-effectors, or streaming auxiliary web feeds), the software uses `BasicCam`:
+
 - Wraps OpenCV's `cv::VideoCapture` for standard V4L2 USB cameras on Linux.
 - In simulation mode, `SIMBasicCam` receives virtual feeds via WebRTC channels.
 - Employs identical asynchronous `RequestFrameCopy()` semantics, ensuring consistent consumer APIs across all camera types.
@@ -1287,9 +1340,7 @@ For non-stereoscopic tasks (such as inspecting ground clearance, verifying robot
 | `ZED_MAINCAM_SERIAL` | `0` | Hardware serial number to differentiate head and rear cameras on USB bus. |
 
 
-
-ewpage
-
+\newpage
 
 # ArUco Tag Detection
 
@@ -1340,11 +1391,13 @@ The `TagDetector` class inherits from `AutonomyThread<void>` and executes contin
 
 ### 2. LibTorch YOLO Fallback
 When distance exceeds 10 meters, dust occludes corners, or direct sunlight washes out the tag face, classical ArUco fails to detect the geometric square.
+
 - A custom YOLO neural network trained on marker silhouettes runs via LibTorch (`yolomodel::pytorch::PyTorchInterpreter`).
 - If YOLO detects a tag bounding box with confidence $\ge \text{constants::TAGDETECT\_MAINCAM\_TORCH\_CONFIDENCE}$, the rover begins approaching the candidate blob using visual servoing until close enough for OpenCV to decode the exact integer ID.
 
 ### 3. Temporal Validation and Tracking
 Visual noise and random terrain patterns can produce instantaneous false positive detections.
+
 - Before a tag is marked valid by `TagDetectionChecker::IdentifyTargetMarker()`, its bounding box must occupy at least `constants::BBOX_MIN_SCREEN_PERCENTAGE` of the camera image and persist for at least `constants::BBOX_MIN_LIFETIME_THRESHOLD` (typically 0.5 seconds).
 - Active locks are tracked between neural network inferences using OpenCV KCF or CSRT trackers.
 
@@ -1372,14 +1425,13 @@ Knowing a tag exists in frame is insufficient; the control system requires the s
 ## 4. Usage in State Machine
 
 Inside `ApproachingMarkerState`:
+
 - Visual servoing feeds $\theta_{\text{yaw}}$ into the heading PID controller, commanding point-turns or curved approaches to center the tag in the frame.
 - Forward speed is modulated based on $d_{\text{straight}}$.
 - When $d_{\text{straight}} \le \text{constants::APPROACH\_MARKER\_PROXIMITY\_THRESHOLD}$ (e.g., 2.0 meters), the state machine triggers `Event::eReachedMarker` to transition to `eVerifyingMarker`.
 
 
-
-ewpage
-
+\newpage
 
 # Object Detection
 
@@ -1436,6 +1488,7 @@ Unlike fiducial markers with geometric patterns, natural ground props require co
 ## 2. Target Classification and Parsing
 
 The system detects three primary competition classes:
+
 - **Mallet**: Orange rubber mallet (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::MALLET`).
 - **Water Bottle**: 1-liter plastic bottle (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::WATERBOTTLE`).
 - **Rock Pick**: Geologist rock hammer (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ROCKPICK`).
@@ -1461,15 +1514,14 @@ Because competition props vary in dimensions and orientation, estimating distanc
 ## 4. Usage in State Machine
 
 During mission execution:
+
 - In `eNavigating` or `eSearchPattern`, `ObjectDetectionChecker` monitors for target detections.
 - Upon confirming a valid object, the state machine triggers `Event::eObjectSeen` and transitions to `eApproachingObject`.
 - The rover visual-servos toward the object until distance drops below `constants::APPROACH_OBJECT_PROXIMITY_THRESHOLD`.
 - The state machine triggers `Event::eReachedObject`, transitioning to `eVerifyingObject` to halt, confirm the detection hit-rate over time, and signal the C2 station.
 
 
-
-ewpage
-
+\newpage
 
 # Vision Utilities
 
@@ -1507,6 +1559,7 @@ Neural network inference on high-resolution frames requires significant GPU cycl
 ## 3. `Geolocate.hpp`
 
 Provides the `geoloc::GeolocateBox()` function, which bridges the 2D optical frame and the 3D UTM global frame:
+
 - **Neighborhood Depth Sampling**: Evaluates an $N \times N$ pixel window around a detected object centroid within the ZED camera's `CV_32FC4` point cloud.
 - **20th Percentile Depth Isolation**: Filters background terrain points to measure the distance to the front surface of the object.
 - **Monocular Ground Plane Raycast Fallback**: If depth data is missing (due to glare or occlusion), it executes a pinhole geometric raycast using known camera mounting height and pitch angle.
@@ -1534,9 +1587,7 @@ Provides the `geoloc::GeolocateBox()` function, which bridges the 2D optical fra
   - Enables asynchronous frame retrieval pipelines across threads without blocking capture loops.
 
 
-
-ewpage
-
+\newpage
 
 # State Machine Handler
 
@@ -1638,9 +1689,7 @@ void RealignZEDHeading(const double dNewActualHeading, const double dCurrentZEDH
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Camera Handler
 
@@ -1699,9 +1748,7 @@ if (fuFrame.get() && fuCloud.get())
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Tag Detection Handler
 
@@ -1721,6 +1768,7 @@ The `TagDetectionHandler` (`src/handlers/TagDetectionHandler.h` & `TagDetectionH
 ## 2. Managed Detectors
 
 The handler provides access to detectors via the `TagDetectors` enumeration:
+
 - **`TagDetectors::eHeadMainCam`**: Primary detector analyzing frames from the forward mast camera.
 - **`TagDetectors::eRearCam`**: Secondary detector monitoring the rear camera feed when enabled.
 
@@ -1749,9 +1797,7 @@ cv::Mat cvAnnotatedFrame = globals::g_pTagDetectionHandler->RequestDetectionOver
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Object Detection Handler
 
@@ -1772,6 +1818,7 @@ The `ObjectDetectionHandler` (`src/handlers/ObjectDetectionHandler.h` & `ObjectD
 ## 2. Managed Detectors
 
 Access to detector instances is provided via the `ObjectDetectors` enumeration:
+
 - **`ObjectDetectors::eHeadMainCam`**: Primary detector analyzing the forward camera stream.
 - **`ObjectDetectors::eRearCam`**: Secondary detector analyzing the rear camera stream when enabled.
 
@@ -1800,9 +1847,7 @@ cv::Mat cvAnnotatedFrame = globals::g_pObjectDetectionHandler->RequestDetectionO
 ```
 
 
-
-ewpage
-
+\newpage
 
 # LiDAR Handler
 
@@ -1850,6 +1895,7 @@ Queries can be conditioned using `LiDARHandler::PointFilter`, specifying min/max
 ## 3. Database Engine: DuckDB
 
 The handler leverages **DuckDB** rather than traditional relational engines:
+
 - **Columnar Execution Engine**: Optimized for analytical vectorized queries on large numerical datasets.
 - **Embedded Operation**: Runs in-process without requiring background server daemons.
 - **Thread Safety**: Uses `std::shared_mutex` to allow concurrent read queries across `GeoPlanner` and `VisualizationHandler` threads.
@@ -1887,6 +1933,7 @@ vSteepObstacles = globals::g_pLiDARHandler->GetPointsWithFilter(stFilter);
 
 ### A. USGS LiDAR Point Cloud Storage Repository
 The spatial elevation and terrain point clouds queried by `LiDARHandler` are sourced from the USGS 3D Elevation Program (3DEP) and processed into indexed DuckDB databases. Raw LAS/LAZ point cloud tiles, pre-generated DuckDB database artifacts, and ingestion scripts are hosted on the team's GitLab server:
+
 - **USGS LiDAR Dataset Repository**: [MissouriMRDT/USGS_Data](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)
 - **MRDT GitLab Organization**: [MissouriMRDT GitLab](https://gitlab.themrdt.org/MissouriMRDT)
 
@@ -1894,15 +1941,14 @@ Developers running simulations or offline tests requiring local terrain maps sho
 
 ### B. Online LiDAR Visualizer Tool
 Terrain point clouds, cross-sectional elevation profiles, and traversability slopes can be visualized interactively in the web browser without launching local DuckDB instances:
+
 - **Interactive LiDAR Visualizer**: [visualizer.themrdt.org/lidar-tool/](https://visualizer.themrdt.org/lidar-tool/)
 
 This tool supports inspecting 3D colored point distributions, evaluating elevation gradients, and testing traversability threshold configurations across competition terrains.
 
 
 
-
-ewpage
-
+\newpage
 
 # Waypoint Handler
 
@@ -1990,9 +2036,7 @@ The `WaypointHandler` provides key-value storage for computed navigation paths v
 
 
 
-
-ewpage
-
+\newpage
 
 # Recording Handler
 
@@ -2048,9 +2092,7 @@ enum class RecordingMode
 | `OBJECTDETECT_REARCAM_ENABLE_RECORDING` | `bool` | Enables recording of YOLO prop detection overlays on rear camera. |
 
 
-
-ewpage
-
+\newpage
 
 # Drive Board Driver
 
@@ -2097,6 +2139,7 @@ The calculation follows three sequential steps:
 ## 3. Inclinometer Safety Damping (`VariableDriveEffort`)
 
 The driver registers a RoveComm callback listening for `manifest::Core::TELEMETRY["INCLINOMETERDATA"]`:
+
 - Extracts chassis `Pitch` and `Roll` in degrees.
 - Computes effective slope angle $\phi$:
   $$\phi = w_{\text{roll}} \cdot |\text{Roll}| + w_{\text{pitch}} \cdot |\text{Pitch}|$$
@@ -2125,9 +2168,7 @@ void SetDifferentialControlMethod(diffdrive::DifferentialControlMethod eMethod);
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Navigation Board Driver
 
@@ -2148,6 +2189,7 @@ The `NavigationBoard` driver (`src/drivers/NavigationBoard.h` & `NavigationBoard
 ## 2. Ingested Data Streams
 
 The driver registers RoveComm callbacks for two primary telemetry packets:
+
 - **`GPSLATLON`**: Contains double-precision latitude, longitude, altitude, and fix accuracy metrics.
 - **`IMUDATA`**: Contains double-precision compass heading ($0^\circ$ to $360^\circ$ clockwise from North) and heading accuracy estimate in degrees.
 
@@ -2156,6 +2198,7 @@ The driver registers RoveComm callbacks for two primary telemetry packets:
 ## 3. Data Freshness Guard (`IsOutOfDate`)
 
 GPS antennas can lose satellite lock, and network lines can experience dropped packets.
+
 - Every incoming GPS packet updates `m_tmLastGPSUpdateTime`.
 - Every incoming compass packet updates `m_tmLastCompassUpdateTime`.
 - The `IsOutOfDate()` method checks:
@@ -2169,6 +2212,7 @@ GPS antennas can lose satellite lock, and network lines can experience dropped p
 ## 4. Concurrency and Thread Safety
 
 Telemetry arrives on the `RoveCommUDP` background thread while multiple autonomy threads (`StateMachineHandler`, `GeoPlanner`, `VisualizationHandler`, `DriveBoard`) read navigation state simultaneously.
+
 - Thread safety is enforced through granular `std::shared_mutex` instances:
   - `m_muLocationMutex`
   - `m_muHeadingMutex`
@@ -2198,9 +2242,7 @@ bool IsOutOfDate();
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Multimedia Board Driver
 
@@ -2257,9 +2299,7 @@ MultimediaBoardLightingState GetCurrentLightingState() const;
 ```
 
 
-
-ewpage
-
+\newpage
 
 # AutonomyThread Interface
 
@@ -2350,9 +2390,7 @@ watcher.Join();
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Thread Pools
 
@@ -2407,9 +2445,7 @@ The primary consumer of thread pooling in the software is camera buffer distribu
 4. Instead, the camera pushes a copy task for each active subscriber into its thread pool. Workers execute the matrix copies simultaneously in parallel, allowing the hardware capture loop to immediately fetch the next frame.
 
 
-
-ewpage
-
+\newpage
 
 # RoveComm Networking Protocol
 
@@ -2530,9 +2566,7 @@ network::g_pRoveCommUDPNode->AddUDPCallback<double>(
 Because `RoveCommUDP` runs on its own background thread, incoming socket packets are unpacked, matched to their `DATA_ID`, and dispatched to their registered callbacks automatically without polling.
 
 
-
-ewpage
-
+\newpage
 
 # Log Files & The Quill Logging Engine
 
@@ -2705,9 +2739,7 @@ LOG_CRITICAL(logging::g_qSharedLogger, "Failed to bind RoveComm UDP socket to po
 ```
 
 
-
-ewpage
-
+\newpage
 
 # Camera Feeds & Video Recording
 
@@ -2828,9 +2860,7 @@ Recording behavior is selectively controlled in `src/AutonomyConstants.cpp`:
 3. **Shutdown**: When the main loop exits (via signal or `Q` key), the parent handler stop calls signal the `RecordingHandler` thread to finish writing remaining frames, close the `cv::VideoWriter` streams cleanly, and finalize file containers on disk.
 
 
-
-ewpage
-
+\newpage
 
 # Path Plots, Analytics, and Post-Mortem Graphing
 
@@ -2911,14 +2941,13 @@ While `log_playback.py` operates offline after a run, real-time spatial trajecto
 For standalone benchmarking, algorithm evaluation, and C++ plotting routines, the build environment provides pre-compiled packages for **Matplot++** (located in `tools/package-builders/matplotplusplus/`). 
 
 Matplot++ provides a C++ syntax mirroring MATLAB plotting functions, allowing developers to:
+
 - Export costmap heatmaps and elevation contours directly from DuckDB point queries.
 - Plot A* search trees, open sets, and closed sets during path planning algorithm tuning.
 - Save high-resolution vector plots (`.svg` or `.png`) for technical design reports and competition review documentation.
 
 
-
-ewpage
-
+\newpage
 
 # 3D Interactive Visualization & The Visualization Engine
 
@@ -3045,6 +3074,7 @@ The internal `SimpleWebServer` exposes endpoints on port 8080 (configurable via 
 ## 5. Web Client Features
 
 The frontend application renders the digital twin with the following layers:
+
 - **Rover Model & Coordinate Frame**: Indicates current position and orientation in real-time.
 - **Path History Ribbon**: Color-coded line tracing where the rover has driven, shaded by the traversal cost of the terrain beneath it.
 - **Planned Path Spline**: Cyan path vector showing the route generated by `GeoPlanner`.
@@ -3086,9 +3116,7 @@ In addition to the onboard lightweight web server running on port 8080, the team
 
 
 
-
-ewpage
-
+\newpage
 
 # Autonomy Constants Reference & Tuning Guide
 
@@ -3273,9 +3301,7 @@ Dynamically down-scales motor throttle as terrain slope steepens to prevent high
 | `NAVBOARD_ALTITUDE_OFFSET` | `double` | `0.85` | GPS antenna mounting offset in Altitude axis above ground plane (meters). |
 
 
-
-ewpage
-
+\newpage
 
 # CMake Build Configuration & Options
 
@@ -3378,9 +3404,7 @@ The CMake build automatically locates and links the following system packages:
 - **RoveComm**: Missouri MRDT telemetry transport layer.
 
 
-
-ewpage
-
+\newpage
 
 # Autonomy Troubleshooting & Field Diagnostics Guide
 
@@ -3481,9 +3505,7 @@ The autonomy main loop runs in non-canonical terminal mode (`SetNonCanonicalTerm
   3. Ensure DuckDB shared libraries are correctly located in the system library path.
 
 
-
-ewpage
-
+\newpage
 
 # Autonomy Pre-Flight & Operations Checklist
 
@@ -3610,7 +3632,5 @@ Waypoints are queued into the autonomy system via the Basestation GUI or through
   - Run `python3 tools/logging/log_playback.py logs/<timestamp>/console_output.csv` to review controller tracking fidelity and telemetry timelines.
 
 
-
-ewpage
-
+\newpage
 

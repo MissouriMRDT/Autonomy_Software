@@ -77,6 +77,7 @@ While `log_playback.py` operates offline after a run, real-time spatial trajecto
 For standalone benchmarking, algorithm evaluation, and C++ plotting routines, the build environment provides pre-compiled packages for **Matplot++** (located in `tools/package-builders/matplotplusplus/`). 
 
 Matplot++ provides a C++ syntax mirroring MATLAB plotting functions, allowing developers to:
+
 - Export costmap heatmaps and elevation contours directly from DuckDB point queries.
 - Plot A* search trees, open sets, and closed sets during path planning algorithm tuning.
 - Save high-resolution vector plots (`.svg` or `.png`) for technical design reports and competition review documentation.

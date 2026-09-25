@@ -37,6 +37,7 @@ The `GeoPlanner` (`src/algorithms/planners/GeoPlanner.cpp`) is a specialized geo
 
 ### A. 2.5D Costmap Generation
 Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner` constructs a continuous 2.5D costmap using preprocessed USGS LiDAR data from `LiDARHandler` (sourced from the team's [USGS_Data repository](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)):
+
 - **Terrain Metrics**: Each spatial cell evaluates local surface normal vectors ($N_x, N_y, N_z$), slope gradient, surface roughness, and curvature.
 - **Traversal Score**: A composite traversal score ($0.0 = \text{impassable cliff/boulder}$, $1.0 = \text{flat open ground}$) is assigned to each cell. Cells with scores below `dMinTravScore` are marked non-traversable.
 - **Obstacle Dilation**: To prevent the rover chassis from clipping edges, non-traversable cells undergo multiple morphological dilation passes (`nDilationPasses`, default 2), expanding obstacles by an inflation margin.
@@ -54,6 +55,7 @@ Rather than assuming a flat 2D plane with binary open/closed cells, `GeoPlanner`
 
 ### C. Tile Management and Caching
 To maintain high runtime performance:
+
 - `GeoPlanner` caches evaluated grid tiles in memory.
 - When traversing long distances, distant tiles can be cleared using `UnloadLiDARTiles()` or `ClearGeoCache()`.
 
@@ -98,6 +100,7 @@ When the rover reaches the vicinity coordinate of an ArUco post or ground object
 ## 4. Path Splicing and Dynamic Recovery (`StuckState.cpp`)
 
 If the rover encounters an unmapped obstruction or becomes stuck during transit:
+
 - **Obstacle Injection (`DeclareObstacle`)**:
   When `StuckState::Start()` initiates, it computes an obstacle position projected `constants::STUCK_OBSTACLE_DISTANCE` (default 1.0 m) ahead along the rover's current heading:
   $$E_{\text{obs}} = E_{\text{rover}} + d_{\text{obs}} \cos(\theta), \quad N_{\text{obs}} = N_{\text{rover}} + d_{\text{obs}} \sin(\theta)$$

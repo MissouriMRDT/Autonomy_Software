@@ -28,6 +28,7 @@ The Autonomy Software project uses Docker and Visual Studio Code Dev Containers 
 
 ### Container Environment Details
 The container environment provides:
+
 - **Compilers and Toolchain**: GCC 10.0 (strictly enforced by `CMakeLists.txt`), CMake 3.24.3+, LLD linker (`-fuse-ld=lld`), C++20 standard, CUDA 12 / 11 matching the ZED SDK.
 - **Machine Learning**: LibTorch (PyTorch C++ frontend) with CUDA acceleration for YOLO object and tag detection.
 - **Computer Vision**: OpenCV 4.x with CUDA modules, Stereolabs ZED SDK 4.x.
@@ -73,6 +74,7 @@ make -j$(nproc)
 ```
 
 In simulation mode:
+
 - The output binary is named `Autonomy_Software_Sim`.
 - The software connects to Unreal Engine RoveSoSimulator via WebRTC (LibDataChannel) and local RoveComm endpoints rather than physical hardware boards and cameras.
 

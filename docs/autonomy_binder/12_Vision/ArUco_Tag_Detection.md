@@ -47,11 +47,13 @@ The `TagDetector` class inherits from `AutonomyThread<void>` and executes contin
 
 ### 2. LibTorch YOLO Fallback
 When distance exceeds 10 meters, dust occludes corners, or direct sunlight washes out the tag face, classical ArUco fails to detect the geometric square.
+
 - A custom YOLO neural network trained on marker silhouettes runs via LibTorch (`yolomodel::pytorch::PyTorchInterpreter`).
 - If YOLO detects a tag bounding box with confidence $\ge \text{constants::TAGDETECT\_MAINCAM\_TORCH\_CONFIDENCE}$, the rover begins approaching the candidate blob using visual servoing until close enough for OpenCV to decode the exact integer ID.
 
 ### 3. Temporal Validation and Tracking
 Visual noise and random terrain patterns can produce instantaneous false positive detections.
+
 - Before a tag is marked valid by `TagDetectionChecker::IdentifyTargetMarker()`, its bounding box must occupy at least `constants::BBOX_MIN_SCREEN_PERCENTAGE` of the camera image and persist for at least `constants::BBOX_MIN_LIFETIME_THRESHOLD` (typically 0.5 seconds).
 - Active locks are tracked between neural network inferences using OpenCV KCF or CSRT trackers.
 
@@ -79,6 +81,7 @@ Knowing a tag exists in frame is insufficient; the control system requires the s
 ## 4. Usage in State Machine
 
 Inside `ApproachingMarkerState`:
+
 - Visual servoing feeds $\theta_{\text{yaw}}$ into the heading PID controller, commanding point-turns or curved approaches to center the tag in the frame.
 - Forward speed is modulated based on $d_{\text{straight}}$.
 - When $d_{\text{straight}} \le \text{constants::APPROACH\_MARKER\_PROXIMITY\_THRESHOLD}$ (e.g., 2.0 meters), the state machine triggers `Event::eReachedMarker` to transition to `eVerifyingMarker`.

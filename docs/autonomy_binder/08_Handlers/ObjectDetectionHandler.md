@@ -17,6 +17,7 @@ The `ObjectDetectionHandler` (`src/handlers/ObjectDetectionHandler.h` & `ObjectD
 ## 2. Managed Detectors
 
 Access to detector instances is provided via the `ObjectDetectors` enumeration:
+
 - **`ObjectDetectors::eHeadMainCam`**: Primary detector analyzing the forward camera stream.
 - **`ObjectDetectors::eRearCam`**: Secondary detector analyzing the rear camera stream when enabled.
 

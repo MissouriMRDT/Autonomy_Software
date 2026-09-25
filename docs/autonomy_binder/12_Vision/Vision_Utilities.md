@@ -34,6 +34,7 @@ Neural network inference on high-resolution frames requires significant GPU cycl
 ## 3. `Geolocate.hpp`
 
 Provides the `geoloc::GeolocateBox()` function, which bridges the 2D optical frame and the 3D UTM global frame:
+
 - **Neighborhood Depth Sampling**: Evaluates an $N \times N$ pixel window around a detected object centroid within the ZED camera's `CV_32FC4` point cloud.
 - **20th Percentile Depth Isolation**: Filters background terrain points to measure the distance to the front surface of the object.
 - **Monocular Ground Plane Raycast Fallback**: If depth data is missing (due to glare or occlusion), it executes a pinhole geometric raycast using known camera mounting height and pitch angle.

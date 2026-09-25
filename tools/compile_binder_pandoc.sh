@@ -44,7 +44,7 @@ grep -o '([0-9a-zA-Z_/]*\.md)' "$BINDER_DIR/00_Table_of_Contents.md" | tr -d '()
         # and instead use native markdown or latex.
         # Then we append a LaTeX newpage.
         cat "$BINDER_DIR/$file" >> "$OUTPUT_MD"
-        echo -e "\n\n\\newpage\n\n" >> "$OUTPUT_MD"
+        printf '\n\n\\newpage\n\n' >> "$OUTPUT_MD"
     fi
 done
 

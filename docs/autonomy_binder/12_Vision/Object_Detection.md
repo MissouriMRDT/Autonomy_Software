@@ -53,6 +53,7 @@ Unlike fiducial markers with geometric patterns, natural ground props require co
 ## 2. Target Classification and Parsing
 
 The system detects three primary competition classes:
+
 - **Mallet**: Orange rubber mallet (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::MALLET`).
 - **Water Bottle**: 1-liter plastic bottle (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::WATERBOTTLE`).
 - **Rock Pick**: Geologist rock hammer (`manifest::Autonomy::AUTONOMYWAYPOINTTYPES::ROCKPICK`).
@@ -78,6 +79,7 @@ Because competition props vary in dimensions and orientation, estimating distanc
 ## 4. Usage in State Machine
 
 During mission execution:
+
 - In `eNavigating` or `eSearchPattern`, `ObjectDetectionChecker` monitors for target detections.
 - Upon confirming a valid object, the state machine triggers `Event::eObjectSeen` and transitions to `eApproachingObject`.
 - The rover visual-servos toward the object until distance drops below `constants::APPROACH_OBJECT_PROXIMITY_THRESHOLD`.

@@ -46,6 +46,7 @@ if (fuFrameReady.get() && fuPointcloudReady.get())
 ```
 
 Behind the scenes:
+
 - `m_qFrameCopySchedule` queues incoming subscriber requests.
 - An internal thread pool (`BS::thread_pool`) processes the queue, copying data into destination buffers in parallel.
 
@@ -54,6 +55,7 @@ Behind the scenes:
 ## 3. Basic Camera Interface (`BasicCamera.hpp` & `BasicCam.cpp`)
 
 For non-stereoscopic tasks (such as inspecting ground clearance, verifying robotic arm end-effectors, or streaming auxiliary web feeds), the software uses `BasicCam`:
+
 - Wraps OpenCV's `cv::VideoCapture` for standard V4L2 USB cameras on Linux.
 - In simulation mode, `SIMBasicCam` receives virtual feeds via WebRTC channels.
 - Employs identical asynchronous `RequestFrameCopy()` semantics, ensuring consistent consumer APIs across all camera types.

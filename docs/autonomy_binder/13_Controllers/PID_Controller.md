@@ -7,6 +7,7 @@ The `PIDController` class (`src/algorithms/controllers/PIDController.h`) impleme
 ## 1. Primary Use Cases
 
 The primary application in Autonomy Software is **Heading and Steering Control**:
+
 - When turning the rover toward a goal waypoint or orienting the chassis toward an ArUco marker, the difference between goal heading and current heading is evaluated as an error signal.
 - The PID controller outputs a normalized rotational effort $u \in [-1.0, 1.0]$ passed to the differential drive kinematics.
 
@@ -40,20 +41,24 @@ The `PIDController` class includes several features designed for physical ground
 
 ### Continuous Input Wraparound
 Compass headings wrap from $360^\circ$ to $0^\circ$. Without handling, navigating from $355^\circ$ to $5^\circ$ would compute an error of $-350^\circ$, causing a full counter-clockwise rotation instead of a $10^\circ$ clockwise turn.
+
 - Calling `EnableContinuousInput(0.0, 360.0)` automatically detects the shortest angular distance across the boundary.
 
 ### Integral Windup Prevention
 If the rover is physically obstructed, the integral term can accumulate unbounded error, causing massive overshoot or violent motor spin once the obstacle clears.
+
 - `SetMaxIntegralEffort(double dMaxEffort)` clamps the maximum contribution of $u_I$:
   $$|u_I(k)| \le \text{constants::DRIVE\_PID\_MAX\_INTEGRAL\_TERM}$$
 
 ### Output Slew Rate Limiting (Ramp Rate)
 Instantaneous step changes from $0.0$ to $1.0$ effort can strip motor gearbox teeth or trigger overcurrent cutoffs.
+
 - `SetOutputRampRate(double dMaxRatePerSecond)` limits the rate of change of the output:
   $$|u(k) - u(k-1)| \le \text{constants::DRIVE\_PID\_MAX\_RAMP\_RATE} \cdot \Delta t$$
 
 ### Output Low-Pass Filter
 Noisy IMU data can cause high-frequency derivative chatter.
+
 - `SetOutputFilter(double dFilterAlpha)` applies an exponential moving average to smooth output signals before passing them to motor drivers:
   $$u_{\text{filtered}}(k) = \alpha \cdot u(k) + (1 - \alpha) \cdot u_{\text{filtered}}(k-1)$$
 

@@ -43,6 +43,7 @@ The calculation follows three sequential steps:
 ## 3. Inclinometer Safety Damping (`VariableDriveEffort`)
 
 The driver registers a RoveComm callback listening for `manifest::Core::TELEMETRY["INCLINOMETERDATA"]`:
+
 - Extracts chassis `Pitch` and `Roll` in degrees.
 - Computes effective slope angle $\phi$:
   $$\phi = w_{\text{roll}} \cdot |\text{Roll}| + w_{\text{pitch}} \cdot |\text{Pitch}|$$

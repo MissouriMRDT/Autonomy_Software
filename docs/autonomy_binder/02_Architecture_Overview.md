@@ -85,6 +85,7 @@ Communication between the Jetson computing platform and distributed rover subsys
 
 ### Manifest Binding
 All communication relies on `RoveCommManifest.h`. Packet headers define:
+
 - `unDataId`: Unique 16-bit identifier for the command or telemetry stream.
 - `unDataCount`: Number of elements contained in the payload array.
 - `eDataType`: Primitive type (`UINT8_T`, `INT32_T`, `FLOAT_T`, `DOUBLE_T`).

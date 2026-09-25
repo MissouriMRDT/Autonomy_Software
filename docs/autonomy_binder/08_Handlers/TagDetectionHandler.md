@@ -16,6 +16,7 @@ The `TagDetectionHandler` (`src/handlers/TagDetectionHandler.h` & `TagDetectionH
 ## 2. Managed Detectors
 
 The handler provides access to detectors via the `TagDetectors` enumeration:
+
 - **`TagDetectors::eHeadMainCam`**: Primary detector analyzing frames from the forward mast camera.
 - **`TagDetectors::eRearCam`**: Secondary detector monitoring the rear camera feed when enabled.
 

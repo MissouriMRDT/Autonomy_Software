@@ -44,6 +44,7 @@ Queries can be conditioned using `LiDARHandler::PointFilter`, specifying min/max
 ## 3. Database Engine: DuckDB
 
 The handler leverages **DuckDB** rather than traditional relational engines:
+
 - **Columnar Execution Engine**: Optimized for analytical vectorized queries on large numerical datasets.
 - **Embedded Operation**: Runs in-process without requiring background server daemons.
 - **Thread Safety**: Uses `std::shared_mutex` to allow concurrent read queries across `GeoPlanner` and `VisualizationHandler` threads.
@@ -81,6 +82,7 @@ vSteepObstacles = globals::g_pLiDARHandler->GetPointsWithFilter(stFilter);
 
 ### A. USGS LiDAR Point Cloud Storage Repository
 The spatial elevation and terrain point clouds queried by `LiDARHandler` are sourced from the USGS 3D Elevation Program (3DEP) and processed into indexed DuckDB databases. Raw LAS/LAZ point cloud tiles, pre-generated DuckDB database artifacts, and ingestion scripts are hosted on the team's GitLab server:
+
 - **USGS LiDAR Dataset Repository**: [MissouriMRDT/USGS_Data](https://gitlab.themrdt.org/MissouriMRDT/USGS_Data)
 - **MRDT GitLab Organization**: [MissouriMRDT GitLab](https://gitlab.themrdt.org/MissouriMRDT)
 
@@ -88,6 +90,7 @@ Developers running simulations or offline tests requiring local terrain maps sho
 
 ### B. Online LiDAR Visualizer Tool
 Terrain point clouds, cross-sectional elevation profiles, and traversability slopes can be visualized interactively in the web browser without launching local DuckDB instances:
+
 - **Interactive LiDAR Visualizer**: [visualizer.themrdt.org/lidar-tool/](https://visualizer.themrdt.org/lidar-tool/)
 
 This tool supports inspecting 3D colored point distributions, evaluating elevation gradients, and testing traversability threshold configurations across competition terrains.
