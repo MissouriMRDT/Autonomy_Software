@@ -1,1 +1,152 @@
-<!-- Custom head elements for Autonomy Binder -->
+<style>
+  /* =========================================================
+     Responsive & Wide Layout Scaling for Autonomy Binder
+     ========================================================= */
+
+  /* Desktop and Large Displays (> 960px) */
+  @media screen and (min-width: 961px) {
+    body {
+      padding: 40px 30px;
+    }
+
+    .wrapper {
+      width: 92%;
+      max-width: 1450px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr);
+      grid-template-rows: 1fr auto;
+      column-gap: 55px;
+    }
+
+    header {
+      grid-column: 1;
+      grid-row: 1;
+      width: 100%;
+      float: none;
+      position: sticky;
+      top: 40px;
+      height: fit-content;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
+
+    section {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      width: 100%;
+      float: none;
+      max-width: none;
+      padding-bottom: 60px;
+    }
+
+    footer {
+      grid-column: 1;
+      grid-row: 2;
+      width: 100%;
+      float: none;
+      position: static;
+      bottom: auto;
+      padding-top: 25px;
+    }
+  }
+
+  /* Ultra-wide / 1440p+ displays */
+  @media screen and (min-width: 1700px) {
+    .wrapper {
+      max-width: 1600px;
+      grid-template-columns: 320px minmax(0, 1fr);
+      column-gap: 70px;
+    }
+  }
+
+  /* Mobile and Tablet (<= 960px) Reset */
+  @media screen and (max-width: 960px) {
+    body {
+      padding: 25px 20px;
+    }
+
+    .wrapper {
+      width: 100%;
+      display: block;
+    }
+
+    header {
+      width: 100% !important;
+      padding-right: 0 !important;
+      float: none !important;
+      position: static !important;
+    }
+
+    header ul,
+    .binder-nav ul {
+      position: static !important;
+      right: auto !important;
+      top: auto !important;
+      margin: 15px 0 !important;
+    }
+
+    section {
+      width: 100% !important;
+      float: none !important;
+    }
+
+    footer {
+      width: 100% !important;
+      position: static !important;
+      float: none !important;
+      bottom: auto !important;
+      margin-top: 30px;
+    }
+  }
+
+  /* Content area typography & spacing enhancements */
+  section p, section li {
+    line-height: 1.65;
+  }
+
+  section table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 25px 0;
+  }
+
+  section pre {
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: 6px;
+    margin: 20px 0;
+  }
+
+  /* Sidebar navigation enhancements */
+  .binder-nav hr {
+    margin: 20px 0 15px 0;
+  }
+
+  .binder-nav ul {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 10px 0 20px 0;
+  }
+
+  .binder-nav ul li {
+    margin-bottom: 7px;
+    line-height: 1.35;
+  }
+
+  .binder-nav ul li a {
+    display: inline-block;
+    padding: 3px 0;
+    font-size: 13.5px;
+    text-decoration: none;
+  }
+
+  .binder-nav ul li strong.active-nav {
+    display: inline-block;
+    padding: 3px 0;
+    font-size: 13.5px;
+  }
+</style>
