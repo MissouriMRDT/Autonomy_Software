@@ -1,0 +1,38 @@
+title: Autonomy Software Binder
+description: Central engineering reference and operations manual for the MRDT Autonomy Software.
+
+url: "https://docs.themrdt.org"
+baseurl: "/autonomy/_j"
+
+remote_theme: "godalming123/minimal"
+plugins:
+  - jekyll-remote-theme
+
+repository: "MissouriMRDT/Autonomy_Software"
+
+navigation:
+  - link: "/"
+    name: "Home"
+  - link: "/01_Quick_Start_and_Ops.html"
+    name: "Quick Start & Ops"
+  - link: "/02_Architecture_Overview.html"
+    name: "Architecture"
+  - link: "/03_The_State_Machine.html"
+    name: "State Machine"
+  - link: "/14_URC_Rules/URC_Autonomy_Rules.html"
+    name: "URC 2027 Rules"
+  - link: "https://docs.themrdt.org/autonomy/_d/"
+    name: "Doxygen API Reference"
+  - link: "https://docs.themrdt.org"
+    name: "Return to RoveSoDocs"
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - "*.pdf"
+  - "Autonomy_Binder_Pandoc.md"
