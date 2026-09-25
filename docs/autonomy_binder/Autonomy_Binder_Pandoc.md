@@ -2,7 +2,7 @@
 title: "Autonomy Software Binder"
 subtitle: "Source of Truth & Operations Manual"
 author: "Mars Rover Design Team"
-date: "September 08, 2026"
+date: "September 25, 2026"
 geometry: margin=1in
 colorlinks: true
 ---
@@ -341,11 +341,11 @@ The autonomy system defines 10 discrete states (`statemachine::States`):
 | `eSearchPattern` | **Search Pattern** | Executed when the rover arrives at the vicinity of a marker or object but cannot visually identify it. Drives systematic geometric patterns (Spiral, ZigZag, Snake) around the waypoint coordinate. |
 | `eApproachingMarker` | **Approaching Marker** | Visual servoing state. Activates once an ArUco tag is detected. Uses trigonometric pose estimation from `TagDetectionUtilty.hpp` to drive directly toward the tag face. |
 | `eApproachingObject` | **Approaching Object** | Object-tracking servoing state. Activates once a target prop (mallet, bottle, rock pick) is detected by YOLO. Tracks the bounding box and approaches the geolocated coordinate. |
-| `eVerifyingPosition` | **Verifying Position** | Stop-and-sample state for GNSS-only waypoints. The rover remains stationary for `NAVIGATING_VERIFY_SAMPLE_TIME` seconds to average GPS coordinates and confirm arrival within tolerance. |
+| `eVerifyingPosition` | **Verifying Position** | Stop-and-sample state for GNSS-only waypoints. The rover remains stationary for `NAVIGATING_VERIFY_SAMPLE_TIME` (10.0 seconds) to average GPS coordinates and confirm arrival within tolerance. |
 | `eVerifyingMarker` | **Verifying Marker** | Stationary confirmation state for AR tags. The rover stops in front of the tag for `APPROACH_MARKER_VERIFY_TIME` seconds, confirming tag visibility before declaring completion. |
 | `eVerifyingObject` | **Verifying Object** | Stationary confirmation state for ground objects. The rover halts and samples the YOLO detector across `APPROACH_OBJECT_VERIFY_TIME` seconds, verifying a minimum detection hit-rate. |
 | `eReversing` | **Reversing** | Fallback driving state. Drives backward for `constants::REVERSE_DISTANCE` at `constants::REVERSE_MOTOR_POWER` to back away from an obstruction or overshoot. |
-| `eStuck` | **Stuck** | Multi-phase recovery state. Triggered when motors are commanded but position/heading do not change. Executes sequential reversing and realignment attempts. |
+| `eStuck` | **Stuck** | Multi-phase recovery state. Triggered when motors are commanded but position/heading do not change. Executes sequential reversing and realignment attempts, followed by path splicing upon recovery. |
 
 ---
 
@@ -394,7 +394,8 @@ The table below details typical state transitions, their triggering events, and 
 | `eNavigating` | `eNoWaypoint` | `eIdle` | Mission queue completed. |
 | `eSearchPattern` | `eMarkerSeen` | `eApproachingMarker` | Tag spotted during search spiral; switches to visual servoing. |
 | `eSearchPattern` | `eObjectSeen` | `eApproachingObject` | Object spotted during search spiral; switches to visual approach. |
-| `eSearchPattern` | `eSearchFailed` | `eIdle` / Next Leg | Search area exhausted without detection; logs warning and proceeds. |
+| `eSearchPattern` | Outward Leg Complete | `eSearchPattern` | Switches to `SearchPatternType::END`, loads `"GeoPlannerPathReverse"` to sweep back inward to center. |
+| `eSearchPattern` | `eSearchFailed` | `eIdle` / Next Leg | Inward and outward search legs exhausted (`TargetIndex > size - 4`); logs warning and proceeds. |
 | `eApproachingMarker` | `eReachedMarker` | `eVerifyingMarker` | Rover within `APPROACH_MARKER_PROXIMITY_THRESHOLD` (e.g., 2.0 m). |
 | `eApproachingMarker` | `eMarkerUnseen` | `eSearchPattern` | Tag tracking lost for longer than buffer time; resumes search pattern. |
 | `eApproachingObject` | `eReachedObject` | `eVerifyingObject` | Rover within `APPROACH_OBJECT_PROXIMITY_THRESHOLD`. |
@@ -404,7 +405,7 @@ The table below details typical state transitions, their triggering events, and 
 | `eVerifyingObject` | `eVerifyingComplete` | `eNavigating` / `eIdle` | Object confirmed; flashes green LED, signals basestation, loads next leg. |
 | `eVerifyingPosition` | `eVerifyingComplete` | `eNavigating` / `eIdle` | Position confirmed within GPS error radius; loads next leg. |
 | *Any Moving State* | `eStuck` | `eStuck` | Motion detector confirmed motor stall; state preserved for recovery. |
-| `eStuck` | `eUnstuck` | *Previous State* | Rover escaped stall; recalled state resumes previous task. |
+| `eStuck` | `eUnstuck` | *Previous State* | Rover escaped stall; `ModifyPath()` splices around obstacle before resuming. |
 | *Any State* | `eAbort` | `eIdle` | Emergency abort commanded; motors stopped immediately. |
 
 ---
@@ -414,14 +415,20 @@ The table below details typical state transitions, their triggering events, and 
 ### Stuck State Recovery Machine (`StuckState.cpp`)
 Stuck detection is handled by `TimeIntervalBasedStuckDetector` (`src/util/states/StuckDetection.hpp`). If linear velocity is below `constants::STUCK_CHECK_VEL_THRESH` and angular velocity is below `constants::STUCK_CHECK_ROT_THRESH` while motors are commanding power for multiple consecutive intervals, `Event::eStuck` is dispatched.
 
-`StuckState` executes a four-tier recovery routine:
-1. **`AttemptType::eReverseCurrentHeading`**: The rover maintains its current heading, preserves its current state in `m_umSavedStates`, and dispatches `Event::eReverse`. The rover backs up by `REVERSE_DISTANCE`.
-2. **`AttemptType::eReverseLeft`**: If still stationary after reversing, the rover point-turns to `m_dOriginalHeading + constants::STUCK_ALIGN_DEGREES` and dispatches a second reversing attempt.
-3. **`AttemptType::eReverseRight`**: If still stuck, the rover point-turns to `m_dOriginalHeading - constants::STUCK_ALIGN_DEGREES` and reverses a third time.
-4. **`AttemptType::eGiveUp`**: If all three directional reversals fail to move the rover beyond `constants::STUCK_SAME_POINT_PROXIMITY`:
-   - It calls `DeclareObstacle()` to inject a virtual obstacle directly in front of the rover.
-   - It executes `SplicePath()` to excise the blocked region from the active waypoint route.
-   - It logs a critical failure and returns to `eIdle` or aborts the current leg.
+Upon entering `StuckState`:
+1. **Obstacle Declaration**: Immediately calls `DeclareObstacle()` to record a permanent circular obstacle of radius `constants::STUCK_OBSTACLE_RADIUS` (2.0 m) projected `constants::STUCK_OBSTACLE_DISTANCE` (1.0 m) along the rover's heading.
+2. **Sequential Recovery Routine**:
+   - **`AttemptType::eReverseCurrentHeading`**: Preserves active state in `m_umSavedStates`, maintains heading, and dispatches `Event::eReverse` to back up by `constants::REVERSE_DISTANCE`.
+   - **`AttemptType::eReverseLeft`**: If still stationary after reversing, point-turns to `m_dOriginalHeading + constants::STUCK_ALIGN_DEGREES` and dispatches a second reversing attempt.
+   - **`AttemptType::eReverseRight`**: If still stuck, point-turns to `m_dOriginalHeading - constants::STUCK_ALIGN_DEGREES` and reverses a third time.
+   - **`AttemptType::eGiveUp`**: If all three directional reversals fail to extricate the rover beyond `constants::STUCK_SAME_POINT_PROXIMITY` (0.5 m), it logs a warning and dispatches `Event::eAbort` to return to `eIdle`.
+3. **Dynamic Path Modification on Recovery (`Event::eUnstuck`)**:
+   Once physical displacement from the stuck location exceeds `constants::STUCK_SAME_POINT_PROXIMITY`, the state fires `Event::eUnstuck`, invoking `ModifyPath()`:
+   - Queries the obstacle record at index `GetObstaclesCount() - 1`.
+   - Executes `SplicePath()` on `"GeoPlannerPath"` (and `"GeoPlannerPathReverse"` if the triggering state was `eSearchPattern`).
+   - Excises trapped waypoints while preserving the final goal node (`it != std::prev(vPath.end())`).
+   - Connects the detour using `GeoPlanner::PlanPath()`, falling back to the current rover UTM pose if the initial waypoint was deleted.
+   - Resumes the saved triggering state (`m_eTriggeringState`) with the updated obstacle-free path.
 
 ### Battery Protection Failsafe
 The state machine monitors battery metrics via RoveComm PMS telemetry. If `BATTERY_CHECKS_ENABLED` is true and any cell drops below `constants::BATTERY_MINIMUM_CELL_VOLTAGE` (default 3.2V), the state machine forcefully dispatches `Event::eAbort` to transition to `eIdle` and halt motor output, preventing battery degradation.
@@ -726,12 +733,27 @@ To maintain high runtime performance:
 
 When the rover reaches the vicinity coordinate of an ArUco post or ground object but does not detect it, the state machine enters `eSearchPattern`. `SearchPattern` mathematically constructs structured search paths:
 
-1. **Archimedean Spiral**:
-   - Generates an expanding spiral around the origin coordinate $(E_0, N_0)$:
-     $$r(\theta) = \frac{d_{\text{spacing}}}{2\pi} \cdot \theta$$
-     $$E(\theta) = E_0 + r(\theta) \cos \theta, \quad N(\theta) = N_0 + r(\theta) \sin \theta$$
-   - Angular step is controlled by `constants::SEARCH_ANGULAR_STEP_DEGREES`, with spacing set by `constants::SEARCH_SPIRAL_SPACING`.
-   - Ensures exhaustive visual coverage of the vicinity radius without leaving blind spots.
+1. **Two-Phase Archimedean Spiral (`CalculateSpiralPatternWaypoints`)**:
+   - **Heading Initialization**: The starting angle is aligned with the rover's current compass heading:
+     $$\theta_0 = -\text{Heading}_{\text{degrees}} \times \frac{\pi}{180}$$
+   - **Phase 1: Outward Spiral (Expansion)**:
+     Generates an expanding Archimedean spiral around origin $(E_0, N_0)$:
+     $$r(\theta) = \frac{d_{\text{spacing}}}{2\pi} \cdot (\theta - \theta_0)$$
+     $$E(\theta) = E_0 + d_{\text{windup}} \cos \theta, \quad N(\theta) = N_0 + d_{\text{windup}} \sin \theta$$
+     Angular step size is governed by `constants::SEARCH_ANGULAR_STEP_DEGREES` (typically $15.0^\circ$), with radial arm separation controlled by `constants::SEARCH_SPIRAL_SPACING` (typically $2.0$ m). Outward generation continues until reaching the designated search radius $R$.
+   - **Phase 2: Inward Spiral (Return Sweep)**:
+     Upon reaching the outer boundary $R$, the algorithm immediately generates an inward spiral winding back toward the origin until $r \ge 0.5$ m and radial spacing wind-up reaches $0.0$:
+     $$d_{\text{windup}} \leftarrow d_{\text{windup}} - d_{\text{spacing}}$$
+     This inward sweep provides a continuous second-chance search pass and guides the rover back to the vicinity center without leaving it stranded at the outer perimeter.
+   - **Dual-Path Splitting in `SearchPatternState`**:
+     After filtering red-zone terrain and passing through `GeoPlanSearchPattern()`, the planned trajectory is split into two halves:
+     - **Forward Spiral (`vFirstHalf`)**: Stored in `WaypointHandler` as `"GeoPlannerPath"`, assigned to `PurePursuitController`.
+     - **Reverse Return Spiral (`vSecondHalf`)**: Cached in `WaypointHandler` as `"GeoPlannerPathReverse"`.
+     If the outward leg completes without acquiring the target, the state machine transitions `m_eCurrentSearchPatternType` to `SearchPatternType::END`, retrieves `"GeoPlannerPathReverse"`, promotes it to `"GeoPlannerPath"`, and navigates back to center.
+   - **Completion Safeguard**:
+     To prevent false search pattern completion (which can occur if the rover's start position passes within the completion radius of the origin early in the maneuver), `bReachedFinalTarget` is guarded by target index verification:
+     $$\text{TargetIndex} > \text{size}(v_{\text{SearchPath}}) - 4$$
+     Only when the lookahead tracker has actively traversed through to the final segments of the path is `eSearchFailed` permitted to trigger.
 2. **ZigZag / Lawnmower Pattern**:
    - Generates alternating parallel transects spaced by `constants::SEARCH_ZIGZAG_SPACING`.
    - Used in directional terrain features (e.g., canyon floors or ridgelines).
@@ -740,12 +762,26 @@ When the rover reaches the vicinity coordinate of an ArUco post or ground object
 
 ---
 
-## 4. Path Splicing and Dynamic Recovery
+## 4. Path Splicing and Dynamic Recovery (`StuckState.cpp`)
 
 If the rover encounters an unmapped obstruction or becomes stuck during transit:
-- `StuckState::DeclareObstacle()` calculates the obstacle coordinate in front of the rover.
-- `StuckState::SplicePath()` iterates through the active waypoint vector and excises all intermediate waypoints falling within `constants::STUCK_OBSTACLE_RADIUS` of the declared blockage.
-- The path planner then splices a new connecting segment from the rover's current position around the obstacle to the nearest downstream clear node.
+- **Obstacle Injection (`DeclareObstacle`)**:
+  When `StuckState::Start()` initiates, it computes an obstacle position projected `constants::STUCK_OBSTACLE_DISTANCE` (default 1.0 m) ahead along the rover's current heading:
+  $$E_{\text{obs}} = E_{\text{rover}} + d_{\text{obs}} \cos(\theta), \quad N_{\text{obs}} = N_{\text{rover}} + d_{\text{obs}} \sin(\theta)$$
+  This obstacle is permanently recorded in `WaypointHandler` with radius `constants::STUCK_OBSTACLE_RADIUS` (default 2.0 m).
+- **Recovery Maneuvers**:
+  The rover executes staged directional reversals (`eReverseCurrentHeading`, `eReverseLeft`, `eReverseRight`). Once displacement from the stuck origin exceeds `constants::STUCK_SAME_POINT_PROXIMITY` (default 0.5 m), the state machine dispatches `Event::eUnstuck`, invoking `ModifyPath()`.
+- **Dynamic Path Splicing (`SplicePath`)**:
+  1. **Direct Cache Modification**: Splicing directly modifies `"GeoPlannerPath"` in place (and also splices `"GeoPlannerPathReverse"` if recovering during `SearchPatternState`), eliminating legacy intermediate path keys (`"stuckPath"`, `"unstuckPath"`, `"RevSpiralPath"`).
+  2. **Boundary Safeguards**:
+     - Verifies `GetObstaclesCount() > 0` before querying obstacle records.
+     - Retrieves the most recently added obstacle at index `GetObstaclesCount() - 1`.
+     - Strictly preserves the final destination waypoint: `it != std::prev(vPath.end())` prevents goal point excision.
+  3. **Node Removal and GeoPlanner Re-route**:
+     - Waypoint nodes falling within $(E - E_{\text{obs}})^2 + (N - N_{\text{obs}})^2 \le R_{\text{obs}}^2$ are excised via `vPath.erase()`.
+     - When leaving the obstacle zone, `GeoPlanner::PlanPath()` generates a connecting detour between the last valid waypoint before the obstacle and the first valid waypoint beyond it.
+     - **Head-Deletion Handling**: If the very first node of the path is within the obstacle radius, `stStartCoordinate` automatically falls back to `stCurrentRoverPose.GetUTMCoordinate()`.
+     - Iterator advancement correctly skips over newly inserted detour nodes (`vSplicePathCoordinates.size() - 2`), preventing duplicate processing or iterator invalidation.
 
 ---
 
@@ -1042,7 +1078,18 @@ This output is fed directly into `DriveBoard::CalculateMove()`, which uses the h
 
 ---
 
-## 5. Usage Example
+## 5. Implementation Safeguards
+
+- **Minimum Path Node Requirement**:
+  The `Calculate()` method enforces that the reference path contains at least 2 points (`m_vReferencePath.size() < 2`). If the reference path has 0 or 1 waypoint, `Calculate()` logs a warning:
+  ```
+  PredictiveStanleyController::Calculate: Reference path has fewer than 2 points. Cannot calculate drive powers.
+  ```
+  and returns `DriveVector{0.0, 0.0}`. This prevents segmentation faults and undefined behavior when evaluating line segment tangents or cross-track projections near the terminal end of a path.
+
+---
+
+## 6. Usage Example
 
 ```cpp
 // Set the reference path generated by GeoPlanner
@@ -1123,7 +1170,18 @@ struct DriveVector
 
 ---
 
-## 5. Usage Example
+## 5. Implementation Safeguards
+
+- **Minimum Path Node Requirement**:
+  The `Calculate()` method enforces that the reference path contains at least 2 points (`m_vReferencePath.size() < 2`). If the reference path has 0 or 1 waypoint, `Calculate()` logs a warning:
+  ```
+  PurePursuitController::Calculate: Reference path has fewer than 2 points. Cannot calculate drive powers.
+  ```
+  and returns `DriveVector{0.0, 0.0}`. This prevents undefined behavior or segmentation faults when evaluating terminal path segments, calculating projection vectors (`stLastPoint` and `stSecondToLastPoint`), or computing lookahead intersections on degenerate paths.
+
+---
+
+## 6. Usage Example
 
 ```cpp
 // Instantiate with a 2.5 meter lookahead distance
@@ -1336,7 +1394,9 @@ Unlike fiducial markers with geometric patterns, natural ground props require co
         |
         v
 [Inference on GPU] (LibTorch torch::jit::load)
- - Model: OBJECTDETECT_TORCH_MODEL (.pt TorchScript)
+ - Model: OBJECTDETECT_TORCH_MODEL (.torchscript)
+ - BMP v6 (Baseline): v8s_x640_150epochs_augment/best.torchscript
+ - BMP v7 (Tucumcari): v8s_x640_100epochs_augment/best_tucumcari_arugmented_model.torchscript
         |
         v
 [Post-Processing]
@@ -1356,6 +1416,12 @@ Unlike fiducial markers with geometric patterns, natural ground props require co
         v
 [objectdetectutils::Object Struct]
 ```
+
+### Supported TorchScript Models
+- **BMP v6 Baseline (`bmp_v6/v8s_x640_150epochs_augment/best.torchscript`)**:
+  YOLOv8s trained for 150 epochs with standard photometric augmentation.
+- **BMP v7 Tucumcari Augmented (`bmp_v7/v8s_x640_100epochs_augment/best_tucumcari_arugmented_model.torchscript`)**:
+  YOLOv8s trained for 100 epochs with specialized desert terrain data augmentation specifically captured for the Tucumcari competition site, optimizing detection under extreme midday sunlight and shadows.
 
 ---
 
@@ -1687,7 +1753,7 @@ The `ObjectDetectionHandler` (`src/handlers/ObjectDetectionHandler.h` & `ObjectD
 
 ## 1. Primary Responsibilities
 
-1. **Model Loading and Management**: Loads custom LibTorch YOLO models (`OBJECTDETECT_TORCH_MODEL`) onto GPU memory via CUDA.
+1. **Model Loading and Management**: Loads custom LibTorch YOLO models (`OBJECTDETECT_TORCH_MODEL`) onto GPU memory via CUDA (supporting both baseline `bmp_v6` and competition-tuned `bmp_v7` Tucumcari weights).
 2. **Detector Lifecycle Management**: Instantiates and initializes `ObjectDetector` instances for assigned cameras (`eHeadMainCam`, `eRearCam`).
 3. **Bounding Box Tracking Integration**: Coordinates OpenCV CSRT/KCF multi-object trackers between neural network inferences to reduce compute load.
 4. **Debug Overlay Streaming**: Generates annotated frames (`RequestDetectionOverlayFrame()`) displaying bounding boxes, class labels, and confidence scores.
@@ -1881,6 +1947,21 @@ const std::vector<geoops::Waypoint> RetrievePath(const std::string& szPathName);
 void AddObstacle(const geoops::Waypoint& stObstacle);
 const std::vector<geoops::Waypoint> GetAllObstacles();
 ```
+
+---
+
+## 5. Standardized Path Caching Keys
+
+The `WaypointHandler` provides key-value storage for computed navigation paths via `StorePath(szPathName, vWaypointPath)` and `RetrievePath(szPathName)`. The autonomy system standardizes on two primary path keys to coordinate state machine operations:
+
+| Path Key Name | Generating / Owning State | Description & Usage |
+| :--- | :--- | :--- |
+| `"GeoPlannerPath"` | `GeoPlanner` / `SearchPatternState` / `StuckState` | **Primary Active Navigation Path**. Stores the global A* path generated between the rover's starting pose and the current target destination waypoint. In `SearchPatternState`, stores the first half (`vFirstHalf`) of the Archimedean spiral trajectory representing outward expansion. In `StuckState`, obstacle avoidance splices are applied directly into this path, replacing previous node sequences with obstacle coordinates and rover pose fallback points. |
+| `"GeoPlannerPathReverse"` | `SearchPatternState` / `StuckState` | **Inward Spiral Sweep Path**. Stores the second half (`vSecondHalf`) of the Archimedean spiral trajectory generated by `SearchPattern::GenerateSpiral()`. Once the outward expansion is fully traversed, `SearchPatternState` loads this trajectory into the controller to navigate the rover back to the search pattern origin center. If an obstacle is detected during the reverse inward sweep, `StuckState` modifies this path directly. |
+
+> [!NOTE] Legacy Key Deprecation
+> Previous implementations utilized transient path keys such as `"stuckPath"`, `"unstuckPath"`, and `"RevSpiralPath"`. These have been deprecated and removed. All path tracking, obstacle splicing, and state transitions now operate exclusively and symmetrically on `"GeoPlannerPath"` and `"GeoPlannerPathReverse"`.
+
 
 
 
@@ -3084,8 +3165,8 @@ Dynamically down-scales motor throttle as terrain slope steepens to prevent high
 | `BBOX_TRACKER_LOST_TIMEOUT` | `double` | `1.0` | Maximum time (seconds) a lost tracker will extrapolate position before deregistration. |
 | `BBOX_TRACKER_MAX_TRACK_TIME` | `double` | `30.0` | Maximum lifespan (seconds) of a continuous bounding box track before mandatory re-detection. |
 | `BBOX_TRACKER_IOU_MATCH_THRESHOLD` | `double` | `0.3` | Intersection-over-Union threshold for associating new neural inferences with active trackers. |
-| `TAGDETECT_TORCH_MODEL` | `std::string` | `"data/Models/best_tag.pt"` | TorchScript weight path for YOLO ArUco detection model. |
-| `OBJECTDETECT_TORCH_MODEL` | `std::string` | `"data/Models/best_object.pt"` | TorchScript weight path for YOLO competition object model. |
+| `TAGDETECT_TORCH_MODEL` | `std::string` | `"../data/models/yolo_models/best_tag.torchscript"` | TorchScript weight path for YOLO ArUco detection model. |
+| `OBJECTDETECT_TORCH_MODEL` | `std::string` | `"../data/models/yolo_models/bmp_v6/v8s_x640_150epochs_augment/best.torchscript"` | TorchScript weight path for YOLO competition object model (or Tucumcari model `bmp_v7/v8s_x640_100epochs_augment/best_tucumcari_arugmented_model.torchscript`). |
 | `TAGDETECT_MAINCAM_TORCH_CONFIDENCE` | `float` | `0.55` | Confidence score cutoff for ArUco tag neural detections. |
 | `TAGDETECT_MAINCAM_TORCH_NMS_THRESH` | `float` | `0.45` | Non-Maximum Suppression IoU threshold for tag bounding boxes. |
 | `OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE` | `float` | `0.60` | Confidence cutoff for Mallet, Water Bottle, and Rock Pick detections. |
@@ -3103,7 +3184,7 @@ Dynamically down-scales motor throttle as terrain slope steepens to prevent high
 | `NAVIGATING_MOTOR_POWER` | `double` | `0.6` | Base motor power scalar while in `NavigatingState`. |
 | `NAVIGATING_REACHED_GOAL_RADIUS` | `double` | `1.5` | Arrival tolerance radius (meters) around a target navigation waypoint. |
 | `NAVIGATING_VERIFY_POSITION` | `bool` | `true` | When true, stops rover at waypoint and averages GPS samples to verify arrival. |
-| `NAVIGATING_VERIFY_SAMPLE_TIME` | `double` | `2.0` | Duration (seconds) rover samples GPS to confirm arrival at waypoint. |
+| `NAVIGATING_VERIFY_SAMPLE_TIME` | `double` | `10.0` | Duration (seconds) rover remains stationary to sample and average GPS fixes to confirm arrival at waypoint. Reduced from 30.0s to minimize mission clock penalty. |
 | `NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS` | `bool` | `true` | Toggles linear speed deceleration as rover closes within waypoint arrival radius. |
 | `APPROACH_MARKER_MOTOR_POWER` | `double` | `0.35` | Motor power scalar while actively homing in on an ArUco post. |
 | `APPROACH_MARKER_PROXIMITY_THRESHOLD` | `double` | `1.0` | Target standoff distance (meters) for completing marker approach phase. |

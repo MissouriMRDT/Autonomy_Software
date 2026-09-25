@@ -6,7 +6,7 @@ The `ObjectDetectionHandler` (`src/handlers/ObjectDetectionHandler.h` & `ObjectD
 
 ## 1. Primary Responsibilities
 
-1. **Model Loading and Management**: Loads custom LibTorch YOLO models (`OBJECTDETECT_TORCH_MODEL`) onto GPU memory via CUDA.
+1. **Model Loading and Management**: Loads custom LibTorch YOLO models (`OBJECTDETECT_TORCH_MODEL`) onto GPU memory via CUDA (supporting both baseline `bmp_v6` and competition-tuned `bmp_v7` Tucumcari weights).
 2. **Detector Lifecycle Management**: Instantiates and initializes `ObjectDetector` instances for assigned cameras (`eHeadMainCam`, `eRearCam`).
 3. **Bounding Box Tracking Integration**: Coordinates OpenCV CSRT/KCF multi-object trackers between neural network inferences to reduce compute load.
 4. **Debug Overlay Streaming**: Generates annotated frames (`RequestDetectionOverlayFrame()`) displaying bounding boxes, class labels, and confidence scores.

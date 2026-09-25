@@ -112,8 +112,8 @@ Dynamically down-scales motor throttle as terrain slope steepens to prevent high
 | `BBOX_TRACKER_LOST_TIMEOUT` | `double` | `1.0` | Maximum time (seconds) a lost tracker will extrapolate position before deregistration. |
 | `BBOX_TRACKER_MAX_TRACK_TIME` | `double` | `30.0` | Maximum lifespan (seconds) of a continuous bounding box track before mandatory re-detection. |
 | `BBOX_TRACKER_IOU_MATCH_THRESHOLD` | `double` | `0.3` | Intersection-over-Union threshold for associating new neural inferences with active trackers. |
-| `TAGDETECT_TORCH_MODEL` | `std::string` | `"data/Models/best_tag.pt"` | TorchScript weight path for YOLO ArUco detection model. |
-| `OBJECTDETECT_TORCH_MODEL` | `std::string` | `"data/Models/best_object.pt"` | TorchScript weight path for YOLO competition object model. |
+| `TAGDETECT_TORCH_MODEL` | `std::string` | `"../data/models/yolo_models/best_tag.torchscript"` | TorchScript weight path for YOLO ArUco detection model. |
+| `OBJECTDETECT_TORCH_MODEL` | `std::string` | `"../data/models/yolo_models/bmp_v6/v8s_x640_150epochs_augment/best.torchscript"` | TorchScript weight path for YOLO competition object model (or Tucumcari model `bmp_v7/v8s_x640_100epochs_augment/best_tucumcari_arugmented_model.torchscript`). |
 | `TAGDETECT_MAINCAM_TORCH_CONFIDENCE` | `float` | `0.55` | Confidence score cutoff for ArUco tag neural detections. |
 | `TAGDETECT_MAINCAM_TORCH_NMS_THRESH` | `float` | `0.45` | Non-Maximum Suppression IoU threshold for tag bounding boxes. |
 | `OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE` | `float` | `0.60` | Confidence cutoff for Mallet, Water Bottle, and Rock Pick detections. |
@@ -131,7 +131,7 @@ Dynamically down-scales motor throttle as terrain slope steepens to prevent high
 | `NAVIGATING_MOTOR_POWER` | `double` | `0.6` | Base motor power scalar while in `NavigatingState`. |
 | `NAVIGATING_REACHED_GOAL_RADIUS` | `double` | `1.5` | Arrival tolerance radius (meters) around a target navigation waypoint. |
 | `NAVIGATING_VERIFY_POSITION` | `bool` | `true` | When true, stops rover at waypoint and averages GPS samples to verify arrival. |
-| `NAVIGATING_VERIFY_SAMPLE_TIME` | `double` | `2.0` | Duration (seconds) rover samples GPS to confirm arrival at waypoint. |
+| `NAVIGATING_VERIFY_SAMPLE_TIME` | `double` | `10.0` | Duration (seconds) rover remains stationary to sample and average GPS fixes to confirm arrival at waypoint. Reduced from 30.0s to minimize mission clock penalty. |
 | `NAVIGATING_SLOWDOWN_WITHIN_WAYPOINT_RADIUS` | `bool` | `true` | Toggles linear speed deceleration as rover closes within waypoint arrival radius. |
 | `APPROACH_MARKER_MOTOR_POWER` | `double` | `0.35` | Motor power scalar while actively homing in on an ArUco post. |
 | `APPROACH_MARKER_PROXIMITY_THRESHOLD` | `double` | `1.0` | Target standoff distance (meters) for completing marker approach phase. |

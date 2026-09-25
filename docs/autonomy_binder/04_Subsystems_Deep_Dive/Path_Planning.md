@@ -63,12 +63,27 @@ To maintain high runtime performance:
 
 When the rover reaches the vicinity coordinate of an ArUco post or ground object but does not detect it, the state machine enters `eSearchPattern`. `SearchPattern` mathematically constructs structured search paths:
 
-1. **Archimedean Spiral**:
-   - Generates an expanding spiral around the origin coordinate $(E_0, N_0)$:
-     $$r(\theta) = \frac{d_{\text{spacing}}}{2\pi} \cdot \theta$$
-     $$E(\theta) = E_0 + r(\theta) \cos \theta, \quad N(\theta) = N_0 + r(\theta) \sin \theta$$
-   - Angular step is controlled by `constants::SEARCH_ANGULAR_STEP_DEGREES`, with spacing set by `constants::SEARCH_SPIRAL_SPACING`.
-   - Ensures exhaustive visual coverage of the vicinity radius without leaving blind spots.
+1. **Two-Phase Archimedean Spiral (`CalculateSpiralPatternWaypoints`)**:
+   - **Heading Initialization**: The starting angle is aligned with the rover's current compass heading:
+     $$\theta_0 = -\text{Heading}_{\text{degrees}} \times \frac{\pi}{180}$$
+   - **Phase 1: Outward Spiral (Expansion)**:
+     Generates an expanding Archimedean spiral around origin $(E_0, N_0)$:
+     $$r(\theta) = \frac{d_{\text{spacing}}}{2\pi} \cdot (\theta - \theta_0)$$
+     $$E(\theta) = E_0 + d_{\text{windup}} \cos \theta, \quad N(\theta) = N_0 + d_{\text{windup}} \sin \theta$$
+     Angular step size is governed by `constants::SEARCH_ANGULAR_STEP_DEGREES` (typically $15.0^\circ$), with radial arm separation controlled by `constants::SEARCH_SPIRAL_SPACING` (typically $2.0$ m). Outward generation continues until reaching the designated search radius $R$.
+   - **Phase 2: Inward Spiral (Return Sweep)**:
+     Upon reaching the outer boundary $R$, the algorithm immediately generates an inward spiral winding back toward the origin until $r \ge 0.5$ m and radial spacing wind-up reaches $0.0$:
+     $$d_{\text{windup}} \leftarrow d_{\text{windup}} - d_{\text{spacing}}$$
+     This inward sweep provides a continuous second-chance search pass and guides the rover back to the vicinity center without leaving it stranded at the outer perimeter.
+   - **Dual-Path Splitting in `SearchPatternState`**:
+     After filtering red-zone terrain and passing through `GeoPlanSearchPattern()`, the planned trajectory is split into two halves:
+     - **Forward Spiral (`vFirstHalf`)**: Stored in `WaypointHandler` as `"GeoPlannerPath"`, assigned to `PurePursuitController`.
+     - **Reverse Return Spiral (`vSecondHalf`)**: Cached in `WaypointHandler` as `"GeoPlannerPathReverse"`.
+     If the outward leg completes without acquiring the target, the state machine transitions `m_eCurrentSearchPatternType` to `SearchPatternType::END`, retrieves `"GeoPlannerPathReverse"`, promotes it to `"GeoPlannerPath"`, and navigates back to center.
+   - **Completion Safeguard**:
+     To prevent false search pattern completion (which can occur if the rover's start position passes within the completion radius of the origin early in the maneuver), `bReachedFinalTarget` is guarded by target index verification:
+     $$\text{TargetIndex} > \text{size}(v_{\text{SearchPath}}) - 4$$
+     Only when the lookahead tracker has actively traversed through to the final segments of the path is `eSearchFailed` permitted to trigger.
 2. **ZigZag / Lawnmower Pattern**:
    - Generates alternating parallel transects spaced by `constants::SEARCH_ZIGZAG_SPACING`.
    - Used in directional terrain features (e.g., canyon floors or ridgelines).
@@ -77,12 +92,26 @@ When the rover reaches the vicinity coordinate of an ArUco post or ground object
 
 ---
 
-## 4. Path Splicing and Dynamic Recovery
+## 4. Path Splicing and Dynamic Recovery (`StuckState.cpp`)
 
 If the rover encounters an unmapped obstruction or becomes stuck during transit:
-- `StuckState::DeclareObstacle()` calculates the obstacle coordinate in front of the rover.
-- `StuckState::SplicePath()` iterates through the active waypoint vector and excises all intermediate waypoints falling within `constants::STUCK_OBSTACLE_RADIUS` of the declared blockage.
-- The path planner then splices a new connecting segment from the rover's current position around the obstacle to the nearest downstream clear node.
+- **Obstacle Injection (`DeclareObstacle`)**:
+  When `StuckState::Start()` initiates, it computes an obstacle position projected `constants::STUCK_OBSTACLE_DISTANCE` (default 1.0 m) ahead along the rover's current heading:
+  $$E_{\text{obs}} = E_{\text{rover}} + d_{\text{obs}} \cos(\theta), \quad N_{\text{obs}} = N_{\text{rover}} + d_{\text{obs}} \sin(\theta)$$
+  This obstacle is permanently recorded in `WaypointHandler` with radius `constants::STUCK_OBSTACLE_RADIUS` (default 2.0 m).
+- **Recovery Maneuvers**:
+  The rover executes staged directional reversals (`eReverseCurrentHeading`, `eReverseLeft`, `eReverseRight`). Once displacement from the stuck origin exceeds `constants::STUCK_SAME_POINT_PROXIMITY` (default 0.5 m), the state machine dispatches `Event::eUnstuck`, invoking `ModifyPath()`.
+- **Dynamic Path Splicing (`SplicePath`)**:
+  1. **Direct Cache Modification**: Splicing directly modifies `"GeoPlannerPath"` in place (and also splices `"GeoPlannerPathReverse"` if recovering during `SearchPatternState`), eliminating legacy intermediate path keys (`"stuckPath"`, `"unstuckPath"`, `"RevSpiralPath"`).
+  2. **Boundary Safeguards**:
+     - Verifies `GetObstaclesCount() > 0` before querying obstacle records.
+     - Retrieves the most recently added obstacle at index `GetObstaclesCount() - 1`.
+     - Strictly preserves the final destination waypoint: `it != std::prev(vPath.end())` prevents goal point excision.
+  3. **Node Removal and GeoPlanner Re-route**:
+     - Waypoint nodes falling within $(E - E_{\text{obs}})^2 + (N - N_{\text{obs}})^2 \le R_{\text{obs}}^2$ are excised via `vPath.erase()`.
+     - When leaving the obstacle zone, `GeoPlanner::PlanPath()` generates a connecting detour between the last valid waypoint before the obstacle and the first valid waypoint beyond it.
+     - **Head-Deletion Handling**: If the very first node of the path is within the obstacle radius, `stStartCoordinate` automatically falls back to `stCurrentRoverPose.GetUTMCoordinate()`.
+     - Iterator advancement correctly skips over newly inserted detour nodes (`vSplicePathCoordinates.size() - 2`), preventing duplicate processing or iterator invalidation.
 
 ---
 

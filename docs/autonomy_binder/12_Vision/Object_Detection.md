@@ -19,7 +19,9 @@ Unlike fiducial markers with geometric patterns, natural ground props require co
         |
         v
 [Inference on GPU] (LibTorch torch::jit::load)
- - Model: OBJECTDETECT_TORCH_MODEL (.pt TorchScript)
+ - Model: OBJECTDETECT_TORCH_MODEL (.torchscript)
+ - BMP v6 (Baseline): v8s_x640_150epochs_augment/best.torchscript
+ - BMP v7 (Tucumcari): v8s_x640_100epochs_augment/best_tucumcari_arugmented_model.torchscript
         |
         v
 [Post-Processing]
@@ -39,6 +41,12 @@ Unlike fiducial markers with geometric patterns, natural ground props require co
         v
 [objectdetectutils::Object Struct]
 ```
+
+### Supported TorchScript Models
+- **BMP v6 Baseline (`bmp_v6/v8s_x640_150epochs_augment/best.torchscript`)**:
+  YOLOv8s trained for 150 epochs with standard photometric augmentation.
+- **BMP v7 Tucumcari Augmented (`bmp_v7/v8s_x640_100epochs_augment/best_tucumcari_arugmented_model.torchscript`)**:
+  YOLOv8s trained for 100 epochs with specialized desert terrain data augmentation specifically captured for the Tucumcari competition site, optimizing detection under extreme midday sunlight and shadows.
 
 ---
 

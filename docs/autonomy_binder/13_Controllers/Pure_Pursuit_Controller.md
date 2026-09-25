@@ -59,7 +59,18 @@ struct DriveVector
 
 ---
 
-## 5. Usage Example
+## 5. Implementation Safeguards
+
+- **Minimum Path Node Requirement**:
+  The `Calculate()` method enforces that the reference path contains at least 2 points (`m_vReferencePath.size() < 2`). If the reference path has 0 or 1 waypoint, `Calculate()` logs a warning:
+  ```
+  PurePursuitController::Calculate: Reference path has fewer than 2 points. Cannot calculate drive powers.
+  ```
+  and returns `DriveVector{0.0, 0.0}`. This prevents undefined behavior or segmentation faults when evaluating terminal path segments, calculating projection vectors (`stLastPoint` and `stSecondToLastPoint`), or computing lookahead intersections on degenerate paths.
+
+---
+
+## 6. Usage Example
 
 ```cpp
 // Instantiate with a 2.5 meter lookahead distance
