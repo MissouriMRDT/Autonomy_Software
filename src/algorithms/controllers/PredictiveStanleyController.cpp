@@ -81,11 +81,11 @@ namespace controllers
         double dSteeringAngle = 0.0;
         std::vector<UnicycleModel::Prediction> vPredictions;
 
-        // Check if the reference path is empty.
-        if (m_vReferencePath.empty())
+        // Check if the reference path has enough points to define a segment.
+        if (m_vReferencePath.size() < 2)
         {
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "PredictiveStanleyController::Calculate: Reference path is empty. Cannot calculate drive powers.");
+            LOG_WARNING(logging::g_qSharedLogger, "PredictiveStanleyController::Calculate: Reference path has fewer than 2 points. Cannot calculate drive powers.");
 
             return DriveVector{0.0, 0.0};
         }
