@@ -9,13 +9,58 @@
  ******************************************************************************/
 
 #include "WebRTC.h"
-#include "../../../AutonomyConstants.h"    // Added for constants::SIM_WEBRTC_QP
 #include "../../../AutonomyLogging.h"
 
 /// \cond
+#include <libavutil/pixdesc.h>
 #include <regex>
 
 /// \endcond
+
+/******************************************************************************
+ * @brief Construct a new H264PayloadFilter object.
+ *
+ * @param rtcMediaDescription - The negotiated video track description. Its H264 payload types are kept.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-25
+ ******************************************************************************/
+H264PayloadFilter::H264PayloadFilter(const rtc::Description::Media& rtcMediaDescription)
+{
+    // Remember every payload type mapped to H264. The simulator offers more than one H264 profile.
+    for (const int nPayloadType : rtcMediaDescription.payloadTypes())
+    {
+        const rtc::Description::Media::RtpMap* pRtpMap = rtcMediaDescription.rtpMap(nPayloadType);
+        if (pRtpMap != nullptr && pRtpMap->format == "H264")
+        {
+            m_vH264PayloadTypes.push_back(nPayloadType);
+        }
+    }
+}
+
+/******************************************************************************
+ * @brief Remove the RTP packets that are not H264. RTCP passes through untouched.
+ *
+ * @param vMessages - The incoming messages. Filtered in place.
+ * @param fnSend - Unused.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-25
+ ******************************************************************************/
+void H264PayloadFilter::incoming(rtc::message_vector& vMessages, [[maybe_unused]] const rtc::message_callback& fnSend)
+{
+    std::erase_if(vMessages,
+                  [this](const rtc::message_ptr& pMessage)
+                  {
+                      // RTCP arrives as control messages. Only RTP carries a payload type.
+                      if (pMessage->type != rtc::Message::Binary || pMessage->size() < sizeof(rtc::RtpHeader))
+                      {
+                          return false;
+                      }
+                      const uint8_t unPayloadType = reinterpret_cast<const rtc::RtpHeader*>(pMessage->data())->payloadType();
+                      return std::find(m_vH264PayloadTypes.begin(), m_vH264PayloadTypes.end(), unPayloadType) == m_vH264PayloadTypes.end();
+                  });
+}
 
 /******************************************************************************
  * @brief Construct a new Web RTC::WebRTC object.
@@ -32,9 +77,8 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     LOG_INFO(logging::g_qSharedLogger, "WebRTC camera constructing instance. Target URL: {}, StreamerID: {}", szSignallingServerURL, szStreamerID);
 
     // Set member variables.
-    m_szSignallingServerURL     = szSignallingServerURL;
-    m_szStreamerID              = szStreamerID;
-    m_tmLastKeyFrameRequestTime = std::chrono::system_clock::now();
+    m_szSignallingServerURL = szSignallingServerURL;
+    m_szStreamerID          = szStreamerID;
 
     // Setup the FFMPEG H264 decoder.
     if (this->InitializeH264Decoder())
@@ -45,6 +89,10 @@ WebRTC::WebRTC(const std::string& szSignallingServerURL, const std::string& szSt
     {
         LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Failed to initialize H264 Decoder!", m_szStreamerID);
     }
+
+    // Start the decoder thread and list it in the thread registry, so the visualizer graphs this stream's decoded FPS.
+    threadutils::ThreadRegistry::Instance().Register(&m_stDecodeTelemetry, m_szStreamerID);
+    m_thDecoder = std::jthread([this](std::stop_token stStopToken) { this->DecodeThread(stStopToken); });
 
     // Enable logging from the WebRTC LibDataChannel library for debugging.
     // rtc::InitLogger(rtc::LogLevel::Verbose);
@@ -75,6 +123,14 @@ WebRTC::~WebRTC()
 {
     LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} destructor called. Cleaning up...", m_szStreamerID);
     this->CloseConnection();
+
+    // Stop the decoder thread and wait for it to finish its current frame before freeing the decoder.
+    m_thDecoder.request_stop();
+    if (m_thDecoder.joinable())
+    {
+        m_thDecoder.join();
+    }
+    threadutils::ThreadRegistry::Instance().Unregister(&m_stDecodeTelemetry);
 
     // Free the codec context.
     if (m_pSWSContext)
@@ -344,13 +400,39 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                             }
                             else
                             {
-                                LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Streamer ID {} NOT found in streamer list!", m_szStreamerID, m_szStreamerID);
+                                // An empty list just means the sim is still loading. A list without our ID is likely a name mismatch.
+                                if (streamerList.empty())
+                                {
+                                    LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Simulator has no streamers yet. Retrying...", m_szStreamerID);
+                                }
+                                else
+                                {
+                                    LOG_WARNING(logging::g_qSharedLogger,
+                                                "WebRTC camera {} Streamer ID not found in streamer list {}. Retrying...",
+                                                m_szStreamerID,
+                                                jsnMessage["ids"].dump());
+                                }
+                                // The server only answers listStreamers once, so close the socket. The camera sees the stream
+                                // as disconnected and its reconnect loop asks again, instead of staying connected with no video.
+                                m_pWebSocket->close();
                             }
                         }
                         else
                         {
                             LOG_ERROR(logging::g_qSharedLogger, "WebRTC camera {} Streamer list does not contain 'ids' field!", m_szStreamerID);
                         }
+                    }
+                    // The signalling server drops clients that do not answer its keepalive pings.
+                    else if (szType == "ping")
+                    {
+                        // Echo the ping's timestamp back in a pong.
+                        nlohmann::json jsnPong;
+                        jsnPong["type"] = "pong";
+                        if (jsnMessage.contains("time"))
+                        {
+                            jsnPong["time"] = jsnMessage["time"];
+                        }
+                        m_pWebSocket->send(jsnPong.dump());
                     }
                     else
                     {
@@ -440,6 +522,9 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
             m_pTrack1H264DepacketizationHandler = std::make_shared<rtc::H264RtpDepacketizer>(rtc::NalUnit::Separator::LongStartSequence);
             m_pTrack1RtcpReceivingSession       = std::make_shared<rtc::RtcpReceivingSession>();
             m_pTrack1H264DepacketizationHandler->addToChain(m_pTrack1RtcpReceivingSession);
+            // Incoming packets run through the chain from its end, so the filter sees them first. That keeps RTX packets
+            // out of the depacketizer, and out of the RTCP session, which would otherwise track (and send PLIs to) the RTX SSRC.
+            m_pTrack1RtcpReceivingSession->addToChain(std::make_shared<H264PayloadFilter>(rtcMediaDescription));
             m_pVideoTrack1->setMediaHandler(m_pTrack1H264DepacketizationHandler);
 
             LOG_INFO(logging::g_qSharedLogger, "WebRTC camera {} Video Track Handler Configured. Waiting for frames...", m_szStreamerID);
@@ -461,54 +546,17 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
                     // Prepare buffer for H.264 bytes.
                     std::vector<uint8_t> vH264EncodedBytes;
                     // Reserve space + FFmpeg Padding safety buffer.
-                    vH264EncodedBytes.reserve(rtcBinaryMessage.size() + 16 + AV_INPUT_BUFFER_PADDING_SIZE);
+                    vH264EncodedBytes.reserve(rtcBinaryMessage.size() + AV_INPUT_BUFFER_PADDING_SIZE);
 
-                    if (rtcFrameInfo.payloadType == 96)
-                    {
-                        // Standard H264 Packet (Already Depacketized by LibDataChannel)
-                        // It usually includes the Start Code (00 00 00 01) because of the Handler config.
-
-                        const uint8_t* pData = reinterpret_cast<const uint8_t*>(rtcBinaryMessage.data());
-                        vH264EncodedBytes.insert(vH264EncodedBytes.end(), pData, pData + rtcBinaryMessage.size());
-                    }
-                    else if (rtcFrameInfo.payloadType == 97)
-                    {
-                        // RTX (Retransmission) Packet
-                        // Structure: [OSN (2 bytes)] [Original RTP Payload]
-                        // This packet bypassed the Depacketizer, so it is "Raw".
-                        // To decode it, we must strip the OSN and manually add the Start Code.
-
-                        if (rtcBinaryMessage.size() <= 2)
-                            return;    // Too small to contain data.
-
-                        // Start code. (Long Start Sequence: 00 00 00 01)
-                        vH264EncodedBytes.push_back(0);
-                        vH264EncodedBytes.push_back(0);
-                        vH264EncodedBytes.push_back(0);
-                        vH264EncodedBytes.push_back(1);
-
-                        // Original payload. (Skip first 2 bytes of RTX header)
-                        const uint8_t* pData = reinterpret_cast<const uint8_t*>(rtcBinaryMessage.data());
-                        vH264EncodedBytes.insert(vH264EncodedBytes.end(), pData + 2, pData + rtcBinaryMessage.size());
-                    }
-                    else
-                    {
-                        // Unknown payload type.
-                        return;
-                    }
+                    // Copy the frame. The depacketizer already prefixed each NAL unit with a start code.
+                    const uint8_t* pData = reinterpret_cast<const uint8_t*>(rtcBinaryMessage.data());
+                    vH264EncodedBytes.insert(vH264EncodedBytes.end(), pData, pData + rtcBinaryMessage.size());
 
                     // Zero-initialize padding bytes. (required by FFmpeg safety)
                     vH264EncodedBytes.insert(vH264EncodedBytes.end(), AV_INPUT_BUFFER_PADDING_SIZE, 0);
 
-                    // Decode.
-                    std::unique_lock lkDecoderLock(m_muDecoderMutex);
-                    bool bDecoded = this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat);
-
-                    if (bDecoded && m_fnOnFrameReceivedCallback)
-                    {
-                        m_fnOnFrameReceivedCallback(m_cvFrame);
-                    }
-                    lkDecoderLock.unlock();
+                    // Hand the frame to the decoder thread. This callback runs on the network thread.
+                    this->QueueEncodedFrame(std::move(vH264EncodedBytes));
                 });
         });
 
@@ -695,6 +743,90 @@ bool WebRTC::ConnectToSignallingServer(const std::string& szSignallingServerURL)
 }
 
 /******************************************************************************
+ * @brief Queue an encoded frame for the decoder thread. Called from the network thread,
+ *      which also reads the sockets, so this only moves the bytes and returns.
+ *
+ * @param vH264EncodedBytes - The H264 encoded bytes, followed by AV_INPUT_BUFFER_PADDING_SIZE zero bytes.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-25
+ ******************************************************************************/
+void WebRTC::QueueEncodedFrame(std::vector<uint8_t>&& vH264EncodedBytes)
+{
+    {
+        // Acquire the queue lock.
+        std::lock_guard lkEncodedFrames(m_muEncodedFramesMutex);
+        // If the decoder is too far behind, drop the backlog instead of growing latency. The next
+        // frames depend on the dropped ones, so the decoder thread resyncs on a new keyframe.
+        if (m_dqEncodedFrames.size() >= constants::SIM_STREAM_MAX_QUEUED_FRAMES)
+        {
+            m_dqEncodedFrames.clear();
+            m_bFlushDecoder = true;
+        }
+        m_dqEncodedFrames.push_back(std::move(vH264EncodedBytes));
+    }
+    // Wake the decoder thread.
+    m_cvEncodedFramesReady.notify_one();
+}
+
+/******************************************************************************
+ * @brief The decoder thread. Decodes queued frames in order and passes each one to the
+ *      frame received callback. It is the only thread that touches the decoder.
+ *
+ * @param stStopToken - Set by the destructor to end the thread.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-25
+ ******************************************************************************/
+void WebRTC::DecodeThread(std::stop_token stStopToken)
+{
+    // Name the thread so profilers and system tools can tell the streams apart. Truncated to 15 characters on Linux.
+    tracy::SetThreadName(m_szStreamerID.c_str());
+
+    std::vector<uint8_t> vH264EncodedBytes;
+    while (true)
+    {
+        bool bFlushDecoder = false;
+        {
+            // Sleep until a frame is queued or the stream is destroyed.
+            std::unique_lock lkEncodedFrames(m_muEncodedFramesMutex);
+            m_cvEncodedFramesReady.wait(lkEncodedFrames, stStopToken, [this]() { return !m_dqEncodedFrames.empty(); });
+            if (stStopToken.stop_requested())
+            {
+                return;
+            }
+            // Take the oldest frame.
+            vH264EncodedBytes = std::move(m_dqEncodedFrames.front());
+            m_dqEncodedFrames.pop_front();
+            bFlushDecoder = std::exchange(m_bFlushDecoder, false);
+        }
+
+        // Frames were dropped, so the decoder's reference frames are stale. Start over from a fresh keyframe.
+        if (bFlushDecoder && m_pAVCodecContext != nullptr)
+        {
+            // Submit logger message.
+            if (m_tmDecodeWarnTimer.Ready())
+            {
+                LOG_WARNING(logging::g_qSharedLogger,
+                            "WebRTC camera {} decoder fell {} frames behind. Dropped them and requested a keyframe.",
+                            m_szStreamerID,
+                            constants::SIM_STREAM_MAX_QUEUED_FRAMES);
+            }
+            avcodec_flush_buffers(m_pAVCodecContext);
+            m_bAwaitingKeyFrame = true;
+            this->RequestKeyFrame();
+        }
+
+        // Decode and hand the frame to the owner.
+        if (this->DecodeH264BytesToCVMat(vH264EncodedBytes, m_cvFrame, m_eOutputPixelFormat) && m_fnOnFrameReceivedCallback)
+        {
+            m_fnOnFrameReceivedCallback(m_cvFrame);
+            m_stDecodeTelemetry.aullIterations.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+}
+
+/******************************************************************************
  * @brief Initialize the H264 decoder. Creates the AVCodecContext, AVFrame, and AVPacket.
  *
  * @return true - Successfully initialized the H264 decoder.
@@ -723,7 +855,7 @@ bool WebRTC::InitializeH264Decoder()
         return false;
     }
     // Set codec context options.
-    m_pAVCodecContext->flags |= AV_CODEC_FLAG2_FAST;
+    m_pAVCodecContext->flags2 |= AV_CODEC_FLAG2_FAST;
     m_pAVCodecContext->err_recognition = AV_EF_COMPLIANT | AV_EF_CAREFUL;
     m_pAVCodecContext->rc_buffer_size  = 50 * 1024 * 1024;    // 50 MB buffer size.
     av_opt_set_int(m_pAVCodecContext, "refcounted_frames", 1, 0);
@@ -767,8 +899,8 @@ bool WebRTC::InitializeH264Decoder()
  ******************************************************************************/
 bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedBytes, cv::Mat& cvDecodedFrame, const AVPixelFormat eOutputPixelFormat)
 {
-    // Safety check
-    if (vH264EncodedBytes.empty())
+    // Safety check. The decoder is null if InitializeH264Decoder() failed.
+    if (vH264EncodedBytes.empty() || m_pAVCodecContext == nullptr)
         return false;
 
     ZoneScopedC(tracy::Color::Green2);
@@ -780,22 +912,30 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
     m_pPacket->data = const_cast<uint8_t*>(vH264EncodedBytes.data());
     m_pPacket->size = static_cast<int>(nDataSize);    // Tell FFmpeg the real size.
 
-    // Send the packet to the decoder.
+    // Send the packet to the decoder. The decoder copies the data, so the borrowed pointer is cleared right away.
     int nReturnCode = avcodec_send_packet(m_pAVCodecContext, m_pPacket);
+    m_pPacket->data = nullptr;
+    m_pPacket->size = 0;
     if (nReturnCode < 0)
     {
-        // Get the error message.
-        char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
-        av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
-        // Submit logger message.
-        LOG_WARNING(logging::g_qSharedLogger, "WebRTC camera {} FFMPEG send_packet failed. Error: {} {}", m_szStreamerID, nReturnCode, aErrorBuffer);
+        // Every P-frame fails until the first keyframe arrives, so only warn once per interval.
+        if (m_tmDecodeWarnTimer.Ready())
+        {
+            // Get the error message.
+            char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
+            // Submit logger message.
+            LOG_WARNING(logging::g_qSharedLogger, "WebRTC camera {} FFMPEG send_packet failed. Error: {} {}", m_szStreamerID, nReturnCode, aErrorBuffer);
+        }
         // Request a new keyframe from the video track.
+        m_bAwaitingKeyFrame = true;
         this->RequestKeyFrame();
 
         return false;
     }
 
-    // Receive decoded frames in a loop
+    // Receive decoded frames in a loop. A packet can yield zero frames, so only report success if one was converted.
+    bool bFrameDecoded = false;
     while (true)
     {
         ZoneScopedNC("Decode Chunk", tracy::Color::Green3);
@@ -811,11 +951,32 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             char aErrorBuffer[AV_ERROR_MAX_STRING_SIZE];
             av_strerror(nReturnCode, aErrorBuffer, AV_ERROR_MAX_STRING_SIZE);
             // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "Failed to receive frame from decoder! Error code: {} {}", nReturnCode, aErrorBuffer);
+            LOG_WARNING(logging::g_qSharedLogger, "WebRTC camera {} Failed to receive frame from decoder! Error code: {} {}", m_szStreamerID, nReturnCode, aErrorBuffer);
             // Request a new keyframe from the video track.
+            m_bAwaitingKeyFrame = true;
             this->RequestKeyFrame();
 
             return false;
+        }
+
+        // A damaged frame poisons every frame that references it, and the encoder only sends a keyframe every few
+        // seconds. FFmpeg does not flag those later frames, so after any damage hold output back until an intact
+        // keyframe arrives. The first keyframe after connecting is often cut short, so this also covers startup.
+        if ((m_pFrame->flags & AV_FRAME_FLAG_CORRUPT) || m_pFrame->decode_error_flags != 0)
+        {
+            m_bAwaitingKeyFrame = true;
+        }
+        else if (m_pFrame->flags & AV_FRAME_FLAG_KEY)
+        {
+            m_bAwaitingKeyFrame = false;
+        }
+
+        // Skip empty frames and frames that are not trustworthy yet.
+        if (m_pFrame->width <= 0 || m_pFrame->height <= 0 || m_pFrame->format < 0 || m_bAwaitingKeyFrame)
+        {
+            // Ask for a keyframe now instead of waiting for the next scheduled one.
+            this->RequestKeyFrame();
+            continue;
         }
 
         // Check if the user want to keep the YUV420P data un-altered.
@@ -825,10 +986,10 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
             // We want to keep the raw YUV420P byte data un-altered, but store that data in a RGB 3 channel Mat.
             // Absolutely no colorspace conversion or the binary data will be corrupted.
 
-            // Extract the Y, U, and V planes.
-            cv::Mat cvYPlane(m_pFrame->height, m_pFrame->width, CV_8UC1, m_pFrame->data[0]);
-            cv::Mat cvUPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[1]);
-            cv::Mat cvVPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[2]);
+            // Extract the Y, U, and V planes. Planes can be padded past their width, so pass each plane's stride.
+            cv::Mat cvYPlane(m_pFrame->height, m_pFrame->width, CV_8UC1, m_pFrame->data[0], m_pFrame->linesize[0]);
+            cv::Mat cvUPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[1], m_pFrame->linesize[1]);
+            cv::Mat cvVPlane(m_pFrame->height / 2, m_pFrame->width / 2, CV_8UC1, m_pFrame->data[2], m_pFrame->linesize[2]);
             // Upsample the U and V planes to match the Y plane.
             cv::Mat cvUPlaneUpsampled, cvVPlaneUpsampled;
             cv::resize(cvUPlane, cvUPlaneUpsampled, cv::Size(m_pFrame->width, m_pFrame->height), 0, 0, cv::INTER_NEAREST);
@@ -839,50 +1000,53 @@ bool WebRTC::DecodeH264BytesToCVMat(const std::vector<uint8_t>& vH264EncodedByte
         }
         else
         {
-            // Convert the decoded frame to cv::Mat using sws_scale.
+            // Get a SwsContext matching this frame. The encoder can change resolution or format mid-stream, and scaling
+            // with a context built for the old geometry reads past the frame buffer. The cached context is only
+            // rebuilt when the parameters actually change.
+            m_pSWSContext = sws_getCachedContext(m_pSWSContext,
+                                                 m_pFrame->width,
+                                                 m_pFrame->height,
+                                                 static_cast<AVPixelFormat>(m_pFrame->format),
+                                                 m_pFrame->width,
+                                                 m_pFrame->height,
+                                                 eOutputPixelFormat,
+                                                 SWS_FAST_BILINEAR,
+                                                 nullptr,
+                                                 nullptr,
+                                                 nullptr);
             if (m_pSWSContext == nullptr)
             {
-                LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} Initializing SwsContext...", m_szStreamerID);
-                m_pSWSContext = sws_getContext(m_pFrame->width,
-                                               m_pFrame->height,
-                                               static_cast<AVPixelFormat>(m_pFrame->format),
-                                               m_pFrame->width,
-                                               m_pFrame->height,
-                                               eOutputPixelFormat,
-                                               SWS_FAST_BILINEAR,
-                                               nullptr,
-                                               nullptr,
-                                               nullptr);
-                if (m_pSWSContext == nullptr)
-                {
-                    // Submit logger message.
-                    LOG_WARNING(logging::g_qSharedLogger, "Failed to initialize SwsContext!");
-                    // Request a new keyframe from the video track.
-                    this->RequestKeyFrame();
+                // Submit logger message.
+                LOG_WARNING(logging::g_qSharedLogger, "WebRTC camera {} Failed to initialize SwsContext!", m_szStreamerID);
+                // Request a new keyframe from the video track.
+                this->RequestKeyFrame();
 
-                    return false;
-                }
+                return false;
             }
 
-            // Create new mat for the decoded frame.
-            cvDecodedFrame.create(m_pFrame->height, m_pFrame->width, CV_8UC3);
+            // Create new mat for the decoded frame. Output formats are packed 8-bit, so the channel count is bytes per pixel.
+            cvDecodedFrame.create(m_pFrame->height, m_pFrame->width, CV_8UC(av_get_bits_per_pixel(av_pix_fmt_desc_get(eOutputPixelFormat)) / 8));
             std::array<uint8_t*, 4> aDest    = {cvDecodedFrame.data, nullptr, nullptr, nullptr};
             std::array<int, 4> aDestLinesize = {static_cast<int>(cvDecodedFrame.step[0]), 0, 0, 0};
 
             // Convert the frame to the output pixel format.
             sws_scale(m_pSWSContext, m_pFrame->data, m_pFrame->linesize, 0, m_pFrame->height, aDest.data(), aDestLinesize.data());
         }
+
+        // A frame was converted.
+        bFrameDecoded = true;
     }
 
-    return true;
+    return bFrameDecoded;
 }
 
 /******************************************************************************
  * @brief Requests a key frame from the given video track. This is useful for when the
- * video track is out of sync or has lost frames.
+ * video track is out of sync or has lost frames. Rate limited to one request per
+ * SIM_STREAM_KEYFRAME_REQUEST_INTERVAL. Only call from the decoder thread.
  *
  * @return true - Key frame was successfully requested.
- * @return false - Key frame was not successfully requested.
+ * @return false - Key frame was not requested (no track yet, or asked too recently).
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2024-11-30
@@ -896,8 +1060,14 @@ bool WebRTC::RequestKeyFrame()
         return false;
     }
 
+    // Each request makes the encoder send a large keyframe, so limit how often we ask.
+    if (!m_tmKeyFrameRequestTimer.Ready())
+    {
+        return false;
+    }
+
     // Submit logger message.
-    LOG_DEBUG(logging::g_qSharedLogger, "Requested key frame from video track. Success?: {}", m_pVideoTrack1->requestKeyframe());
+    LOG_DEBUG(logging::g_qSharedLogger, "WebRTC camera {} requested key frame from video track. Success?: {}", m_szStreamerID, m_pVideoTrack1->requestKeyframe());
 
     // Request a key frame from the video track.
     return true;

@@ -32,8 +32,10 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
     m_eRecordingMode = eRecordingMode;
     // Set max FPS of the ThreadedContinuousCode method.
     this->SetMainThreadIPSLimit(constants::RECORDER_FPS);
-    // Name the OS thread so profilers and system tools can identify it.
-    this->SetMainThreadName("Recorder");
+    // Name the OS thread after the feeds it records so profilers, system tools and the visualizer can tell the recorders apart.
+    this->SetMainThreadName(eRecordingMode == RecordingMode::eCameraHandler         ? "RecCameras"
+                            : eRecordingMode == RecordingMode::eTagDetectionHandler ? "RecTagDetect"
+                                                                                    : "RecObjDetect");
 
     // Resize vectors to match number of video feeds.
     switch (eRecordingMode)
@@ -61,7 +63,6 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vTagDetectors.resize(m_nTotalVideoFeeds);
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
-            m_vFrames.resize(m_nTotalVideoFeeds);
             m_vFrameReadersCPU.resize(m_nTotalVideoFeeds);
             m_vFrameReadersGPU.resize(m_nTotalVideoFeeds);
             break;
@@ -74,7 +75,6 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
             m_vObjectDetectors.resize(m_nTotalVideoFeeds);
             m_vCameraWriters.resize(m_nTotalVideoFeeds);
             m_vRecordingToggles.resize(m_nTotalVideoFeeds);
-            m_vFrames.resize(m_nTotalVideoFeeds);
             m_vFrameReadersCPU.resize(m_nTotalVideoFeeds);
             m_vFrameReadersGPU.resize(m_nTotalVideoFeeds);
             break;
@@ -82,6 +82,12 @@ RecordingHandler::RecordingHandler(RecordingMode eRecordingMode)
         default:
             // Do nothing.
             break;
+    }
+
+    // Create one (closed) encoder per feed. They are opened when the feed's recording is enabled.
+    for (std::unique_ptr<VideoEncoder>& pEncoder : m_vCameraWriters)
+    {
+        pEncoder = std::make_unique<VideoEncoder>();
     }
 }
 
@@ -98,11 +104,11 @@ RecordingHandler::~RecordingHandler()
     this->RequestStop();
     this->Join();
 
-    // Loop through and close video writers.
-    for (cv::VideoWriter cvCameraWriter : m_vCameraWriters)
+    // Loop through and close the encoders. This flushes their delayed frames and finalizes the files.
+    for (std::unique_ptr<VideoEncoder>& pEncoder : m_vCameraWriters)
     {
-        // Release video writer.
-        cvCameraWriter.release();
+        // Close the encoder.
+        pEncoder->Close();
     }
 }
 
@@ -125,7 +131,7 @@ void RecordingHandler::ThreadedContinuousCode()
         case RecordingMode::eCameraHandler:
             // Update recordable cameras.
             this->UpdateRecordableCameras();
-            // Grab and write frames to VideoWriters.
+            // Grab and write frames to the video files.
             this->RequestAndWriteCameraFrames();
             break;
 
@@ -133,7 +139,7 @@ void RecordingHandler::ThreadedContinuousCode()
         case RecordingMode::eTagDetectionHandler:
             // Update recordable detectors.
             this->UpdateRecordableTagDetectors();
-            // Grab and write overlay frames to VideoWriters.
+            // Grab and write overlay frames to the video files.
             this->RequestAndWriteTagDetectorFrames();
             break;
 
@@ -141,7 +147,7 @@ void RecordingHandler::ThreadedContinuousCode()
         case RecordingMode::eObjectDetectionHandler:
             // Update recordable detectors.
             this->UpdateRecordableObjectDetectors();
-            // Grab and write overlay frames to VideoWriters.
+            // Grab and write overlay frames to the video files.
             this->RequestAndWriteObjectDetectorFrames();
             break;
 
@@ -199,8 +205,8 @@ void RecordingHandler::UpdateRecordableCameras()
                 // Take a persistent read handle for this feed.
                 m_vFrameReadersCPU[nCamera - 1] = pBasicCamera->GetFrameReader();
             }
-            // Setup VideoWriter if needed.
-            if (!m_vCameraWriters[nCamera - 1].isOpened())
+            // Setup the video encoder if needed.
+            if (!m_vCameraWriters[nCamera - 1]->IsOpen())
             {
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
@@ -217,7 +223,7 @@ void RecordingHandler::UpdateRecordableCameras()
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
-                                  "Unable to create the VideoWriter output directory: {} for camera {}",
+                                  "Unable to create the video output directory: {} for camera {}",
                                   szFilePath.string(),
                                   pBasicCamera->GetCameraLocation());
                     }
@@ -227,17 +233,18 @@ void RecordingHandler::UpdateRecordableCameras()
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
                 // Open writer.
-                bool bWriterOpened = m_vCameraWriters[nCamera - 1].open(szFullOutputPath.string(),
-                                                                        cv::VideoWriter::fourcc('H', '2', '6', '4'),
-                                                                        constants::RECORDER_FPS,
-                                                                        pBasicCamera->GetPropResolution());
+                bool bWriterOpened = m_vCameraWriters[nCamera - 1]->Open(szFullOutputPath.string(),
+                                                                         pBasicCamera->GetPropResolution(),
+                                                                         constants::RECORDER_FPS,
+                                                                         constants::RECORDER_X264_PRESET,
+                                                                         constants::RECORDER_ENCODER_THREADS);
 
                 // Check writer opened status.
                 if (!bWriterOpened)
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger,
-                                "RecordingHandler: Failed to open cv::VideoWriter for basic camera at path/index {}",
+                                "RecordingHandler: Failed to open the video encoder for basic camera at path/index {}",
                                 pBasicCamera->GetCameraLocation());
                 }
             }
@@ -283,8 +290,8 @@ void RecordingHandler::UpdateRecordableCameras()
                     m_vFrameReadersCPU[nCamera + nIndexOffset] = pZEDCamera->GetFrameCPUReader();
                 }
             }
-            // Setup VideoWriter if needed.
-            if (!m_vCameraWriters[nCamera + nIndexOffset].isOpened())
+            // Setup the video encoder if needed.
+            if (!m_vCameraWriters[nCamera + nIndexOffset]->IsOpen())
             {
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
@@ -313,17 +320,18 @@ void RecordingHandler::UpdateRecordableCameras()
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
                 // Open writer.
-                bool bWriterOpened = m_vCameraWriters[nCamera + nIndexOffset].open(szFullOutputPath,
-                                                                                   cv::VideoWriter::fourcc('H', '2', '6', '4'),
-                                                                                   constants::RECORDER_FPS,
-                                                                                   pZEDCamera->GetPropResolution());
+                bool bWriterOpened = m_vCameraWriters[nCamera + nIndexOffset]->Open(szFullOutputPath.string(),
+                                                                                    pZEDCamera->GetPropResolution(),
+                                                                                    constants::RECORDER_FPS,
+                                                                                    constants::RECORDER_X264_PRESET,
+                                                                                    constants::RECORDER_ENCODER_THREADS);
 
                 // Check writer opened status.
                 if (!bWriterOpened)
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger,
-                                "RecordingHandler: Failed to open cv::VideoWriter for ZED camera with serial {}",
+                                "RecordingHandler: Failed to open the video encoder for ZED camera with serial {}",
                                 pZEDCamera->GetCameraSerial());
                 }
             }
@@ -374,8 +382,8 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                 // Skip this feed for this iteration.
                 continue;
             }
-            // Deep copy the immutable snapshot into our working frame before converting it.
-            pSnapshot->tData.copyTo(m_vFrames[nIter]);
+            // Encode straight from the immutable snapshot. The encoder only reads it.
+            this->WriteFrameToVideo(nIter, pSnapshot->tData);
         }
         else if (m_vZEDCameras[nIter] != nullptr)
         {
@@ -392,6 +400,8 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                 }
                 // Download from GPU memory. Done here, on this thread, off the camera's critical path.
                 pSnapshot->tData.download(m_vFrames[nIter]);
+                // Encode the downloaded frame.
+                this->WriteFrameToVideo(nIter, m_vFrames[nIter]);
             }
             else
             {
@@ -403,56 +413,36 @@ void RecordingHandler::RequestAndWriteCameraFrames()
                     // Skip this feed for this iteration.
                     continue;
                 }
-                // Deep copy the immutable snapshot into our working frame before converting it.
-                pSnapshot->tData.copyTo(m_vFrames[nIter]);
+                // Encode straight from the immutable snapshot. The encoder only reads it.
+                this->WriteFrameToVideo(nIter, pSnapshot->tData);
             }
         }
-        else
-        {
-            // No camera stored at this index.
-            continue;
-        }
-
-        // Normalize the frame to 3 channel BGR and write it out.
-        this->WriteFrameToVideo(nIter);
     }
 }
 
 /******************************************************************************
- * @brief Convert the working frame at the given feed index to the 3 channel BGR format
- *      the VideoWriter requires, and write it out. Shared by the camera, tag detector,
- *      and object detector recording paths.
+ * @brief Encode a frame into the video file of the given feed. Shared by the camera,
+ *      tag detector, and object detector recording paths.
  *
- * @param nFeedIndex - The index of the video feed whose working frame should be written.
+ * @param nFeedIndex - The index of the video feed to write to.
+ * @param cvFrame - The frame to write. 1 (gray), 3 (BGR) or 4 (BGRA) channels. It is only read,
+ *                  so a published snapshot can be passed directly.
  *
  *
  * @author clayjay3 (claytonraycowen@gmail.com)
  * @date 2026-07-26
  ******************************************************************************/
-void RecordingHandler::WriteFrameToVideo(const int nFeedIndex)
+void RecordingHandler::WriteFrameToVideo(const int nFeedIndex, const cv::Mat& cvFrame)
 {
-    // Nothing to write for an empty frame.
-    if (m_vFrames[nFeedIndex].empty())
+    // Nothing to write for an empty frame or a closed encoder.
+    if (cvFrame.empty() || !m_vCameraWriters[nFeedIndex]->IsOpen())
     {
         // Skip this write.
         return;
     }
 
-    // Check if this is a grayscale or color image.
-    if (m_vFrames[nFeedIndex].channels() == 1)
-    {
-        // Convert frame from 1 channel grayscale to 3 channel BGR.
-        cv::cvtColor(m_vFrames[nFeedIndex], m_vFrames[nFeedIndex], cv::COLOR_GRAY2BGR);
-    }
-    // Check if this has an alpha channel.
-    else if (m_vFrames[nFeedIndex].channels() == 4)
-    {
-        // Convert from from 4 channels to 3 channels.
-        cv::cvtColor(m_vFrames[nFeedIndex], m_vFrames[nFeedIndex], cv::COLOR_BGRA2BGR);
-    }
-
-    // Write frame to OpenCV video writer.
-    m_vCameraWriters[nFeedIndex].write(m_vFrames[nFeedIndex]);
+    // The encoder converts gray, BGR and BGRA straight to YUV, so no conversion or copy is needed here.
+    m_vCameraWriters[nFeedIndex]->Write(cvFrame);
 }
 
 /******************************************************************************
@@ -486,8 +476,8 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 // Take a persistent read handle for this feed.
                 m_vFrameReadersCPU[nDetector - 1] = pTagDetector->GetDetectionOverlayReader();
             }
-            // Setup VideoWriter if needed.
-            if (!m_vCameraWriters[nDetector - 1].isOpened())
+            // Setup the video encoder if needed.
+            if (!m_vCameraWriters[nDetector - 1]->IsOpen())
             {
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
@@ -504,7 +494,7 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
-                                  "Unable to create the VideoWriter output directory: {} for tag detector {}",
+                                  "Unable to create the video output directory: {} for tag detector {}",
                                   szFilePath.string(),
                                   pTagDetector->GetCameraName());
                     }
@@ -514,17 +504,18 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
                 // Open writer.
-                bool bWriterOpened = m_vCameraWriters[nDetector - 1].open(szFullOutputPath.string(),
-                                                                          cv::VideoWriter::fourcc('H', '2', '6', '4'),
-                                                                          constants::RECORDER_FPS,
-                                                                          pTagDetector->GetProcessFrameResolution());
+                bool bWriterOpened = m_vCameraWriters[nDetector - 1]->Open(szFullOutputPath.string(),
+                                                                           pTagDetector->GetProcessFrameResolution(),
+                                                                           constants::RECORDER_FPS,
+                                                                           constants::RECORDER_X264_PRESET,
+                                                                           constants::RECORDER_ENCODER_THREADS);
 
                 // Check writer opened status.
                 if (!bWriterOpened)
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger,
-                                "RecordingHandler: Failed to open cv::VideoWriter for tag detector using camera {}",
+                                "RecordingHandler: Failed to open the video encoder for tag detector using camera {}",
                                 pTagDetector->GetCameraName());
                 }
             }
@@ -570,11 +561,8 @@ void RecordingHandler::RequestAndWriteTagDetectorFrames()
             // Skip this feed for this iteration.
             continue;
         }
-        // Deep copy the immutable snapshot into our working frame before converting it.
-        pSnapshot->tData.copyTo(m_vFrames[nIter]);
-
-        // Normalize the frame to 3 channel BGR and write it out.
-        this->WriteFrameToVideo(nIter);
+        // Encode straight from the immutable snapshot. The encoder only reads it.
+        this->WriteFrameToVideo(nIter, pSnapshot->tData);
     }
 }
 
@@ -612,8 +600,8 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
                 // Take a persistent read handle for this feed.
                 m_vFrameReadersCPU[nDetector - 1] = pObjectDetector->GetDetectionOverlayReader();
             }
-            // Setup VideoWriter if needed.
-            if (!m_vCameraWriters[nDetector - 1].isOpened())
+            // Setup the video encoder if needed.
+            if (!m_vCameraWriters[nDetector - 1]->IsOpen())
             {
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
@@ -630,7 +618,7 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
                     {
                         // Submit logger message.
                         LOG_ERROR(logging::g_qSharedLogger,
-                                  "Unable to create the VideoWriter output directory: {} for tag detector {}",
+                                  "Unable to create the video output directory: {} for tag detector {}",
                                   szFilePath.string(),
                                   pObjectDetector->GetCameraName());
                     }
@@ -640,17 +628,18 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
                 std::filesystem::path szFullOutputPath = szFilePath / szFilenameWithExtension;
 
                 // Open writer.
-                bool bWriterOpened = m_vCameraWriters[nDetector - 1].open(szFullOutputPath.string(),
-                                                                          cv::VideoWriter::fourcc('H', '2', '6', '4'),
-                                                                          constants::RECORDER_FPS,
-                                                                          pObjectDetector->GetProcessFrameResolution());
+                bool bWriterOpened = m_vCameraWriters[nDetector - 1]->Open(szFullOutputPath.string(),
+                                                                           pObjectDetector->GetProcessFrameResolution(),
+                                                                           constants::RECORDER_FPS,
+                                                                           constants::RECORDER_X264_PRESET,
+                                                                           constants::RECORDER_ENCODER_THREADS);
 
                 // Check writer opened status.
                 if (!bWriterOpened)
                 {
                     // Submit logger message.
                     LOG_WARNING(logging::g_qSharedLogger,
-                                "RecordingHandler: Failed to open cv::VideoWriter for tag detector using camera {}",
+                                "RecordingHandler: Failed to open the video encoder for tag detector using camera {}",
                                 pObjectDetector->GetCameraName());
                 }
             }
@@ -696,11 +685,8 @@ void RecordingHandler::RequestAndWriteObjectDetectorFrames()
             // Skip this feed for this iteration.
             continue;
         }
-        // Deep copy the immutable snapshot into our working frame before converting it.
-        pSnapshot->tData.copyTo(m_vFrames[nIter]);
-
-        // Normalize the frame to 3 channel BGR and write it out.
-        this->WriteFrameToVideo(nIter);
+        // Encode straight from the immutable snapshot. The encoder only reads it.
+        this->WriteFrameToVideo(nIter, pSnapshot->tData);
     }
 }
 

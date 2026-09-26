@@ -98,7 +98,8 @@ namespace statemachine
     void VerifyingObjectState::Run()
     {
         ZoneScopedC(tracy::Color::SpringGreen);
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
+        // Run() is called every state machine iteration (60 Hz), so limit this to once a second.
+        LOG_DEBUG_LIMIT(std::chrono::seconds(1), logging::g_qSharedLogger, "VerifyingObjectState: Running state-specific behavior.");
 
         // IMPORTANT: Ensure the rover is completely stopped to avoid motion blur during verification.
         globals::g_pDriveBoard->SendStop();

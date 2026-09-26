@@ -193,8 +193,8 @@ namespace statemachine
     void SearchPatternState::Run()
     {
         ZoneScopedNC("Search Pattern", tracy::Color::Blue1);
-        // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
+        // Submit logger message. Run() is called every state machine iteration (60 Hz), so limit this to once a second.
+        LOG_DEBUG_LIMIT(std::chrono::seconds(1), logging::g_qSharedLogger, "SearchPatternState: Running state-specific behavior.");
 
         // If search was previously stuck, then re-path plan stuck area
         if (m_bWasStuck)

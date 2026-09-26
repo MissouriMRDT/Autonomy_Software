@@ -145,8 +145,18 @@ class SIMZEDCam : public ZEDCamera
         cv::Mat m_cvFrame;
         cv::Mat m_cvDepthImageBuffer;
         cv::Mat m_cvDepthImage;
-        cv::Mat m_cvDepthMeasure;                                                 // Producer-computed from m_cvDepthImage.
-        cv::Mat m_cvPointCloud;                                                   // Producer-computed from m_cvDepthMeasure.
+        cv::Mat m_cvDepthMeasure;                // Producer-computed from m_cvDepthImage.
+        std::vector<float> m_vPointCloudRayX;    // Ray X/Z for each image column. Point X = depth * ray.
+        std::vector<float> m_vPointCloudRayY;    // Ray Y/Z for each image row. Point Y = depth * ray.
+        cv::Mat m_cvPointCloudRays;              // Debug builds only: per-pixel ray (X/Z, Y/Z, 1, 1).
+        cv::Mat m_cvPointCloudValidDepth;        // Debug builds only: scratch for CalculatePointCloud().
+
+        // Frames decoded so far on each stream. Incremented by the WebRTC callbacks; the producer compares them
+        // against the counts it last published so it only publishes imagery when a new frame has arrived.
+        std::atomic<unsigned long long> m_ullRGBFramesReceived{0};
+        std::atomic<unsigned long long> m_ullDepthFramesReceived{0};
+        unsigned long long m_ullLastPublishedRGBFrame   = 0;
+        unsigned long long m_ullLastPublishedDepthFrame = 0;
 
         TracySharedLockable(std::shared_mutex, m_muWebRTCRGBImageCopyMutex);      // Guards m_cvFrame (RGB callback <-> producer).
         TracySharedLockable(std::shared_mutex, m_muWebRTCDepthImageCopyMutex);    // Guards m_cvDepthImage (depth callback <-> producer).

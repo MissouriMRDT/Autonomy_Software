@@ -287,6 +287,162 @@
         .modal-nav.right {
             right: 20px;
         }
+
+        #perf-panel {
+            margin-top: 10px;
+            border-top: 1px solid #555;
+            padding-top: 8px;
+            pointer-events: auto;
+        }
+
+        #perf-panel.perf-large {
+            position: fixed;
+            top: 5vh;
+            left: 5vw;
+            width: 90vw;
+            height: 90vh;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.92);
+            border: 1px solid #555;
+            border-radius: 5px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .perf-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #perf-toggle {
+            cursor: pointer;
+            margin: 0;
+            border: none;
+            padding: 0;
+            user-select: none;
+        }
+
+        #perf-summary {
+            flex: 1;
+            font-size: 12px;
+        }
+
+        .perf-btn {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            border-radius: 3px;
+            font-size: 12px;
+            padding: 2px 8px;
+            cursor: pointer;
+        }
+
+        .perf-btn:hover {
+            border-color: #0f0;
+        }
+
+        #perf-content {
+            margin-top: 8px;
+        }
+
+        #perf-panel.perf-large #perf-content {
+            flex: 1;
+            display: flex !important;
+            gap: 15px;
+            min-height: 0;
+        }
+
+        #perf-canvas {
+            display: block;
+            width: 460px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 3px;
+        }
+
+        #perf-panel.perf-large #perf-canvas {
+            flex: 1;
+            width: auto;
+            height: 100%;
+            min-width: 0;
+        }
+
+        .perf-table-wrap {
+            max-height: 220px;
+            overflow-y: auto;
+            margin-top: 6px;
+        }
+
+        #perf-panel.perf-large .perf-table-wrap {
+            max-height: none;
+            margin-top: 0;
+            width: 360px;
+        }
+
+        #perf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            color: #fff;
+        }
+
+        #perf-table tr {
+            cursor: pointer;
+        }
+
+        #perf-table tr:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        #perf-table tr.perf-hidden {
+            opacity: 0.35;
+        }
+
+        #perf-table td {
+            padding: 2px 4px;
+            white-space: nowrap;
+        }
+
+        .perf-swatch {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+
+        .perf-name {
+            max-width: 190px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .perf-num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .perf-dim {
+            color: #888;
+        }
+
+        .perf-bar-cell {
+            width: 60px;
+        }
+
+        .perf-bar {
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .perf-bar div {
+            height: 100%;
+        }
     </style>
     <script type="importmap">
     { 
@@ -325,6 +481,20 @@
             <div id="status" style="margin-top:10px; color: #fff;">Status: Free Cam</div>
             <div id="stats" style="margin-top:5px; color: #aaa; font-size:12px;">Points: 0</div>
         </div>
+        <div id="perf-panel">
+            <div class="perf-header">
+                <h3 id="perf-toggle">Threads &#9654;</h3>
+                <span id="perf-summary">Connecting&hellip;</span>
+                <button id="perf-scale" class="perf-btn" title="Toggle linear/log scale">Linear</button>
+                <button id="perf-expand" class="perf-btn" title="Open large view">&#10530;</button>
+            </div>
+            <div id="perf-content" style="display: none;">
+                <canvas id="perf-canvas"></canvas>
+                <div class="perf-table-wrap">
+                    <table id="perf-table"></table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="eta-box">ETA: Calculating...</div>
@@ -360,6 +530,7 @@
     </div>
 
     <script type="module" src="/src/Visualizer.js"></script>
+    <script type="module" src="/src/ThreadMonitor.js"></script>
 </body>
 
 </html>

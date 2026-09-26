@@ -13,6 +13,7 @@
 
 #include "../interfaces/BasicCamera.hpp"
 #include "../util/threading/Publisher.hpp"
+#include "../util/vision/VideoEncoder.h"
 #include "../vision/aruco/TagDetector.h"
 #include "../vision/cameras/ZEDCam.h"
 #include "../vision/objects/ObjectDetector.h"
@@ -80,7 +81,7 @@ class RecordingHandler : public AutonomyThread<void>
         void RequestAndWriteTagDetectorFrames();
         void UpdateRecordableObjectDetectors();
         void RequestAndWriteObjectDetectorFrames();
-        void WriteFrameToVideo(const int nFeedIndex);
+        void WriteFrameToVideo(const int nFeedIndex, const cv::Mat& cvFrame);
 
         /////////////////////////////////////////
         // Declare private class member variables.
@@ -92,9 +93,9 @@ class RecordingHandler : public AutonomyThread<void>
         std::vector<std::shared_ptr<BasicCamera>> m_vBasicCameras;
         std::vector<std::shared_ptr<TagDetector>> m_vTagDetectors;
         std::vector<std::shared_ptr<ObjectDetector>> m_vObjectDetectors;
-        std::vector<cv::VideoWriter> m_vCameraWriters;
+        std::vector<std::unique_ptr<VideoEncoder>> m_vCameraWriters;
         std::vector<bool> m_vRecordingToggles;
-        std::vector<cv::Mat> m_vFrames;
+        std::vector<cv::Mat> m_vFrames;    // Download buffers for GPU frames. CPU snapshots are encoded in place.
         std::vector<cv::cuda::GpuMat> m_vGPUFrames;
 
         // Read handles for the publish-latest channels this handler records from. A camera or

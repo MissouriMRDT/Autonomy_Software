@@ -177,9 +177,12 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
 
     // Construct final SQL query string.
     std::ostringstream stdOSS;
-    stdOSS << "SELECT p.id, p.easting, p.northing, p.altitude, z.label, c.label,"
-           << " COALESCE(p.normal_x, 0.0), COALESCE(p.normal_y, 0.0), COALESCE(p.normal_z, 0.0),"
-           << " COALESCE(p.slope, 0.0), COALESCE(p.rough, 0.0), COALESCE(p.curvature, 0.0), COALESCE(p.trav_score, 0.0)"
+    // Every column is cast to the exact type the result loop reads it as, so the loop can read the raw column arrays.
+    stdOSS << "SELECT CAST(p.id AS INTEGER), CAST(p.easting AS DOUBLE), CAST(p.northing AS DOUBLE), CAST(p.altitude AS DOUBLE),"
+           << " CAST(z.label AS VARCHAR), CAST(c.label AS VARCHAR),"
+           << " CAST(COALESCE(p.normal_x, 0.0) AS DOUBLE), CAST(COALESCE(p.normal_y, 0.0) AS DOUBLE), CAST(COALESCE(p.normal_z, 0.0) AS DOUBLE),"
+           << " CAST(COALESCE(p.slope, 0.0) AS DOUBLE), CAST(COALESCE(p.rough, 0.0) AS DOUBLE), CAST(COALESCE(p.curvature, 0.0) AS DOUBLE),"
+           << " CAST(COALESCE(p.trav_score, 0.0) AS DOUBLE)"
            << " FROM ProcessedLiDARPoints AS p"
            << " LEFT JOIN Zones AS z ON p.zone_id = z.id"
            << " LEFT JOIN Classifications AS c ON p.class_code = c.code"
@@ -219,33 +222,51 @@ std::vector<LiDARHandler::PointRow> LiDARHandler::GetLiDARData(const PointFilter
         // and naturally manages memory without locking threads.
         while (duckdb::unique_ptr<duckdb::DataChunk> stChunk = stResult->Fetch())
         {
-            size_t siRows = stChunk->size();
+            // Read each column as a plain typed array. Fetching cells one at a time with GetValue() boxed every one of
+            // the 13 cells per row in a duckdb::Value, which cost far more than the query itself on large tiles.
+            // Flatten() turns constant and dictionary columns into plain arrays so they can be read the same way.
+            stChunk->Flatten();
+            const size_t siRows                = stChunk->size();
+            const int32_t* pIDs                = duckdb::FlatVector::GetData<int32_t>(stChunk->data[0]);
+            const double* pEastings            = duckdb::FlatVector::GetData<double>(stChunk->data[1]);
+            const double* pNorthings           = duckdb::FlatVector::GetData<double>(stChunk->data[2]);
+            const double* pAltitudes           = duckdb::FlatVector::GetData<double>(stChunk->data[3]);
+            const duckdb::string_t* pZones     = duckdb::FlatVector::GetData<duckdb::string_t>(stChunk->data[4]);
+            const duckdb::string_t* pClasses   = duckdb::FlatVector::GetData<duckdb::string_t>(stChunk->data[5]);
+            const double* pNormalXs            = duckdb::FlatVector::GetData<double>(stChunk->data[6]);
+            const double* pNormalYs            = duckdb::FlatVector::GetData<double>(stChunk->data[7]);
+            const double* pNormalZs            = duckdb::FlatVector::GetData<double>(stChunk->data[8]);
+            const double* pSlopes              = duckdb::FlatVector::GetData<double>(stChunk->data[9]);
+            const double* pRoughnesses         = duckdb::FlatVector::GetData<double>(stChunk->data[10]);
+            const double* pCurvatures          = duckdb::FlatVector::GetData<double>(stChunk->data[11]);
+            const double* pTraversalScores     = duckdb::FlatVector::GetData<double>(stChunk->data[12]);
+            duckdb::ValidityMask& stAltValid   = duckdb::FlatVector::Validity(stChunk->data[3]);
+            duckdb::ValidityMask& stZoneValid  = duckdb::FlatVector::Validity(stChunk->data[4]);
+            duckdb::ValidityMask& stClassValid = duckdb::FlatVector::Validity(stChunk->data[5]);
+
+            vResults.reserve(vResults.size() + siRows);
             for (size_t siIter = 0; siIter < siRows; siIter++)
             {
                 PointRow stRow;
 
                 // Extract native datatypes directly from the memory chunk.
-                stRow.nID              = stChunk->GetValue(0, siIter).GetValue<int32_t>();
-                stRow.dEasting         = stChunk->GetValue(1, siIter).GetValue<double>();
-                stRow.dNorthing        = stChunk->GetValue(2, siIter).GetValue<double>();
-                stRow.dAltitude        = stChunk->GetValue(3, siIter).IsNull() ? 0.0 : stChunk->GetValue(3, siIter).GetValue<double>();
-
-                duckdb::Value valZone  = stChunk->GetValue(4, siIter);
-                stRow.szZone           = valZone.IsNull() ? "Unknown" : valZone.GetValue<std::string>();
-
-                duckdb::Value valClass = stChunk->GetValue(5, siIter);
-                stRow.szClassification = valClass.IsNull() ? "Unclassified" : valClass.GetValue<std::string>();
+                stRow.nID              = pIDs[siIter];
+                stRow.dEasting         = pEastings[siIter];
+                stRow.dNorthing        = pNorthings[siIter];
+                stRow.dAltitude        = stAltValid.RowIsValid(siIter) ? pAltitudes[siIter] : 0.0;
+                stRow.szZone           = stZoneValid.RowIsValid(siIter) ? pZones[siIter].GetString() : "Unknown";
+                stRow.szClassification = stClassValid.RowIsValid(siIter) ? pClasses[siIter].GetString() : "Unclassified";
 
                 // Metrics are guaranteed to be non-null due to the COALESCE in the SELECT clause.
-                stRow.dNormalX        = stChunk->GetValue(6, siIter).GetValue<double>();
-                stRow.dNormalY        = stChunk->GetValue(7, siIter).GetValue<double>();
-                stRow.dNormalZ        = stChunk->GetValue(8, siIter).GetValue<double>();
-                stRow.dSlope          = stChunk->GetValue(9, siIter).GetValue<double>();
-                stRow.dRoughness      = stChunk->GetValue(10, siIter).GetValue<double>();
-                stRow.dCurvature      = stChunk->GetValue(11, siIter).GetValue<double>();
-                stRow.dTraversalScore = stChunk->GetValue(12, siIter).GetValue<double>();
+                stRow.dNormalX        = pNormalXs[siIter];
+                stRow.dNormalY        = pNormalYs[siIter];
+                stRow.dNormalZ        = pNormalZs[siIter];
+                stRow.dSlope          = pSlopes[siIter];
+                stRow.dRoughness      = pRoughnesses[siIter];
+                stRow.dCurvature      = pCurvatures[siIter];
+                stRow.dTraversalScore = pTraversalScores[siIter];
 
-                vResults.push_back(stRow);
+                vResults.push_back(std::move(stRow));
             }
         }
     }

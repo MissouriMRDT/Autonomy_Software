@@ -249,11 +249,23 @@ bool TagDetector::LoadLatestCameraFrames()
         // Check if the ZED camera is returning cv::cuda::GpuMat or cv::Mat.
         if (m_bUsingGpuMats)
         {
-            // Load both GPU snapshots once into locals.
+            // Block until the camera publishes a point cloud this detector has not processed yet, instead of polling on
+            // a timer. The point cloud is the last channel a ZED camera publishes for a grab, so once it is here the
+            // frame from the same grab is too. The timeout stops a stalled or stopping camera from holding this loop.
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pCloudSnapshot =
+                m_rdCameraPointCloudGPU.WaitForNewer(m_ullLastProcessedCloudSequence, constants::DETECTOR_FRAME_WAIT_TIMEOUT);
             pubsub::SharedSnapshot<cv::cuda::GpuMat> pFrameSnapshot = m_rdCameraFrameGPU.Get();
-            pubsub::SharedSnapshot<cv::cuda::GpuMat> pCloudSnapshot = m_rdCameraPointCloudGPU.Get();
+            // Nothing new before the timeout.
+            if (pCloudSnapshot == nullptr)
+            {
+                // Count the skip so the short circuit can be verified, then bail out.
+                m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+            // Never wait on this point cloud again, even if the pass is skipped below.
+            m_ullLastProcessedCloudSequence = pCloudSnapshot->ullSequence;
             // Nothing has been published yet.
-            if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
+            if (pFrameSnapshot == nullptr)
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud or frame from ZEDCam!");
@@ -288,11 +300,21 @@ bool TagDetector::LoadLatestCameraFrames()
         }
         else
         {
-            // Load both CPU snapshots once into locals.
+            // Block until the camera publishes a point cloud this detector has not processed yet. See the GPU path above.
+            pubsub::SharedSnapshot<cv::Mat> pCloudSnapshot =
+                m_rdCameraPointCloudCPU.WaitForNewer(m_ullLastProcessedCloudSequence, constants::DETECTOR_FRAME_WAIT_TIMEOUT);
             pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot = m_rdCameraFrameCPU.Get();
-            pubsub::SharedSnapshot<cv::Mat> pCloudSnapshot = m_rdCameraPointCloudCPU.Get();
+            // Nothing new before the timeout.
+            if (pCloudSnapshot == nullptr)
+            {
+                // Count the skip so the short circuit can be verified, then bail out.
+                m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+            // Never wait on this point cloud again, even if the pass is skipped below.
+            m_ullLastProcessedCloudSequence = pCloudSnapshot->ullSequence;
             // Nothing has been published yet.
-            if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
+            if (pFrameSnapshot == nullptr)
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get point cloud or regular frame from ZEDCam!");
@@ -325,20 +347,21 @@ bool TagDetector::LoadLatestCameraFrames()
             //
             // These two Mats are therefore READ ONLY on this path. Never write through them
             // in place - that would mutate a snapshot every other consumer is also reading.
-            // Detection clones into m_cvArucoProcFrame precisely so it has a buffer it owns.
+            // Detection only reads them, and the overlays are drawn into a copy in the overlay snapshot.
             m_cvFrame      = m_pFrameSnapshot->tData;
             m_cvPointCloud = m_pPointCloudSnapshot->tData;
         }
     }
     else
     {
-        // Load the basic camera's frame snapshot once into a local.
-        pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot = m_rdCameraFrameCPU.Get();
-        // Nothing has been published yet.
+        // Block until the camera publishes a frame this detector has not processed yet, instead of polling on a timer.
+        // The timeout stops a stalled or stopping camera from holding this loop.
+        pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot = m_rdCameraFrameCPU.WaitForNewer(m_ullLastProcessedFrameSequence, constants::DETECTOR_FRAME_WAIT_TIMEOUT);
+        // Nothing new before the timeout.
         if (pFrameSnapshot == nullptr)
         {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "TagDetector unable to get RGB image from BasicCam!");
+            // Count the skip so the short circuit can be verified, then bail out.
+            m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
             return false;
         }
         // Skip the pass entirely if the camera has not published a new frame.
@@ -495,10 +518,9 @@ void TagDetector::ThreadedContinuousCode()
 
             // Clear the list of newly detected tags.
             m_vNewlyDetectedTags.clear();
-            // Clone frames.
-            m_cvArucoProcFrame = m_cvFrame.clone();
-            // Detect tags in the image
-            std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvArucoProcFrame, m_cvArucoDetector);
+            // Detect tags in the image. Both detectors only read m_cvFrame (the immutable camera snapshot, or this
+            // detector's own download of it), so it is not cloned first.
+            std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvFrame, m_cvArucoDetector);
             // Loop through the newly detected OpenCV tags and set their detector UUID to this TagDetector's camera name so we can associate them with this detector.
             for (tagdetectutils::ArucoTag& stTag : vNewOpenCVTags)
             {
@@ -516,8 +538,7 @@ void TagDetector::ThreadedContinuousCode()
                 if (pTorchDetector != nullptr)
                 {
                     // Detect tags in the image.
-                    std::vector<tagdetectutils::ArucoTag> vNewTorchTags =
-                        torchtag::Detect(m_cvArucoProcFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+                    std::vector<tagdetectutils::ArucoTag> vNewTorchTags = torchtag::Detect(m_cvFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
 
                     // Add Torch tags to the list of newly detected tags.
                     m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
@@ -537,33 +558,41 @@ void TagDetector::ThreadedContinuousCode()
         // Merge the newly detected tags with the pre-existing detected tags.
         this->UpdateDetectedTags(m_vNewlyDetectedTags);
 
-        // Draw tag overlays onto normal image.
-        arucotag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
-        torchtag::DrawDetections(m_cvArucoProcFrame, m_vDetectedArucoTags);
-
-        // Check if the detected tags vector is empty. If not, set the last good detection overlay frame to the current one with detections drawn on it.
-        if (!m_vDetectedArucoTags.empty())
+        // Draw the tag overlays straight into a pooled snapshot of the frame, so a pass copies the frame once. The last-good
+        // channel also needs this overlay whenever it has tags on it.
+        pubsub::SharedSnapshot<cv::Mat> pOverlaySnapshot;
+        if (m_pubDetectionOverlay.HasReaders() || (m_pubLastGoodOverlay.HasReaders() && !m_vDetectedArucoTags.empty()))
         {
-            m_cvLastGoodDetectionOverlayFrame = m_cvArucoProcFrame.clone();
+            // Copy the frame into a pooled snapshot and draw the tag overlays onto it.
+            std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDetectionOverlay.Acquire();
+            m_cvFrame.copyTo(pSlot->tData);
+            arucotag::DrawDetections(pSlot->tData, m_vDetectedArucoTags);
+            torchtag::DrawDetections(pSlot->tData, m_vDetectedArucoTags);
+            // Keep a reference for the last-good channel, then publish the overlay.
+            pOverlaySnapshot = pSlot;
+            if (m_pubDetectionOverlay.HasReaders())
+            {
+                m_pubDetectionOverlay.Publish(std::move(pSlot));
+            }
+        }
+
+        // Remember the newest overlay that has tags on it. It is immutable once drawn, so holding it replaces a clone.
+        if (pOverlaySnapshot != nullptr && !m_vDetectedArucoTags.empty())
+        {
+            m_pLastGoodOverlaySnapshot = pOverlaySnapshot;
+            m_bLastGoodOverlayPending  = true;
         }
         /////////////////////////////////////////////////////////////////////////////////////
 
-        // Publish the freshly computed outputs to any subscribed consumers (deep copy once each).
-        // Detection overlay frame.
-        if (m_pubDetectionOverlay.HasReaders())
-        {
-            // Deep copy the overlay into a pooled snapshot and publish.
-            std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDetectionOverlay.Acquire();
-            m_cvArucoProcFrame.copyTo(pSlot->tData);
-            m_pubDetectionOverlay.Publish(std::move(pSlot));
-        }
-        // Last good detection overlay frame.
-        if (m_pubLastGoodOverlay.HasReaders())
+        // Last good detection overlay frame. Only published when it changes; the channel keeps serving the newest one in
+        // between, so there is no need to copy the same frame into it every pass.
+        if (m_pubLastGoodOverlay.HasReaders() && m_bLastGoodOverlayPending)
         {
             // Deep copy the last-good overlay into a pooled snapshot and publish.
             std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubLastGoodOverlay.Acquire();
-            m_cvLastGoodDetectionOverlayFrame.copyTo(pSlot->tData);
+            m_pLastGoodOverlaySnapshot->tData.copyTo(pSlot->tData);
             m_pubLastGoodOverlay.Publish(std::move(pSlot));
+            m_bLastGoodOverlayPending = false;
         }
         // Detected aruco tags. Published unconditionally rather than gated on demand: the tags are
         // already computed by the pass above, so publishing costs only a small vector copy, and

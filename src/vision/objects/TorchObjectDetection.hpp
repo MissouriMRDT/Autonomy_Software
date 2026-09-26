@@ -37,6 +37,7 @@ namespace torchobject
      * @param trPyTorchDetector - The PyTorch model to use for detection.
      * @param fMinObjectConfidence - The minimum confidence threshold for detected objects.
      * @param fNMSThreshold - The non-maximum suppression threshold for detected objects.
+     * @param bSwapRedBlue - Pass true for a BGR frame. The model needs RGB, and the swap is done on the GPU.
      * @return std::vector<objectdetectutils::Object> - A vector of detected objects.
      *
      * @author clayjay3 (claytonraycowen@gmail.com)
@@ -45,7 +46,8 @@ namespace torchobject
     inline std::vector<objectdetectutils::Object> Detect(const cv::Mat& cvFrame,
                                                          yolomodel::pytorch::PyTorchInterpreter& trPyTorchDetector,
                                                          const float fMinObjectConfidence = 0.40f,
-                                                         const float fNMSThreshold        = 0.60f)
+                                                         const float fNMSThreshold        = 0.60f,
+                                                         const bool bSwapRedBlue          = false)
     {
         ZoneScopedC(tracy::Color::Blue);
         // Check if the input frame is in RGB format.
@@ -63,7 +65,7 @@ namespace torchobject
         if (trPyTorchDetector.IsReadyForInference())
         {
             // Run inference on YOLO model with current image.
-            std::vector<yolomodel::Detection> vOutputTensorTags = trPyTorchDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold);
+            std::vector<yolomodel::Detection> vOutputTensorTags = trPyTorchDetector.Inference(cvFrame, fMinObjectConfidence, fNMSThreshold, bSwapRedBlue);
 
             // Repackage detections into objects.
             for (const yolomodel::Detection& stTagDetection : vOutputTensorTags)

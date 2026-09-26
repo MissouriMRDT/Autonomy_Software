@@ -45,6 +45,9 @@ namespace constants
     extern const std::string SIM_REARCAM_NAME;
     extern const bool SIM_DEPTH_STREAM_USE_GPU;
 
+    // Threading constants.
+    extern const int OPENCV_NUM_THREADS;
+
     // Safety constants.
     extern const double BATTERY_MINIMUM_CELL_VOLTAGE;
     extern const bool BATTERY_CHECKS_ENABLED;
@@ -116,6 +119,8 @@ namespace constants
 
     // Recording adjustments.
     extern const int RECORDER_FPS;
+    extern const std::string RECORDER_X264_PRESET;
+    extern const int RECORDER_ENCODER_THREADS;
     // Camera recording toggles.
     extern const bool ZED_MAINCAM_ENABLE_RECORDING;
     extern const bool ZED_REARCAM_ENABLE_RECORDING;
@@ -146,9 +151,13 @@ namespace constants
     extern const unsigned long long ZED_POOL_DIAGNOSTICS_INTERVAL;
     extern const size_t PUBLISHER_POOL_PREALLOC;
     extern const size_t PUBLISHER_POOL_GROWTH_CEILING;
+    extern const std::chrono::milliseconds DETECTOR_FRAME_WAIT_TIMEOUT;
     extern const std::chrono::milliseconds CAMERA_RECONNECT_RETRY_INTERVAL;
     extern const std::chrono::milliseconds SIM_STREAM_RECONNECT_RETRY_INTERVAL;
     extern const std::chrono::milliseconds SIM_STREAM_CLOSE_TIMEOUT;
+    extern const std::chrono::milliseconds SIM_STREAM_DECODE_WARN_INTERVAL;
+    extern const std::chrono::milliseconds SIM_STREAM_KEYFRAME_REQUEST_INTERVAL;
+    extern const size_t SIM_STREAM_MAX_QUEUED_FRAMES;
     // ZedCam SVO Recording Config.
     extern const sl::SVO_COMPRESSION_MODE ZED_SVO_COMPRESSION;
     extern const int ZED_SVO_BITRATE;

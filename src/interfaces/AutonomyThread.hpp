@@ -15,15 +15,21 @@
 #define AUTONOMYTHREAD_H
 
 #include "../util/IPS.hpp"
+#include "../util/threading/ThreadRegistry.hpp"
 
 /// \cond
 #include "../../external/threadpool/include/BS_thread_pool.hpp"
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdlib>
+#include <cxxabi.h>
+#include <memory>
+#include <mutex>
 #include <random>
 #include <sstream>
 #include <tracy/Tracy.hpp>
+#include <typeinfo>
 #include <vector>
 
 /// \endcond
@@ -103,17 +109,27 @@ class AutonomyThread
             // Update thread state.
             m_eThreadState = AutonomyThreadState::eStopping;
 
-            // Pause and clear pool queues.
-            m_thPool.pause();
-            m_thPool.purge();
+            // Pause and clear pool queues. The user pool only exists if RunPool()/RunDetachedPool() was ever called.
+            BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated();
+            if (pPool != nullptr)
+            {
+                pPool->pause();
+                pPool->purge();
+            }
             m_thMainThread.pause();
             m_thMainThread.purge();
 
             // Wait for all pools to finish.
-            m_thPool.wait();
+            if (pPool != nullptr)
+            {
+                pPool->wait();
+            }
             m_thMainThread.wait();
             // Update thread state.
             m_eThreadState = AutonomyThreadState::eStopped;
+
+            // Stop reporting this thread's counters before they are destroyed.
+            threadutils::ThreadRegistry::Instance().Unregister(&m_stTelemetry);
         }
 
         /******************************************************************************
@@ -140,13 +156,21 @@ class AutonomyThread
             m_eThreadState = AutonomyThreadState::eStopping;
 
             // Pause queuing of new tasks to the threads, then purge them.
-            m_thPool.pause();
-            m_thPool.purge();
+            BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated();
+            if (pPool != nullptr)
+            {
+                pPool->pause();
+                pPool->purge();
+            }
             m_thMainThread.pause();
             m_thMainThread.purge();
 
             // Wait for loop, pool and main thread to join.
             this->Join();
+
+            // List this thread in the registry so tools can graph its FPS. Done here rather than in the
+            // constructor so the derived class has set its name and typeid() sees the full type.
+            threadutils::ThreadRegistry::Instance().Register(&m_stTelemetry, m_szThreadName.empty() ? this->GetTypeName() : m_szThreadName);
 
             // Update thread state.
             m_eThreadState = AutonomyThreadState::eStarting;
@@ -165,7 +189,10 @@ class AutonomyThread
                 });
 
             // Unpause pool queues.
-            m_thPool.unpause();
+            if (pPool != nullptr)
+            {
+                pPool->unpause();
+            }
             m_thMainThread.unpause();
 
             // Block until thread is started or currently stopping if thread start failed.
@@ -204,7 +231,10 @@ class AutonomyThread
         void Join()
         {
             // Wait for pool to finish all tasks.
-            m_thPool.wait();
+            if (BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated())
+            {
+                pPool->wait();
+            }
             // Wait for main thread to finish.
             m_thMainThread.wait();
 
@@ -224,7 +254,8 @@ class AutonomyThread
          ******************************************************************************/
         bool Joinable() const
         {    // Check current number of running and queued tasks.
-            return (m_thMainThread.get_tasks_total() <= 0 && m_thPool.get_tasks_total() <= 0);
+            BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated();
+            return (m_thMainThread.get_tasks_total() <= 0 && (pPool == nullptr || pPool->get_tasks_total() <= 0));
         }
 
         /******************************************************************************
@@ -299,8 +330,12 @@ class AutonomyThread
         {
             // Update member variable.
             m_ePoolThreadPriority = static_cast<BS::pr>(ePriority);
-            // Native OS priority extensions were removed in BS v5.1.0, so we just reset thread count.
-            m_thPool.reset(m_thPool.get_thread_count());
+            // Native OS priority extensions were removed in BS v5.1.0, so we just reset thread count. A pool that has not
+            // been created yet has nothing to reset.
+            if (BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated())
+            {
+                pPool->reset(pPool->get_thread_count());
+            }
         }
 
     protected:
@@ -343,16 +378,18 @@ class AutonomyThread
          ******************************************************************************/
         void RunPool(const unsigned int nNumTasksToQueue, const unsigned int nNumThreads = 2, const bool bForceStopCurrentThreads = false)
         {
+            // Create the pool on first use.
+            BS::thread_pool<BS::tp::pause>& thPool = this->GetOrCreatePool(nNumThreads);
             // Check if the pools need to be resized.
-            if (m_thPool.get_thread_count() != nNumThreads)
+            if (thPool.get_thread_count() != nNumThreads)
             {
                 // Pause queuing of new tasks to the threads, then purge them.
-                m_thPool.pause();
-                m_thPool.purge();
+                thPool.pause();
+                thPool.purge();
                 // Wait for open threads to terminate, then resize the pool.
-                m_thPool.reset(nNumThreads);
+                thPool.reset(nNumThreads);
                 // Unpause queue.
-                m_thPool.unpause();
+                thPool.unpause();
 
                 // Clear results vector.
                 m_vPoolReturns.clear();
@@ -361,19 +398,19 @@ class AutonomyThread
             else if (bForceStopCurrentThreads)
             {
                 // Pause queuing of new tasks to the threads, then purge them.
-                m_thPool.pause();
-                m_thPool.purge();
+                thPool.pause();
+                thPool.purge();
                 // Wait for threadpool to join.
-                m_thPool.wait();
+                thPool.wait();
                 // Unpause queue.
-                m_thPool.unpause();
+                thPool.unpause();
             }
 
             // Loop nNumThreads times and queue tasks.
             for (unsigned int nIter = 0; nIter < nNumTasksToQueue; ++nIter)
             {
                 // Submit single task to pool queue.
-                m_vPoolReturns.emplace_back(m_thPool.submit_task(
+                m_vPoolReturns.emplace_back(thPool.submit_task(
                     [this]()
                     {
                         // Run user pool code without lock.
@@ -415,16 +452,18 @@ class AutonomyThread
          ******************************************************************************/
         void RunDetachedPool(const unsigned int nNumTasksToQueue, const unsigned int nNumThreads = 2, const bool bForceStopCurrentThreads = false)
         {
+            // Create the pool on first use.
+            BS::thread_pool<BS::tp::pause>& thPool = this->GetOrCreatePool(nNumThreads);
             // Check if the pools need to be resized.
-            if (m_thPool.get_thread_count() != nNumThreads)
+            if (thPool.get_thread_count() != nNumThreads)
             {
                 // Pause queuing of new tasks to the threads, then purge them.
-                m_thPool.pause();
-                m_thPool.purge();
+                thPool.pause();
+                thPool.purge();
                 // Wait for open threads to terminate, then resize the pool.
-                m_thPool.reset(nNumThreads);
+                thPool.reset(nNumThreads);
                 // Unpause queue.
-                m_thPool.unpause();
+                thPool.unpause();
 
                 // Clear results vector.
                 m_vPoolReturns.clear();
@@ -433,19 +472,19 @@ class AutonomyThread
             else if (bForceStopCurrentThreads)
             {
                 // Pause queuing of new tasks to the threads, then purge them.
-                m_thPool.pause();
-                m_thPool.purge();
+                thPool.pause();
+                thPool.purge();
                 // Wait for threadpool to join.
-                m_thPool.wait();
+                thPool.wait();
                 // Unpause queue.
-                m_thPool.unpause();
+                thPool.unpause();
             }
 
             // Loop nNumThreads times and queue tasks.
             for (unsigned int nIter = 0; nIter < nNumTasksToQueue; ++nIter)
             {
                 // Push single task to pool queue. No return value no control.
-                m_thPool.detach_task(
+                thPool.detach_task(
                     [this]()
                     {
                         // Run user code without lock.
@@ -506,7 +545,13 @@ class AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-09-09
          ******************************************************************************/
-        void ClearPoolQueue() { m_thPool.purge(); }
+        void ClearPoolQueue()
+        {
+            if (BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated())
+            {
+                pPool->purge();
+            }
+        }
 
         /******************************************************************************
          * @brief Waits for pool to finish executing tasks. This method will block
@@ -516,7 +561,13 @@ class AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-07-22
          ******************************************************************************/
-        void JoinPool() { m_thPool.wait(); }
+        void JoinPool()
+        {
+            if (BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated())
+            {
+                pPool->wait();
+            }
+        }
 
         /******************************************************************************
          * @brief Check if the internal pool threads are done executing code and the
@@ -531,7 +582,8 @@ class AutonomyThread
         bool PoolJoinable() const
         {
             // Check current number of running and queued tasks.
-            return (m_thPool.get_tasks_total() <= 0);
+            BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated();
+            return (pPool == nullptr || pPool->get_tasks_total() <= 0);
         }
 
         /******************************************************************************
@@ -548,6 +600,8 @@ class AutonomyThread
         {
             // Assign member variable.
             m_nMainThreadMaxIterationPerSecond = nMaxIterationsPerSecond;
+            // Report the new limit to the thread registry.
+            m_stTelemetry.anMaxIPS.store(nMaxIterationsPerSecond, std::memory_order_relaxed);
         }
 
         /******************************************************************************
@@ -558,7 +612,11 @@ class AutonomyThread
          * @author ClayJay3 (claytonraycowen@gmail.com)
          * @date 2023-09-09
          ******************************************************************************/
-        int GetPoolNumOfThreads() { return m_thPool.get_thread_count(); }
+        int GetPoolNumOfThreads()
+        {
+            BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated();
+            return pPool == nullptr ? 0 : pPool->get_thread_count();
+        }
 
         /******************************************************************************
          * @brief Accessor for the Pool Queue Size private member.
@@ -568,7 +626,11 @@ class AutonomyThread
          * @author clayjay3 (claytonraycowen@gmail.com)
          * @date 2024-03-14
          ******************************************************************************/
-        int GetPoolQueueLength() { return m_thPool.get_tasks_queued(); }
+        int GetPoolQueueLength()
+        {
+            BS::thread_pool<BS::tp::pause>* pPool = this->GetPoolIfCreated();
+            return pPool == nullptr ? 0 : pPool->get_tasks_queued();
+        }
 
         /******************************************************************************
          * @brief Accessor for the Pool Results private member. The action of getting
@@ -624,7 +686,12 @@ class AutonomyThread
 
         // BS::thread_pool requires the BS::tp::pause flag to enable pause/unpause
         BS::thread_pool<BS::tp::pause> m_thMainThread = BS::thread_pool<BS::tp::pause>(1);
-        BS::thread_pool<BS::tp::pause> m_thPool       = BS::thread_pool<BS::tp::pause>(2);
+        // The user pool for RunPool()/RunDetachedPool(). Created on first use: most children never call either, and a pool
+        // built up front parked two idle OS threads per AutonomyThread for the life of the program. The owning pointer is
+        // only touched under m_muPoolCreationMutex; other threads read the atomic copy.
+        std::unique_ptr<BS::thread_pool<BS::tp::pause>> m_pPoolStorage;
+        std::atomic<BS::thread_pool<BS::tp::pause>*> m_pPool{nullptr};
+        std::mutex m_muPoolCreationMutex;
 
         std::vector<std::future<T>> m_vPoolReturns;
         std::atomic_bool m_bStopThreads;
@@ -634,6 +701,7 @@ class AutonomyThread
         int m_nMainThreadMaxIterationPerSecond;
         std::string m_szThreadUUID;
         std::string m_szThreadName;
+        threadutils::ThreadTelemetry m_stTelemetry;
 
         /////////////////////////////////////////
         // Declare and/or define private methods.
@@ -645,6 +713,44 @@ class AutonomyThread
                                                       // Can be ran from inside the ThreadedContinuousCode() method.
 
         // Declare and define private interface methods.
+        /******************************************************************************
+         * @brief Get the user pool if RunPool()/RunDetachedPool() has created it.
+         *
+         * @return BS::thread_pool<BS::tp::pause>* - The pool, or nullptr if it has not been created.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-26
+         ******************************************************************************/
+        BS::thread_pool<BS::tp::pause>* GetPoolIfCreated() const { return m_pPool.load(std::memory_order_acquire); }
+
+        /******************************************************************************
+         * @brief Get the user pool, creating it with the given number of threads on first use.
+         *
+         * @param nNumThreads - The number of threads to create the pool with if it does not exist yet.
+         * @return BS::thread_pool<BS::tp::pause>& - The pool.
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-26
+         ******************************************************************************/
+        BS::thread_pool<BS::tp::pause>& GetOrCreatePool(const unsigned int nNumThreads)
+        {
+            // Fast path: the pool already exists.
+            BS::thread_pool<BS::tp::pause>* pPool = m_pPool.load(std::memory_order_acquire);
+            if (pPool == nullptr)
+            {
+                // Create it under the lock, re-checking in case another caller got there first.
+                std::lock_guard<std::mutex> lkPoolCreation(m_muPoolCreationMutex);
+                pPool = m_pPool.load(std::memory_order_relaxed);
+                if (pPool == nullptr)
+                {
+                    m_pPoolStorage = std::make_unique<BS::thread_pool<BS::tp::pause>>(nNumThreads);
+                    pPool          = m_pPoolStorage.get();
+                    m_pPool.store(pPool, std::memory_order_release);
+                }
+            }
+            return *pPool;
+        }
+
         /******************************************************************************
          * @brief This method is ran in a separate thread. It is a middleware between the
          * class member thread and the user code that handles graceful stopping of
@@ -666,36 +772,33 @@ class AutonomyThread
                 tracy::SetThreadName(m_szThreadName.c_str());
             }
 
-            // Declare instance variables.
-            std::chrono::_V2::system_clock::time_point tmStartTime;
+            // When the next iteration may start. It advances by exactly one period per iteration and the loop sleeps until
+            // it, so the rate does not drift by the loop's own overhead the way sleeping for (period - elapsed) did.
+            // steady_clock, because high_resolution_clock is the wall clock in libstdc++ and jumps when the time is set.
+            std::chrono::steady_clock::time_point tmNextIteration = std::chrono::steady_clock::now();
 
             // Loop until stop flag is set.
             while (!bStopThread)
             {
-                // Check if max IPS limit has been set.
-                if (m_nMainThreadMaxIterationPerSecond > 0)
-                {
-                    // Get start execution time.
-                    tmStartTime = std::chrono::high_resolution_clock::now();
-                }
-
                 // Call method containing user code.
                 this->ThreadedContinuousCode();
 
                 // Check if max IPS limit has been set.
                 if (m_nMainThreadMaxIterationPerSecond > 0)
                 {
-                    // Get end execution time.
-                    std::chrono::_V2::system_clock::time_point tmEndTime = std::chrono::high_resolution_clock::now();
-                    // Get execution time of user code.
-                    std::chrono::microseconds tmElapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(tmEndTime - tmStartTime);
-                    // Check if the elapsed time is slower than the max iterations per seconds.
-                    if (tmElapsedTime.count() < (1.0 / m_nMainThreadMaxIterationPerSecond) * 1000000)
+                    // Schedule the next iteration one period after this one was scheduled.
+                    tmNextIteration += std::chrono::nanoseconds(1000000000LL / m_nMainThreadMaxIterationPerSecond);
+                    const std::chrono::steady_clock::time_point tmNow = std::chrono::steady_clock::now();
+                    if (tmNow < tmNextIteration)
                     {
-                        // Calculate the time to wait to stay under IPS cap.
-                        int nSleepTime = ((1.0 / m_nMainThreadMaxIterationPerSecond) * 1000000) - tmElapsedTime.count();
-                        // Make this thread sleep for the remaining time.
-                        std::this_thread::sleep_for(std::chrono::microseconds(nSleepTime));
+                        // Sleep for the rest of the period.
+                        std::this_thread::sleep_until(tmNextIteration);
+                    }
+                    else
+                    {
+                        // This iteration overran its period (or the limit was just enabled). Measure from now instead of
+                        // running iterations back to back to catch up on the lost time.
+                        tmNextIteration = tmNow;
                     }
                 }
 
@@ -710,10 +813,31 @@ class AutonomyThread
 
                 // Call iteration per second tracking tick.
                 m_IPS.Tick();
+                // Count the iteration for the thread registry. Relaxed: readers only need an eventually consistent count.
+                m_stTelemetry.aullIterations.fetch_add(1, std::memory_order_relaxed);
             }
 
             // Notify waiting start method that thread is now stopping.
             m_cdThreadRunningCondition.notify_all();
+        }
+
+        /******************************************************************************
+         * @brief Get the readable name of this object's most derived type, used as the
+         *      registry name for threads that never called SetMainThreadName().
+         *
+         * @return std::string - The demangled type name, e.g. "rovecomm::RoveCommUDP".
+         *
+         * @author clayjay3 (claytonraycowen@gmail.com)
+         * @date 2026-09-23
+         ******************************************************************************/
+        std::string GetTypeName() const
+        {
+            // Demangle the compiler's type name. Falls back to the mangled name if that fails.
+            int nStatus        = 0;
+            char* pDemangled   = abi::__cxa_demangle(typeid(*this).name(), nullptr, nullptr, &nStatus);
+            std::string szName = (nStatus == 0 && pDemangled != nullptr) ? pDemangled : typeid(*this).name();
+            std::free(pDemangled);
+            return szName;
         }
 
         /******************************************************************************

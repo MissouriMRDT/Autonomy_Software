@@ -111,7 +111,7 @@ void SetNonCanonicalTerminalMode()
  ******************************************************************************/
 int CheckKeyPress()
 {
-    int nBytesWaiting;
+    int nBytesWaiting = 0;
     ioctl(STDIN_FILENO, FIONREAD, &nBytesWaiting);
     return nBytesWaiting;
 }
@@ -141,6 +141,11 @@ int main()
 
     // Initialize Loggers
     logging::InitializeLoggers(constants::LOGGING_OUTPUT_PATH_ABSOLUTE);
+
+    // Size OpenCV's internal worker pool before any camera or detector makes its first OpenCV call. By default it
+    // starts one TBB worker per core, and with ~10 pipeline threads each issuing small parallel jobs those workers
+    // never get to sleep and spin between jobs.
+    cv::setNumThreads(constants::OPENCV_NUM_THREADS);
 
     /////////////////////////////////////////
     // Setup global objects.
@@ -192,8 +197,14 @@ int main()
         sigemptyset(&stSigBreak.sa_mask);
         sigaction(SIGINT, &stSigBreak, nullptr);
         sigaction(SIGQUIT, &stSigBreak, nullptr);
-        // Set the terminal to non-canonical mode. This allows us to read a single character from the terminal without waiting for a newline.
-        SetNonCanonicalTerminalMode();
+        // Keyboard commands need stdin to be a terminal. It is not when launched from VS Code or in the background, and polling
+        // it then fails on every main loop iteration.
+        const bool bStdinIsTerminal = isatty(STDIN_FILENO);
+        if (bStdinIsTerminal)
+        {
+            // Set the terminal to non-canonical mode. This allows us to read a single character from the terminal without waiting for a newline.
+            SetNonCanonicalTerminalMode();
+        }
 
         // Print warnings if running in SIM mode.
         if (constants::MODE_SIM)
@@ -266,6 +277,29 @@ int main()
         // Create a vector of ints to store the FPS values for each thread.
         std::vector<uint32_t> vThreadFPSValues;
 
+        // Builds the thread FPS and state report. Only called when the report is actually logged.
+        auto BuildMainInfo = [&]() -> std::string
+        {
+            // Create a string to append FPS values to.
+            std::string szMainInfo = "";
+            // Get FPS of all cameras and detectors and construct the info into a string.
+            szMainInfo += "\n--------[ Threads FPS ]--------\n";
+            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
+            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainTagDetector FPS: " + std::to_string(pMainTagDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "MainObjectDetector FPS: " + std::to_string(pMainObjectDetector->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RearCam FPS: " + std::to_string(pRearCam ? pRearCam->GetIPS().GetExactIPS() : 0) + "\n";
+            szMainInfo += "RearTagDetector FPS: " + std::to_string(pRearTagDetector ? pRearTagDetector->GetIPS().GetExactIPS() : 0) + "\n";
+            szMainInfo += "RearObjectDetector FPS: " + std::to_string(pRearObjectDetector ? pRearObjectDetector->GetIPS().GetExactIPS() : 0) + "\n";
+            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nVisualizer FPS: " + std::to_string(pVisualizationHandler->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
+            szMainInfo += "\n--------[ State Machine Info ]--------\n";
+            szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
+            return szMainInfo;
+        };
+
         /*
             This while loop is the main periodic loop for the Autonomy_Software program.
             Loop until user sends sigkill or sigterm.
@@ -286,28 +320,11 @@ int main()
             vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommUDPNode->GetIPS().GetExactIPS()));
             vThreadFPSValues.push_back(static_cast<uint32_t>(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()));
 
-            // Create a string to append FPS values to.
-            std::string szMainInfo = "";
-            // Get FPS of all cameras and detectors and construct the info into a string.
-            szMainInfo += "\n--------[ Threads FPS ]--------\n";
-            szMainInfo += "Main Process FPS: " + std::to_string(IterPerSecond.GetExactIPS()) + "\n";
-            szMainInfo += "MainCam FPS: " + std::to_string(pMainCam->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "MainTagDetector FPS: " + std::to_string(pMainTagDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "MainObjectDetector FPS: " + std::to_string(pMainObjectDetector->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RearCam FPS: " + std::to_string(pRearCam ? pRearCam->GetIPS().GetExactIPS() : 0) + "\n";
-            szMainInfo += "RearTagDetector FPS: " + std::to_string(pRearTagDetector ? pRearTagDetector->GetIPS().GetExactIPS() : 0) + "\n";
-            szMainInfo += "RearObjectDetector FPS: " + std::to_string(pRearObjectDetector ? pRearObjectDetector->GetIPS().GetExactIPS() : 0) + "\n";
-            szMainInfo += "\nStateMachine FPS: " + std::to_string(globals::g_pStateMachineHandler->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\nVisualizer FPS: " + std::to_string(pVisualizationHandler->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\nRoveCommUDP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "RoveCommTCP FPS: " + std::to_string(network::g_pRoveCommTCPNode->GetIPS().GetExactIPS()) + "\n";
-            szMainInfo += "\n--------[ State Machine Info ]--------\n";
-            szMainInfo += "Current State: " + statemachine::StateToString(globals::g_pStateMachineHandler->GetCurrentState()) + "\n";
-            // Submit logger message.
-            LOG_DEBUG(logging::g_qSharedLogger, "{}", szMainInfo);
+            // Log the FPS report at DEBUG once a second. The report is only built when it is written.
+            LOG_DEBUG_LIMIT(std::chrono::seconds(1), logging::g_qSharedLogger, "{}", BuildMainInfo());
 
             // Print out the FPS stats to the console if the user presses 'f' or 'F'.
-            if (CheckKeyPress() > 0)
+            if (bStdinIsTerminal && CheckKeyPress() > 0)
             {
                 char chTerminalInput = 0;
                 ssize_t nBytesRead   = read(STDIN_FILENO, &chTerminalInput, 1);
@@ -333,7 +350,7 @@ int main()
                     }
                     else if (chTerminalInput == 'f' || chTerminalInput == 'F')
                     {
-                        LOG_NOTICE(logging::g_qSharedLogger, "{}", szMainInfo);
+                        LOG_NOTICE(logging::g_qSharedLogger, "{}", BuildMainInfo());
                     }
                     else if (chTerminalInput == 'p' || chTerminalInput == 'P')
                     {

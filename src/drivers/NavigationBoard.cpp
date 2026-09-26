@@ -488,9 +488,14 @@ void NavigationBoard::ProcessGPSData(const rovecomm::RoveCommPacket<double>& stP
         m_dVelocity = geMeasurement.dDistanceMeters / dElapsedSeconds;
     }
 
-    // Submit logger message. Log the packet values directly: reading the members back would
+    // Submit logger message, at most once a second. Log the packet values directly: reading the members back would
     // be an unsynchronized read, and they may already have been overwritten by the next packet.
-    LOG_DEBUG(logging::g_qSharedLogger, "Incoming GPS Data: ({} lat, {} lon, {} alt)", stPacket.vData[0], stPacket.vData[1], stPacket.vData[2]);
+    LOG_DEBUG_LIMIT(std::chrono::seconds(1),
+                    logging::g_qSharedLogger,
+                    "Incoming GPS Data: ({} lat, {} lon, {} alt)",
+                    stPacket.vData[0],
+                    stPacket.vData[1],
+                    stPacket.vData[2]);
 }
 
 /******************************************************************************
@@ -576,7 +581,7 @@ void NavigationBoard::ProcessCompassData(const rovecomm::RoveCommPacket<float>& 
         m_dAngularVelocity = dDeltaAngle / dElapsedSeconds;
     }
 
-    // Submit logger message. Log the packet value directly rather than reading the member
+    // Submit logger message, at most once a second. Log the packet value directly rather than reading the member
     // back without the lock.
-    LOG_DEBUG(logging::g_qSharedLogger, "Incoming Compass Data: {}", dNewHeading);
+    LOG_DEBUG_LIMIT(std::chrono::seconds(1), logging::g_qSharedLogger, "Incoming Compass Data: {}", dNewHeading);
 }

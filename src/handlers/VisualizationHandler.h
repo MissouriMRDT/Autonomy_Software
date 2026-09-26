@@ -107,6 +107,7 @@ class VisualizationHandler : public AutonomyThread<void>
         std::vector<char> OnRequestDetections(const std::string& szQuery);
         std::vector<char> OnRequestDetectionList(const std::string& szQuery);
         std::vector<char> OnRequestPointCloud(const std::string& szQuery);
+        std::vector<char> OnRequestThreads(const std::string& szQuery);
 
         // Utilities.
         std::vector<char> LoadFileToBuffer(const std::string& szPath);

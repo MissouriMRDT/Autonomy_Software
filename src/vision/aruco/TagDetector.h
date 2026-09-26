@@ -217,9 +217,12 @@ class TagDetector : public AutonomyThread<void>
         // Create frames for storing images and point clouds.
 
         cv::Mat m_cvFrame;
-        cv::Mat m_cvArucoProcFrame;
-        cv::Mat m_cvLastGoodDetectionOverlayFrame;
         cv::Mat m_cvPointCloud;
+
+        // The newest overlay that had tags on it, held as its published snapshot instead of a clone, and whether it
+        // still has to be copied to the last-good channel.
+        pubsub::SharedSnapshot<cv::Mat> m_pLastGoodOverlaySnapshot;
+        bool m_bLastGoodOverlayPending = false;
 
         // Demand for the camera data this detector consumes. Held for this detector's whole
         // lifetime so the camera retrieves and publishes only what is actually being used.
@@ -238,6 +241,7 @@ class TagDetector : public AutonomyThread<void>
         // to skip an entire detection pass when the camera has not published a new frame yet.
 
         unsigned long long m_ullLastProcessedFrameSequence = 0;
+        unsigned long long m_ullLastProcessedCloudSequence = 0;         // Last point cloud this detector waited for. ZED cameras only.
         std::atomic<unsigned long long> m_ullMismatchedGrabCount{0};    // Passes skipped because frame and cloud came from different grabs.
         std::atomic<unsigned long long> m_ullSkippedFrameCount{0};
 

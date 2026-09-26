@@ -344,15 +344,19 @@ namespace pathplanners
         m_vCostmap.assign(nTotalCells, GridCell());
 
         // Overlay raw sparse LiDAR matrices onto the structured grid mapping.
+        std::string szLastZone;
+        int nLastZone = 0;
         for (int nX = nMinTileX; nX <= nMaxTileX; ++nX)
         {
             for (int nY = nMinTileY; nY <= nMaxTileY; ++nY)
             {
                 TileKey stKey{nX, nY};
 
-                if (m_umTileMapCache.find(stKey) != m_umTileMapCache.end())
+                // Look the tile up once and reuse the iterator.
+                decltype(m_umTileMapCache)::iterator itTile = m_umTileMapCache.find(stKey);
+                if (itTile != m_umTileMapCache.end())
                 {
-                    for (const LiDARHandler::PointRow& stPoint : m_umTileMapCache[stKey])
+                    for (const LiDARHandler::PointRow& stPoint : itTile->second)
                     {
                         int nGridX = static_cast<int>((stPoint.dEasting - m_dGridOriginEasting) / m_dGridResolution);
                         int nGridY = static_cast<int>((stPoint.dNorthing - m_dGridOriginNorthing) / m_dGridResolution);
@@ -366,10 +370,16 @@ namespace pathplanners
                             // to ensure obstacles like trees are not masked by overlapping ground returns.
                             if (m_vCostmap[nIdx].dTravScore < 0.0 || stPoint.dTraversalScore < m_vCostmap[nIdx].dTravScore)
                             {
-                                m_vCostmap[nIdx].dTravScore            = stPoint.dTraversalScore;
-                                m_vCostmap[nIdx].dAltitude             = stPoint.dAltitude;
-                                m_vCostmap[nIdx].nClosestPointID       = stPoint.nID;
-                                m_vCostmap[nIdx].nZone                 = std::stoi(stPoint.szZone.substr(0, 2));
+                                m_vCostmap[nIdx].dTravScore      = stPoint.dTraversalScore;
+                                m_vCostmap[nIdx].dAltitude       = stPoint.dAltitude;
+                                m_vCostmap[nIdx].nClosestPointID = stPoint.nID;
+                                // Neighboring points almost always share a zone, so only parse the zone number when the label changes.
+                                if (stPoint.szZone != szLastZone)
+                                {
+                                    nLastZone  = std::stoi(stPoint.szZone.substr(0, 2));
+                                    szLastZone = stPoint.szZone;
+                                }
+                                m_vCostmap[nIdx].nZone                 = nLastZone;
                                 m_vCostmap[nIdx].bInNorthernHemisphere = (stPoint.dNorthing >= 0);
                             }
                         }
@@ -707,13 +717,16 @@ namespace pathplanners
     void GeoPlanner::FillGridHoles()
     {
         ZoneScopedC(tracy::Color::Chocolate3);
-        std::vector<GridCell> vNewCostmap = m_vCostmap;
-        constexpr int anDx[8]             = {-1, 0, 1, -1, 1, -1, 0, 1};
-        constexpr int anDy[8]             = {-1, -1, -1, 0, 0, 1, 1, 1};
+        // Cells filled by the current pass. Each pass reads only the costmap as it was before the pass, so the fills are
+        // collected here and applied at the end, rather than copying the whole costmap every pass.
+        std::vector<std::pair<int, GridCell>> vFilledCells;
+        constexpr int anDx[8] = {-1, 0, 1, -1, 1, -1, 0, 1};
+        constexpr int anDy[8] = {-1, -1, -1, 0, 0, 1, 1, 1};
 
         // Perform processing passes to iteratively stretch valid geographic bounds incrementally.
         for (int nPass = 0; nPass < m_nDilationPasses; ++nPass)
         {
+            vFilledCells.clear();
             for (int nY = 0; nY < m_nGridHeight; ++nY)
             {
                 for (int nX = 0; nX < m_nGridWidth; ++nX)
@@ -724,7 +737,7 @@ namespace pathplanners
                     if (m_vCostmap[nIdx].dTravScore < 0.0)
                     {
                         double dBestScore = -1.0;
-                        GridCell stBestCell;
+                        int nBestIdx      = -1;
 
                         // Look at neighboring cells to find a valid traversal score to inherit.
                         for (int nI = 0; nI < 8; ++nI)
@@ -739,7 +752,7 @@ namespace pathplanners
                                 if (m_vCostmap[nNeighborIdx].dTravScore > dBestScore)
                                 {
                                     dBestScore = m_vCostmap[nNeighborIdx].dTravScore;
-                                    stBestCell = m_vCostmap[nNeighborIdx];
+                                    nBestIdx   = nNeighborIdx;
                                 }
                             }
                         }
@@ -747,13 +760,16 @@ namespace pathplanners
                         // Inherit the best adjacent traversal score if a valid neighbor was discovered.
                         if (dBestScore >= 0.0)
                         {
-                            vNewCostmap[nIdx] = stBestCell;
+                            vFilledCells.emplace_back(nIdx, m_vCostmap[nBestIdx]);
                         }
                     }
                 }
             }
-            // Update the core system array structures with the applied morphological filter outcomes.
-            m_vCostmap = vNewCostmap;
+            // Apply this pass's fills to the costmap.
+            for (const std::pair<int, GridCell>& stFill : vFilledCells)
+            {
+                m_vCostmap[stFill.first] = stFill.second;
+            }
         }
     }
 

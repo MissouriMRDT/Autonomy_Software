@@ -86,7 +86,8 @@ namespace statemachine
     void VerifyingPositionState::Run()
     {
         ZoneScopedC(tracy::Color::ForestGreen);
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingPositionState: Running state-specific behavior.");
+        // Run() is called every state machine iteration (60 Hz), so limit this to once a second.
+        LOG_DEBUG_LIMIT(std::chrono::seconds(1), logging::g_qSharedLogger, "VerifyingPositionState: Running state-specific behavior.");
 
         std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
         double dTimeElapsed                                 = std::chrono::duration_cast<std::chrono::milliseconds>(tmCurrentTime - m_tmVerifyStartTime).count() / 1000.0;

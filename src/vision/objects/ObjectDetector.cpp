@@ -216,11 +216,23 @@ bool ObjectDetector::LoadLatestCameraFrames()
         // Check if the ZED camera is returning cv::cuda::GpuMat or cv::Mat.
         if (m_bUsingGpuMats)
         {
-            // Load both GPU snapshots once into locals.
+            // Block until the camera publishes a point cloud this detector has not processed yet, instead of polling on
+            // a timer. The point cloud is the last channel a ZED camera publishes for a grab, so once it is here the
+            // frame from the same grab is too. The timeout stops a stalled or stopping camera from holding this loop.
+            pubsub::SharedSnapshot<cv::cuda::GpuMat> pCloudSnapshot =
+                m_rdCameraPointCloudGPU.WaitForNewer(m_ullLastProcessedCloudSequence, constants::DETECTOR_FRAME_WAIT_TIMEOUT);
             pubsub::SharedSnapshot<cv::cuda::GpuMat> pFrameSnapshot = m_rdCameraFrameGPU.Get();
-            pubsub::SharedSnapshot<cv::cuda::GpuMat> pCloudSnapshot = m_rdCameraPointCloudGPU.Get();
+            // Nothing new before the timeout.
+            if (pCloudSnapshot == nullptr)
+            {
+                // Count the skip so the short circuit can be verified, then bail out.
+                m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+            // Never wait on this point cloud again, even if the pass is skipped below.
+            m_ullLastProcessedCloudSequence = pCloudSnapshot->ullSequence;
             // Nothing has been published yet.
-            if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
+            if (pFrameSnapshot == nullptr)
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or frame from ZEDCam!");
@@ -255,11 +267,21 @@ bool ObjectDetector::LoadLatestCameraFrames()
         }
         else
         {
-            // Load both CPU snapshots once into locals.
+            // Block until the camera publishes a point cloud this detector has not processed yet. See the GPU path above.
+            pubsub::SharedSnapshot<cv::Mat> pCloudSnapshot =
+                m_rdCameraPointCloudCPU.WaitForNewer(m_ullLastProcessedCloudSequence, constants::DETECTOR_FRAME_WAIT_TIMEOUT);
             pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot = m_rdCameraFrameCPU.Get();
-            pubsub::SharedSnapshot<cv::Mat> pCloudSnapshot = m_rdCameraPointCloudCPU.Get();
+            // Nothing new before the timeout.
+            if (pCloudSnapshot == nullptr)
+            {
+                // Count the skip so the short circuit can be verified, then bail out.
+                m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
+                return false;
+            }
+            // Never wait on this point cloud again, even if the pass is skipped below.
+            m_ullLastProcessedCloudSequence = pCloudSnapshot->ullSequence;
             // Nothing has been published yet.
-            if (pFrameSnapshot == nullptr || pCloudSnapshot == nullptr)
+            if (pFrameSnapshot == nullptr)
             {
                 // Submit logger message.
                 LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get point cloud or regular frame from ZEDCam!");
@@ -297,13 +319,14 @@ bool ObjectDetector::LoadLatestCameraFrames()
     }
     else
     {
-        // Load the basic camera's frame snapshot once into a local.
-        pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot = m_rdCameraFrameCPU.Get();
-        // Nothing has been published yet.
+        // Block until the camera publishes a frame this detector has not processed yet, instead of polling on a timer.
+        // The timeout stops a stalled or stopping camera from holding this loop.
+        pubsub::SharedSnapshot<cv::Mat> pFrameSnapshot = m_rdCameraFrameCPU.WaitForNewer(m_ullLastProcessedFrameSequence, constants::DETECTOR_FRAME_WAIT_TIMEOUT);
+        // Nothing new before the timeout.
         if (pFrameSnapshot == nullptr)
         {
-            // Submit logger message.
-            LOG_WARNING(logging::g_qSharedLogger, "ObjectDetector unable to get RGB image from BasicCam!");
+            // Count the skip so the short circuit can be verified, then bail out.
+            m_ullSkippedFrameCount.fetch_add(1, std::memory_order_relaxed);
             return false;
         }
         // Skip the pass entirely if the camera has not published a new frame.
@@ -462,11 +485,6 @@ void ObjectDetector::ThreadedContinuousCode()
 
             // Clear the list of newly detected objects.
             m_vNewlyDetectedObjects.clear();
-            // Clone frames.
-            m_cvDetectionOverlayFrame = m_cvFrame.clone();
-            m_cvTorchProcFrame        = m_cvFrame.clone();
-            // Copy the camera frame to the pre-processing frame and overlay frame.
-            cv::cvtColor(m_cvTorchProcFrame, m_cvTorchProcFrame, cv::COLOR_BGR2RGB);
 
             // Check if torch detection if turned on.
             if (m_bTorchEnabled)
@@ -476,9 +494,18 @@ void ObjectDetector::ThreadedContinuousCode()
                 std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> pTorchDetector = std::atomic_load_explicit(&m_pTorchDetector, std::memory_order_acquire);
                 if (pTorchDetector != nullptr)
                 {
-                    // Detect objects in the image.
+                    // The model needs 3 channels. A ZED on the CPU memory path publishes BGRA, and the snapshot is read
+                    // only, so drop the alpha channel into a scratch frame in that case.
+                    const cv::Mat* pTorchFrame = &m_cvFrame;
+                    if (m_cvFrame.channels() == 4)
+                    {
+                        cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2BGR);
+                        pTorchFrame = &m_cvTorchProcFrame;
+                    }
+                    // Detect objects in the image. The frame is BGR and the model wants RGB; the channels are swapped on
+                    // the GPU, so the frame is read in place instead of cloned and converted on the CPU.
                     std::vector<objectdetectutils::Object> vNewTorchObjects =
-                        torchobject::Detect(m_cvTorchProcFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+                        torchobject::Detect(*pTorchFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold, /*bSwapRedBlue=*/true);
 
                     // Add Torch objects to the list of newly detected objects.
                     m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
@@ -498,33 +525,40 @@ void ObjectDetector::ThreadedContinuousCode()
         // Merge the newly detected objects with the pre-existing detected objects.
         this->UpdateDetectedObjects(m_vNewlyDetectedObjects);
 
-        // Draw object overlays onto normal image.
-        torchobject::DrawDetections(m_cvDetectionOverlayFrame, m_vDetectedObjects);
-
-        // Check if the detected objects vector is not empty.
-        if (!m_vDetectedObjects.empty())
+        // Draw the object overlays straight into a pooled snapshot of the frame, so a pass copies the frame once. The
+        // last-good channel also needs this overlay whenever it has objects on it.
+        pubsub::SharedSnapshot<cv::Mat> pOverlaySnapshot;
+        if (m_pubDetectionOverlay.HasReaders() || (m_pubLastGoodOverlay.HasReaders() && !m_vDetectedObjects.empty()))
         {
-            // It's not empty so we should have a valid overlay frame with detections drawn on it.
-            m_cvLastGoodOverlayFrame = m_cvDetectionOverlayFrame.clone();
+            // Copy the frame into a pooled snapshot and draw the object overlays onto it.
+            std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDetectionOverlay.Acquire();
+            m_cvFrame.copyTo(pSlot->tData);
+            torchobject::DrawDetections(pSlot->tData, m_vDetectedObjects);
+            // Keep a reference for the last-good channel, then publish the overlay.
+            pOverlaySnapshot = pSlot;
+            if (m_pubDetectionOverlay.HasReaders())
+            {
+                m_pubDetectionOverlay.Publish(std::move(pSlot));
+            }
+        }
+
+        // Remember the newest overlay that has objects on it. It is immutable once drawn, so holding it replaces a clone.
+        if (pOverlaySnapshot != nullptr && !m_vDetectedObjects.empty())
+        {
+            m_pLastGoodOverlaySnapshot = pOverlaySnapshot;
+            m_bLastGoodOverlayPending  = true;
         }
         /////////////////////////////////////////////////////////////////////////////////////
 
-        // Publish the freshly computed outputs to any subscribed consumers (deep copy once each).
-        // Detection overlay frame.
-        if (m_pubDetectionOverlay.HasReaders())
-        {
-            // Deep copy the overlay into a pooled snapshot and publish.
-            std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDetectionOverlay.Acquire();
-            m_cvDetectionOverlayFrame.copyTo(pSlot->tData);
-            m_pubDetectionOverlay.Publish(std::move(pSlot));
-        }
-        // Last good detection overlay frame.
-        if (m_pubLastGoodOverlay.HasReaders())
+        // Last good detection overlay frame. Only published when it changes; the channel keeps serving the newest one in
+        // between, so there is no need to copy the same frame into it every pass.
+        if (m_pubLastGoodOverlay.HasReaders() && m_bLastGoodOverlayPending)
         {
             // Deep copy the last-good overlay into a pooled snapshot and publish.
             std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubLastGoodOverlay.Acquire();
-            m_cvLastGoodOverlayFrame.copyTo(pSlot->tData);
+            m_pLastGoodOverlaySnapshot->tData.copyTo(pSlot->tData);
             m_pubLastGoodOverlay.Publish(std::move(pSlot));
+            m_bLastGoodOverlayPending = false;
         }
         // Detected objects. Published unconditionally rather than gated on demand: the objects are
         // already computed by the pass above, so publishing costs only a small vector copy, and

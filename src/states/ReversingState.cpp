@@ -84,8 +84,8 @@ namespace statemachine
      ******************************************************************************/
     void ReversingState::Run()
     {
-        // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
+        // Submit logger message. Run() is called every state machine iteration (60 Hz), so limit this to once a second.
+        LOG_DEBUG_LIMIT(std::chrono::seconds(1), logging::g_qSharedLogger, "ReversingState: Running state-specific behavior.");
 
         // Create instance variables.
         static bool bTimeSinceLastMeterAlreadySet = false;

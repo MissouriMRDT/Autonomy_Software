@@ -96,10 +96,9 @@ SIMZEDCam::SIMZEDCam(const std::string szCameraPath,
     m_dPoseOffsetZO = 0.0;
 
     // Initialize OpenCV mats to a black/empty image the size of the camera resolution.
-    m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC4);
+    m_cvFrame        = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC3);    // The WebRTC decoder outputs BGR24.
     m_cvDepthImage   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_8UC1);
     m_cvDepthMeasure = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC1);
-    m_cvPointCloud   = cv::Mat::zeros(nPropResolutionY, nPropResolutionX, CV_32FC4);
 
     // Construct camera stream objects. Append proper camera path arguments to each URL camera path.
     m_pRGBStream        = std::make_unique<WebRTC>(szWebsocketAddress, m_szFullStreamName + "RGB");
@@ -183,8 +182,12 @@ void SIMZEDCam::SetCallbacks()
             {
                 // Acquire a lock on the webRTC copy mutex.
                 std::unique_lock lkWebRTC(m_muWebRTCRGBImageCopyMutex);
-                // Deep copy the frame.
-                cvFrame.copyTo(m_cvFrame);
+                // Take the decoded frame by swapping buffers instead of copying it. The decoder gets our previous
+                // buffer back and decodes its next frame into it. That is safe because the producer only deep copies
+                // m_cvFrame under this lock and never keeps a reference to its buffer.
+                cv::swap(m_cvFrame, cvFrame);
+                // Count it so the producer knows a new frame is available.
+                m_ullRGBFramesReceived.fetch_add(1, std::memory_order_release);
             }
         });
     m_pDepthImageStream->SetOnFrameReceivedCallback(
@@ -195,10 +198,13 @@ void SIMZEDCam::SetCallbacks()
             {
                 // Acquire a lock on the webRTC copy mutex.
                 std::unique_lock lkWebRTC(m_muWebRTCDepthImageCopyMutex);
-                // Convert the depth image buffer to grayscale.
-                cv::cvtColor(cvFrame, m_cvDepthImage, cv::COLOR_BGR2GRAY);
+                // Take the decoded frame by swapping buffers instead of copying it. See the RGB callback above.
+                cv::swap(m_cvDepthImage, cvFrame);
+                // Count it so the producer knows a new frame is available.
+                m_ullDepthFramesReceived.fetch_add(1, std::memory_order_release);
             }
-        });
+        },
+        AV_PIX_FMT_GRAY8);    // Depth is grayscale, so skip the BGR conversion.
 }
 
 /******************************************************************************
@@ -213,8 +219,9 @@ void SIMZEDCam::SetCallbacks()
 void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDepthMeasure)
 {
     ZoneScopedC(tracy::Color::Orange1);
-    // Declare instance variables.
-    const float fMaxDepth = 2001.0f;    // Maximum depth in cm.
+    // Declare instance variables. The sim encodes depth as 255 = 0 cm and 0 = fMaxDepth.
+    const float fMaxDepth     = 2001.0f;    // Maximum depth in cm.
+    const float fFarClipDepth = 1950.0f;    // Depth in cm at and beyond which a pixel has no return (sky/background or H.264 noise around black).
 
     // Check if the depth image is empty.
     if (cvDepthImage.empty())
@@ -227,31 +234,25 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
     if (constants::SIM_DEPTH_STREAM_USE_GPU)
     {
         // Estimate the depth measure using CUDA.
-        EstimateDepthMeasureCUDA(cvDepthImage, cvDepthMeasure, fMaxDepth);
+        EstimateDepthMeasureCUDA(cvDepthImage, cvDepthMeasure, fMaxDepth, fFarClipDepth);
     }
     else
     {
-        // #pragma omp parallel for collapse(2)
-
-        // Iterate over each pixel in the cvDepthImage image.
-        for (int nY = 0; nY < cvDepthImage.rows; ++nY)
+        // Each depth pixel is one byte, so the conversion is a 256 entry lookup table built once.
+        static const cv::Mat cvDepthLUT = [fMaxDepth, fFarClipDepth]()
         {
-            for (int nX = 0; nX < cvDepthImage.cols; ++nX)
+            cv::Mat cvLUT(1, 256, CV_32FC1);
+            for (int nValue = 0; nValue < 256; ++nValue)
             {
-                // For this, we are just using the depth image to estimate the depth measure. We will treat 255 as 0 cm and 0 as fMaxDepth - 1 cm.
-                // Get the depth value from the depth image.
-                uchar ucDepthValue = cvDepthImage.at<uchar>(nY, nX);
-
-                // Calculate the depth in cm.
-                float fDepth = (1.0f - (ucDepthValue / 255.0f)) * fMaxDepth;
-                // Check if nY and nX are within the bounds of the depth measure image.
-                if (nY < cvDepthMeasure.rows && nX < cvDepthMeasure.cols)
-                {
-                    // Store the estimated depth in the new cv::Mat. Convert cm to m.
-                    cvDepthMeasure.at<float>(nY, nX) = fDepth / 100.0f;    // Convert cm to m.
-                }
+                // Calculate the depth in cm. No-return pixels become 0, which consumers treat as invalid.
+                const float fDepth         = (1.0f - (nValue / 255.0f)) * fMaxDepth;
+                cvLUT.at<float>(0, nValue) = fDepth >= fFarClipDepth ? 0.0f : fDepth / 100.0f;    // Convert cm to m.
             }
-        }
+            return cvLUT;
+        }();
+
+        // Map every pixel through the table. The output is (re)allocated to the depth image's size.
+        cv::LUT(cvDepthImage, cvDepthLUT, cvDepthMeasure);
     }
 }
 
@@ -268,6 +269,9 @@ void SIMZEDCam::EstimateDepthMeasure(const cv::Mat& cvDepthImage, cv::Mat& cvDep
 void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPointCloud)
 {
     ZoneScopedC(tracy::Color::Orange2);
+    // Match the point cloud to the depth measure. The stream resolution can differ from the configured one.
+    cvPointCloud.create(cvDepthMeasure.size(), CV_32FC4);
+
     // Calculate focal lengths from FOV.
     const double dRadPerDeg = M_PI / 180.0;
     const double dFx        = (cvDepthMeasure.cols / 2.0) / tan(m_dPropHorizontalFOV * dRadPerDeg / 2.0);
@@ -283,33 +287,58 @@ void SIMZEDCam::CalculatePointCloud(const cv::Mat& cvDepthMeasure, cv::Mat& cvPo
     }
     else
     {
-        // This is a parallel for loop that calculates the point cloud from the decoded depth measure.
-        // #pragma omp parallel for collapse(2)
-
-        // Iterate over each pixel in the cvDepthMeasure image.
-        for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
+        // The ray through each pixel only depends on the resolution and FOV, so build it once and reuse it. The ray's
+        // X/Z only depends on the column and its Y/Z only on the row.
+        if (m_vPointCloudRayX.size() != static_cast<size_t>(cvDepthMeasure.cols) || m_vPointCloudRayY.size() != static_cast<size_t>(cvDepthMeasure.rows))
         {
+            m_vPointCloudRayX.resize(cvDepthMeasure.cols);
+            m_vPointCloudRayY.resize(cvDepthMeasure.rows);
             for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
             {
-                // Get depth value.
-                float fDepth = cvDepthMeasure.at<float>(nY, nX);
-
-                // Skip invalid depth values.
-                if (fDepth <= 0)
-                {
-                    cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(0, 0, 0, 0);
-                    continue;
-                }
-
-                // Convert from pixel coordinates to 3D coordinates.
-                float fX = static_cast<float>((nX - dCx) * fDepth / dFx);
-                float fY = static_cast<float>((dCy - nY) * fDepth / dFy);
-                float fZ = fDepth;
-
-                // Store point. (XYZ + intensity, using Y channel for intensity)
-                cvPointCloud.at<cv::Vec4f>(nY, nX) = cv::Vec4f(fX, fY, fZ, 255);
+                m_vPointCloudRayX[nX] = static_cast<float>((nX - dCx) / dFx);
+            }
+            for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
+            {
+                // Image rows grow downward, but Y is up to match ZED_COORD_SYSTEM (LEFT_HANDED_Y_UP).
+                m_vPointCloudRayY[nY] = static_cast<float>((dCy - nY) / dFy);
             }
         }
+
+#ifdef NDEBUG
+        // Each point is its depth times its ray. Invalid depths are 0, so their points come out 0. The fourth channel
+        // (intensity) is 255 for valid points and 0 for invalid ones. One pass over each row is ~3x faster than the
+        // whole-image operations below and gives bit-identical output.
+        for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
+        {
+            const float* pDepth = cvDepthMeasure.ptr<float>(nY);
+            cv::Vec4f* pPoints  = cvPointCloud.ptr<cv::Vec4f>(nY);
+            const float fRayY   = m_vPointCloudRayY[nY];
+            const float* pRayX  = m_vPointCloudRayX.data();
+            for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
+            {
+                const float fDepth = pDepth[nX];
+                pPoints[nX]        = cv::Vec4f(fDepth * pRayX[nX], fDepth * fRayY, fDepth, fDepth > 0.0f ? 255.0f : 0.0f);
+            }
+        }
+#else
+        // Debug builds use whole-image OpenCV operations instead, because the per-pixel loop above is too slow for
+        // 60 FPS unoptimized. Same result: [depth, depth, depth, valid ? 255 : 0] times the per-pixel ray (X/Z, Y/Z, 1, 1).
+        if (m_cvPointCloudRays.size() != cvDepthMeasure.size())
+        {
+            m_cvPointCloudRays.create(cvDepthMeasure.size(), CV_32FC4);
+            for (int nY = 0; nY < cvDepthMeasure.rows; ++nY)
+            {
+                cv::Vec4f* pRays = m_cvPointCloudRays.ptr<cv::Vec4f>(nY);
+                for (int nX = 0; nX < cvDepthMeasure.cols; ++nX)
+                {
+                    pRays[nX] = cv::Vec4f(m_vPointCloudRayX[nX], m_vPointCloudRayY[nY], 1.0f, 1.0f);
+                }
+            }
+        }
+        cv::threshold(cvDepthMeasure, m_cvPointCloudValidDepth, 0.0, 255.0, cv::THRESH_BINARY);
+        cv::merge(std::vector<cv::Mat>{cvDepthMeasure, cvDepthMeasure, cvDepthMeasure, m_cvPointCloudValidDepth}, cvPointCloud);
+        cv::multiply(cvPointCloud, m_cvPointCloudRays, cvPointCloud);
+#endif
     }
 }
 
@@ -384,80 +413,100 @@ void SIMZEDCam::ThreadedContinuousCode()
         m_stCurrentRoverPose = geoops::RoverPose(globals::g_pNavigationBoard->GetGPSData(), globals::g_pNavigationBoard->GetHeading());
     }
 
-    // 4. RGB frame out. The RGB callback writes m_cvFrame on a foreign thread, so read under the lock.
-    if (m_pubFrameCPU.HasReaders())
+    // 4. Imagery out, but only when a new frame has been decoded on either stream since the last publish. The loop runs
+    //    at 60 Hz whether or not the sim delivered a frame, and republishing an old frame under a new sequence number
+    //    makes every consumer redo a full detection pass on identical pixels.
+    //
+    //    Everything is prepared first and then published back to back, point cloud last, all stamped with this
+    //    iteration's source sequence. A consumer that reads the frame and then the point cloud (the detectors) therefore
+    //    gets a matched pair instead of straddling the several milliseconds it takes to compute the point cloud.
+    const bool bNewRGBFrame   = m_ullRGBFramesReceived.load(std::memory_order_acquire) != m_ullLastPublishedRGBFrame;
+    const bool bNewDepthFrame = m_ullDepthFramesReceived.load(std::memory_order_acquire) != m_ullLastPublishedDepthFrame;
+    if (bNewRGBFrame || bNewDepthFrame)
     {
-        // Acquire a read lock so the WebRTC callback does not write m_cvFrame mid-copy.
-        std::shared_lock lkRGB(m_muWebRTCRGBImageCopyMutex);
-        if (!m_cvFrame.empty())
-        {
-            // Deep copy the frame into a pooled snapshot and publish.
-            std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubFrameCPU.Acquire();
-            m_cvFrame.copyTo(pSlot->tData);
-            lkRGB.unlock();
-            m_pubFrameCPU.Publish(std::move(pSlot), m_ullIterationCounter);
-        }
-    }
+        // Slots filled below and published together at the end.
+        std::shared_ptr<pubsub::Snapshot<cv::Mat>> pFrameSlot, pDepthImageSlot, pDepthMeasureSlot, pPointCloudSlot;
 
-    // 5. Depth image and the products derived from it (measure, point cloud).
-    const bool bDepthImageWanted   = m_pubDepthImageCPU.HasReaders();
-    const bool bDepthMeasureWanted = m_pubDepthMeasureCPU.HasReaders();
-    const bool bPointCloudWanted   = m_pubPointCloudCPU.HasReaders();
-    if (bDepthImageWanted || bDepthMeasureWanted || bPointCloudWanted)
-    {
-        // Under the depth lock, publish the depth image and compute the depth measure (both need m_cvDepthImage).
-        bool bHaveDepth = false;
+        // RGB frame. The RGB callback swaps m_cvFrame on a foreign thread, so read it under the lock.
         {
-            // Acquire a read lock so the WebRTC callback does not write m_cvDepthImage mid-read.
-            std::shared_lock lkDepth(m_muWebRTCDepthImageCopyMutex);
-            m_cvDepthImage.copyTo(m_cvDepthImageBuffer);
-            lkDepth.unlock();
-            if (!m_cvDepthImageBuffer.empty())
+            // Acquire a read lock so the WebRTC callback does not replace m_cvFrame mid-copy.
+            std::shared_lock lkRGB(m_muWebRTCRGBImageCopyMutex);
+            // Remember which frame this is. Read under the lock, so it matches the pixels copied below.
+            m_ullLastPublishedRGBFrame = m_ullRGBFramesReceived.load(std::memory_order_acquire);
+            if (m_pubFrameCPU.HasReaders() && !m_cvFrame.empty())
             {
-                // Mark that we have a valid depth image this iteration.
-                bHaveDepth = true;
-                // Publish the depth image.
-                if (bDepthImageWanted)
-                {
-                    // Deep copy the depth image into a pooled snapshot and publish.
-                    std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDepthImageCPU.Acquire();
-                    m_cvDepthImageBuffer.copyTo(pSlot->tData);
-                    m_pubDepthImageCPU.Publish(std::move(pSlot), m_ullIterationCounter);
-                }
-                // Compute the depth measure (needed by both the measure and point-cloud publishers).
-                if (bDepthMeasureWanted || bPointCloudWanted)
-                {
-                    // Estimate the depth measure from the depth image into the producer-local Mat.
-                    this->EstimateDepthMeasure(m_cvDepthImageBuffer, m_cvDepthMeasure);
-                }
+                // Deep copy the frame into a pooled snapshot.
+                pFrameSlot = m_pubFrameCPU.Acquire();
+                m_cvFrame.copyTo(pFrameSlot->tData);
             }
         }
 
-        // Depth measure and point cloud are producer-local, so publish them outside the depth lock.
-        if (bHaveDepth)
+        // Depth image and the products derived from it (measure, point cloud).
+        const bool bDepthImageWanted   = m_pubDepthImageCPU.HasReaders();
+        const bool bDepthMeasureWanted = m_pubDepthMeasureCPU.HasReaders();
+        const bool bPointCloudWanted   = m_pubPointCloudCPU.HasReaders();
         {
-            // Publish the depth measure.
+            // Acquire a read lock so the WebRTC callback does not replace m_cvDepthImage mid-copy.
+            std::shared_lock lkDepth(m_muWebRTCDepthImageCopyMutex);
+            // Remember which frame this is. Read under the lock, so it matches the pixels copied below.
+            m_ullLastPublishedDepthFrame = m_ullDepthFramesReceived.load(std::memory_order_acquire);
+            if (bDepthImageWanted || bDepthMeasureWanted || bPointCloudWanted)
+            {
+                // Copy the depth image out so the lock is held as briefly as possible.
+                m_cvDepthImage.copyTo(m_cvDepthImageBuffer);
+            }
+        }
+        if ((bDepthImageWanted || bDepthMeasureWanted || bPointCloudWanted) && !m_cvDepthImageBuffer.empty())
+        {
+            // Depth image.
+            if (bDepthImageWanted)
+            {
+                // Deep copy the depth image into a pooled snapshot.
+                pDepthImageSlot = m_pubDepthImageCPU.Acquire();
+                m_cvDepthImageBuffer.copyTo(pDepthImageSlot->tData);
+            }
+            // Compute the depth measure (needed by both the measure and point-cloud publishers).
+            if (bDepthMeasureWanted || bPointCloudWanted)
+            {
+                // Estimate the depth measure from the depth image into the producer-local Mat.
+                this->EstimateDepthMeasure(m_cvDepthImageBuffer, m_cvDepthMeasure);
+            }
+            // Depth measure.
             if (bDepthMeasureWanted)
             {
-                // Deep copy the depth measure into a pooled snapshot and publish.
-                std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubDepthMeasureCPU.Acquire();
-                m_cvDepthMeasure.copyTo(pSlot->tData);
-                m_pubDepthMeasureCPU.Publish(std::move(pSlot), m_ullIterationCounter);
+                // Deep copy the depth measure into a pooled snapshot.
+                pDepthMeasureSlot = m_pubDepthMeasureCPU.Acquire();
+                m_cvDepthMeasure.copyTo(pDepthMeasureSlot->tData);
             }
-            // Compute and publish the point cloud.
+            // Point cloud.
             if (bPointCloudWanted)
             {
-                // Calculate the point cloud from the estimated depth measure.
-                this->CalculatePointCloud(m_cvDepthMeasure, m_cvPointCloud);
-                // Deep copy the point cloud into a pooled snapshot and publish.
-                std::shared_ptr<pubsub::Snapshot<cv::Mat>> pSlot = m_pubPointCloudCPU.Acquire();
-                m_cvPointCloud.copyTo(pSlot->tData);
-                m_pubPointCloudCPU.Publish(std::move(pSlot), m_ullIterationCounter);
+                // Calculate the point cloud straight into a pooled snapshot, which saves a full copy of it.
+                pPointCloudSlot = m_pubPointCloudCPU.Acquire();
+                this->CalculatePointCloud(m_cvDepthMeasure, pPointCloudSlot->tData);
             }
+        }
+
+        // Publish everything back to back with the same source sequence, point cloud last.
+        if (pFrameSlot != nullptr)
+        {
+            m_pubFrameCPU.Publish(std::move(pFrameSlot), m_ullIterationCounter);
+        }
+        if (pDepthImageSlot != nullptr)
+        {
+            m_pubDepthImageCPU.Publish(std::move(pDepthImageSlot), m_ullIterationCounter);
+        }
+        if (pDepthMeasureSlot != nullptr)
+        {
+            m_pubDepthMeasureCPU.Publish(std::move(pDepthMeasureSlot), m_ullIterationCounter);
+        }
+        if (pPointCloudSlot != nullptr)
+        {
+            m_pubPointCloudCPU.Publish(std::move(pPointCloudSlot), m_ullIterationCounter);
         }
     }
 
-    // 6. Pose out (only while positional tracking is enabled).
+    // 5. Pose out (only while positional tracking is enabled).
     if (m_bCameraPositionalTrackingEnabled.load(std::memory_order_acquire) && m_pubPose.HasReaders())
     {
         // Get angle realignments.
@@ -475,7 +524,7 @@ void SIMZEDCam::ThreadedContinuousCode()
         m_pubPose.Publish(std::move(pSlot), m_ullIterationCounter);
     }
 
-    // 7. Sensors (IMU) out. The IMU callback writes m_stIMUData on a foreign thread; read under the lock.
+    // 6. Sensors (IMU) out. The IMU callback writes m_stIMUData on a foreign thread; read under the lock.
     if (m_pubSensors.HasReaders())
     {
         // Acquire a read lock so the RoveComm IMU callback does not write m_stIMUData mid-copy.
@@ -487,7 +536,7 @@ void SIMZEDCam::ThreadedContinuousCode()
         m_pubSensors.Publish(std::move(pSlot), m_ullIterationCounter);
     }
 
-    // 8. Status out.
+    // 7. Status out.
     this->PublishStatus();
 }
 

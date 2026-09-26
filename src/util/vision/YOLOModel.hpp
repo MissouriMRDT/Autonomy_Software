@@ -228,6 +228,10 @@ namespace yolomodel
                         LOG_INFO(logging::g_qSharedLogger, "Using device: {}", m_trDevice.str());
                     }
 
+                    // Keep torch's CPU-side ops single threaded. Each detector already runs on its own thread, and torch's
+                    // intra-op pool would only compete with them. Set once here rather than on every inference.
+                    torch::set_num_threads(1);
+
                     // Finally, attempt to load the model.
                     try
                     {
@@ -298,26 +302,38 @@ namespace yolomodel
                  *      on the PyTorch model, then parse and repackage the output tensor data into a vector
                  *      of easy-to-use Detection structs.
                  *
-                 * @param cvInputFrame - The RGB camera frame to run detection on.
+                 * @param cvInputFrame - The RGB camera frame to run detection on. Only read, so a shared snapshot can be passed.
                  * @param fMinObjectConfidence - Minimum confidence required for an object to be considered a valid detection
                  * @param fNMSThreshold - Threshold for Non-Maximum Suppression, controlling overlap between bounding box predictions.
+                 * @param bSwapRedBlue - Swap the first and third channels before inference, so a BGR frame can be passed
+                 *                  without converting it on the CPU first. The swap happens on the device after the resize.
                  * @return std::vector<Detection> - A vector of structs containing information about the valid object detections in the given image.
                  *
-                 * @note The input image MUST BE RGB format, otherwise you will likely experience prediction accuracy problems.
+                 * @note The model expects RGB. Pass an RGB frame, or a BGR frame with bSwapRedBlue set.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-01-06
                  ******************************************************************************/
-                std::vector<Detection> Inference(const cv::Mat& cvInputFrame, const float fMinObjectConfidence = 0.85, const float fNMSThreshold = 0.6)
+                std::vector<Detection> Inference(const cv::Mat& cvInputFrame,
+                                                 const float fMinObjectConfidence = 0.85,
+                                                 const float fNMSThreshold        = 0.6,
+                                                 const bool bSwapRedBlue          = false)
                 {
                     ZoneScopedC(tracy::Color::Honeydew1);
-                    // Force single-threaded execution (if acceptable for your workload)
-                    torch::set_num_threads(1);
+                    // This is inference only, so skip autograd's bookkeeping. Faster, and less memory per forward pass.
+                    c10::InferenceMode trInferenceGuard;
                     // Create instance variables.
                     std::vector<Detection> vObjects;
 
+                    // The preprocessing resizes straight into an 8-bit, 3 channel buffer, so any other input would not land in it.
+                    if (cvInputFrame.type() != CV_8UC3)
+                    {
+                        LOG_ERROR(logging::g_qSharedLogger, "YOLO inference needs an 8-bit 3 channel image, got type {}.", cvInputFrame.type());
+                        return vObjects;
+                    }
+
                     // Preprocess the given image and pack int into an image.
-                    torch::Tensor trTensorImage = PreprocessImage(cvInputFrame, m_trDevice);
+                    torch::Tensor trTensorImage = PreprocessImage(cvInputFrame, m_trDevice, bSwapRedBlue);
 
                     // Perform inference.
                     std::vector<torch::jit::IValue> vInputs;
@@ -408,30 +424,68 @@ namespace yolomodel
                  * @brief Given an input image, preprocess the image to match the input tensor shape
                  *      of the model, then return the preprocessed image as a tensor.
                  *
+                 *      The resize stays on the CPU (the same cv::resize as always, so the pixels are identical), but it
+                 *      writes into a reused pinned buffer and uploads 8-bit pixels. The float conversion, the optional
+                 *      channel swap and the layout change run on the device. Uploading floats from pageable memory
+                 *      was 4x the bytes and could not use DMA.
+                 *
                  * @param cvInputFrame - The input image to preprocess.
                  * @param trDevice - The device to run the model on.
+                 * @param bSwapRedBlue - Swap the first and third channels (BGR <-> RGB).
                  * @return torch::Tensor - The preprocessed image as a tensor.
                  *
                  * @author clayjay3 (claytonraycowen@gmail.com)
                  * @date 2025-03-08
                  ******************************************************************************/
-                torch::Tensor PreprocessImage(const cv::Mat& cvInputFrame, const torch::Device& trDevice)
+                torch::Tensor PreprocessImage(const cv::Mat& cvInputFrame, const torch::Device& trDevice, const bool bSwapRedBlue)
                 {
                     ZoneScopedC(tracy::Color::Honeydew2);
-                    // Resize the input image to match model and normalize it to 0-1.
-                    cv::Mat cvResizedImage;
-                    ZoneNamedN(resize, "Resize", true);
-                    cv::resize(cvInputFrame, cvResizedImage, cv::Size(m_cvModelInputSize.width, m_cvModelInputSize.height), cv::INTER_LINEAR);
-                    ZoneNamedN(normalize, "Normalize", true);
-                    cvResizedImage.convertTo(cvResizedImage, CV_32FC3, 1.0 / 255.0);
+                    // Allocate the 8-bit input buffer once. Page-locked when the model is on the GPU, so the upload is a DMA.
+                    if (!m_trInputBuffer.defined())
+                    {
+                        m_trInputBuffer = torch::empty({1, m_cvModelInputSize.height, m_cvModelInputSize.width, 3},
+                                                       torch::TensorOptions().dtype(torch::kUInt8).pinned_memory(trDevice.is_cuda()));
+                    }
 
-                    // Convert OpenCV mat to a tensor.
+                    // Resize the input image to match the model, straight into the input buffer.
+                    ZoneNamedN(resize, "Resize", true);
+                    cv::Mat cvResizedImage(m_cvModelInputSize.height, m_cvModelInputSize.width, CV_8UC3, m_trInputBuffer.data_ptr<uint8_t>());
+                    cv::resize(cvInputFrame, cvResizedImage, cv::Size(m_cvModelInputSize.width, m_cvModelInputSize.height), 0, 0, cv::INTER_LINEAR);
+
+                    // Move the pixels to the device. Non-blocking is safe: the buffer is only rewritten by the next call, and
+                    // Inference() copies its result back to the CPU first, which waits for everything queued here.
                     ZoneNamedN(toTensor, "Convert to Tensor", true);
-                    torch::Tensor trTensorImage = torch::from_blob(cvResizedImage.data, {1, cvResizedImage.rows, cvResizedImage.cols, 3}, torch::kFloat);
-                    trTensorImage               = trTensorImage.permute({0, 3, 1, 2});    // Convert to CxHxW format.
-                    trTensorImage               = trTensorImage.to(trDevice);             // Move tensor to the specified hardware device.
+                    torch::Tensor trTensorImage = m_trInputBuffer.to(trDevice, /*non_blocking=*/true);
+                    // Swap BGR <-> RGB if asked. The resize treats each channel separately, so swapping after it is the same
+                    // as swapping before it.
+                    if (bSwapRedBlue)
+                    {
+                        trTensorImage = trTensorImage.flip({3});
+                    }
+                    // Convert to CxHxW and normalize to 0-1. Same layout and float math as the old CPU path
+                    // (convertTo(CV_32F, 1/255) then permute).
+                    trTensorImage = trTensorImage.permute({0, 3, 1, 2}).to(torch::kFloat).mul(1.0 / 255.0);
 
                     return trTensorImage;
+                }
+
+                /******************************************************************************
+                 * @brief Keep only the predictions that can pass the confidence check, and copy just those to the
+                 *      CPU. The filter runs on the device, so the parse loop only sees candidates instead of every
+                 *      anchor, and only their rows are copied back.
+                 *
+                 * @param trPredictions - Predictions, one row per anchor: [anchors, values].
+                 * @param trScores - One score per anchor. A row is kept when its score is at least fMinObjectConfidence.
+                 * @param fMinObjectConfidence - The confidence threshold.
+                 * @return torch::Tensor - The kept rows as a contiguous float32 CPU tensor, in their original order.
+                 *
+                 * @author clayjay3 (claytonraycowen@gmail.com)
+                 * @date 2026-09-26
+                 ******************************************************************************/
+                torch::Tensor SelectCandidates(const torch::Tensor& trPredictions, const torch::Tensor& trScores, const float fMinObjectConfidence)
+                {
+                    // Boolean-mask the rows, then move them to the CPU as contiguous float32 for the accessor.
+                    return trPredictions.index({trScores >= fMinObjectConfidence}).to(torch::kCPU).to(torch::kFloat32).contiguous();
                 }
 
                 /******************************************************************************
@@ -464,21 +518,9 @@ namespace yolomodel
                     // Squeeze the batch dimension from the output tensor.
                     torch::Tensor trSqueezedOutput = trOutput.squeeze(0);
 
-                    // Move the tensor to CPU if necessary. If we're using GPU and we don't move the tensor to CPU, we will get an error and it will be slow.
-                    if (trSqueezedOutput.device().is_cuda())
-                    {
-                        trSqueezedOutput = trSqueezedOutput.to(torch::kCPU);
-                    }
-                    // Convert tensor to float if necessary.
-                    if (trSqueezedOutput.scalar_type() != torch::kFloat32)
-                    {
-                        trSqueezedOutput = trSqueezedOutput.to(torch::kFloat32);
-                    }
-                    // Ensure tensor is contiguous in memory.
-                    if (!trSqueezedOutput.is_contiguous())
-                    {
-                        trSqueezedOutput = trSqueezedOutput.contiguous();
-                    }
+                    // The loop below skips any prediction whose objectness is under the threshold, so drop those on the device
+                    // and copy only the rest to the CPU (as contiguous float32).
+                    trSqueezedOutput = this->SelectCandidates(trSqueezedOutput, trSqueezedOutput.select(1, 4), fMinObjectConfidence);
 
                     // Create an accessor for fast element-wise access.
                     at::TensorAccessor trAccessor = trSqueezedOutput.accessor<float, 2>();
@@ -576,21 +618,10 @@ namespace yolomodel
                     // and then squeeze to remove the batch dimension, resulting in [8400, 4 + nc]
                     torch::Tensor trPermuteOutput = trOutput.permute({0, 2, 1}).squeeze(0);
 
-                    // Move tensor to CPU if necessary. If we're using GPU and we don't move the tensor to CPU, we will get an error and it will be slow.
-                    if (trPermuteOutput.device().is_cuda())
-                    {
-                        trPermuteOutput = trPermuteOutput.to(torch::kCPU);
-                    }
-                    // Convert tensor to float if necessary.
-                    if (trPermuteOutput.scalar_type() != torch::kFloat32)
-                    {
-                        trPermuteOutput = trPermuteOutput.to(torch::kFloat32);
-                    }
-                    // Ensure tensor is contiguous in memory.
-                    if (!trPermuteOutput.is_contiguous())
-                    {
-                        trPermuteOutput = trPermuteOutput.contiguous();
-                    }
+                    // The loop below skips any prediction whose best class confidence is under the threshold, so drop those on
+                    // the device and copy only the rest to the CPU (as contiguous float32). The loop still picks each kept
+                    // prediction's class exactly as before.
+                    trPermuteOutput = this->SelectCandidates(trPermuteOutput, trPermuteOutput.slice(1, 4).amax(1), fMinObjectConfidence);
 
                     // Create an accessor for fast element-wise access.
                     at::TensorAccessor trAccessor = trPermuteOutput.accessor<float, 2>();
@@ -645,6 +676,7 @@ namespace yolomodel
                 /////////////////////////////////////////
                 torch::jit::script::Module m_trModel;
                 torch::Device m_trDevice = torch::kCPU;
+                torch::Tensor m_trInputBuffer;    // Reused 8-bit NHWC input, pinned when the model is on the GPU.
                 std::string m_szModelPath;
                 bool m_bReady;
                 std::string m_szModelTask;

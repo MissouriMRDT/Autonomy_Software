@@ -95,8 +95,8 @@ namespace statemachine
     void VerifyingMarkerState::Run()
     {
         ZoneScopedC(tracy::Color::Green);
-        // Submit logger message.
-        LOG_DEBUG(logging::g_qSharedLogger, "VerifyingMarkerState: Running state-specific behavior.");
+        // Submit logger message. Run() is called every state machine iteration (60 Hz), so limit this to once a second.
+        LOG_DEBUG_LIMIT(std::chrono::seconds(1), logging::g_qSharedLogger, "VerifyingMarkerState: Running state-specific behavior.");
 
         // Identify target marker.
         tagdetectutils::ArucoTag stBestArucoTag, stBestTorchTag;

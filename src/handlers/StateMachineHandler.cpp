@@ -508,15 +508,16 @@ geoops::RoverPose StateMachineHandler::SmartRetrieveRoverPose(bool bIMUHeading)
         }
     }
 
-    // Submit a debug print for the current rover pose.
-    geoops::UTMCoordinate stCurrentUTMPosition = geoops::ConvertGPSToUTM(stCurrentGPSPosition);
-    LOG_DEBUG(logging::g_qSharedLogger,
-              "Rover Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees), IMUHeading = {}",
-              stCurrentUTMPosition.dEasting,
-              stCurrentUTMPosition.dNorthing,
-              stCurrentUTMPosition.dAltitude,
-              dFusedHeading,
-              bIMUHeading ? "true" : "false");
+    // Submit a debug print for the current rover pose. This runs ~170 times a second across all callers, so it is limited to
+    // once a second per thread. The UTM conversion is inside the log call so it only runs when the message is written.
+    LOG_DEBUG_LIMIT(std::chrono::seconds(1),
+                    logging::g_qSharedLogger,
+                    "Rover Pose is currently: {} (easting), {} (northing), {} (alt), {} (degrees), IMUHeading = {}",
+                    geoops::ConvertGPSToUTM(stCurrentGPSPosition).dEasting,
+                    geoops::ConvertGPSToUTM(stCurrentGPSPosition).dNorthing,
+                    geoops::ConvertGPSToUTM(stCurrentGPSPosition).dAltitude,
+                    dFusedHeading,
+                    bIMUHeading ? "true" : "false");
 
     return geoops::RoverPose(stCurrentGPSPosition, dFusedHeading);
 }

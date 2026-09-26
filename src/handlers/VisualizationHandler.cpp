@@ -13,11 +13,13 @@
 #include "../handlers/StateMachineHandler.h"
 #include "../util/states/ObjectDetectionChecker.hpp"
 #include "../util/states/TagDetectionChecker.hpp"
+#include "../util/threading/ThreadRegistry.hpp"
 
 /// \cond
 #include <chrono>
 #include <fstream>
 #include <iomanip>
+#include <nlohmann/json.hpp>
 
 /// \endcond
 
@@ -54,6 +56,7 @@ VisualizationHandler::VisualizationHandler(int nPort)
     m_pWebServer->RegisterEndpoint("/api/detections", [this](const std::string& query) { return this->OnRequestDetections(query); });
     m_pWebServer->RegisterEndpoint("/api/detection_list", [this](const std::string& query) { return this->OnRequestDetectionList(query); });
     m_pWebServer->RegisterEndpoint("/api/point_cloud", [this](const std::string& query) { return this->OnRequestPointCloud(query); });
+    m_pWebServer->RegisterEndpoint("/api/threads", [this](const std::string& query) { return this->OnRequestThreads(query); });
 
     // Set main thread's max iteration rate.
     this->SetMainThreadIPSLimit(20);    // 20 Hz
@@ -846,6 +849,40 @@ std::vector<char> VisualizationHandler::OnRequestDetectionList(const std::string
     szJson += "]";
 
     // Convert string to vector
+    return std::vector<char>(szJson.begin(), szJson.end());
+}
+
+/******************************************************************************
+ * @brief Handles thread telemetry requests from the web server. Returns the raw
+ *      iteration counter of every registered AutonomyThread plus a monotonic
+ *      timestamp; the browser computes FPS from the change between two responses,
+ *      so every open page gets correct rates without any server-side state.
+ *
+ * @param szQuery - The query string from the request.
+ * @return std::vector<char> - JSON: {"t": seconds, "threads": [{"id", "name", "iter", "max"}, ...]}.
+ *
+ * @author clayjay3 (claytonraycowen@gmail.com)
+ * @date 2026-09-23
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::OnRequestThreads(const std::string& szQuery)
+{
+    ZoneScopedC(tracy::Color::Tan);
+    (void) szQuery;
+
+    // Timestamp the sample on the monotonic clock so FPS math is immune to wall-clock steps.
+    const double dNowSeconds = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+
+    // Copy every thread's counters and pack them as JSON. nlohmann escapes the names.
+    nlohmann::json jsnResponse;
+    jsnResponse["t"]       = dNowSeconds;
+    jsnResponse["threads"] = nlohmann::json::array();
+    for (const threadutils::ThreadTelemetrySample& stSample : threadutils::ThreadRegistry::Instance().Sample())
+    {
+        jsnResponse["threads"].push_back({{"id", stSample.unID}, {"name", stSample.szName}, {"iter", stSample.ullIterations}, {"max", stSample.nMaxIPS}});
+    }
+
+    // Replace invalid UTF-8 in names instead of throwing.
+    const std::string szJson = jsnResponse.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
     return std::vector<char>(szJson.begin(), szJson.end());
 }
 

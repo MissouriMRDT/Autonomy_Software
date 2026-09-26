@@ -37,6 +37,13 @@ namespace constants
     const std::string SIM_REARCAM_NAME  = "ZEDRear";      // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
     const bool SIM_DEPTH_STREAM_USE_GPU = false;          // If the sim should use the GPU when calculating the point cloud from the depth stream.
 
+    // Threading constants.
+    // Threads OpenCV may use inside a single call (cvtColor, resize, ArUco, trackers, ...). The default is one per core, and
+    // with ~10 pipeline threads issuing hundreds of small jobs a second those workers spin instead of sleeping (~1 core in
+    // the sim). 4 kept every thread at its FPS target with the lowest tag detection latency; 0 (run in the caller) saves a
+    // little more CPU but nearly doubles ArUco time and starves the CSRT tracker when tags are in view.
+    const int OPENCV_NUM_THREADS = 4;
+
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
     const bool BATTERY_CHECKS_ENABLED         = false;    // If autonomy should monitor PMS Currents and as a result have the ability to shutdown autonomy.
@@ -107,7 +114,9 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // Recording adjustments.
-    const int RECORDER_FPS = 15;    // The FPS all recordings should run at.
+    const int RECORDER_FPS                 = 15;            // The FPS all recordings should run at.
+    const std::string RECORDER_X264_PRESET = "veryfast";    // x264 preset for recordings. "medium" (the x264 default) costs ~3x the CPU for a larger file.
+    const int RECORDER_ENCODER_THREADS     = 2;             // Threads each recording's encoder may use. 0 = one per core, which oversubscribes with 6 recordings.
     // Camera recording toggles.
     const bool ZED_MAINCAM_ENABLE_RECORDING = true;    // Whether or not to record the main ZED camera.
     const bool ZED_REARCAM_ENABLE_RECORDING = true;    // Whether or not to record the rear ZED camera.
@@ -139,21 +148,34 @@ namespace constants
     // A snapshot is live only while a consumer is mid-read, so the count in flight is
     // (1 being filled + 1 published + readers overlapping at that instant). Six preallocated slots
     // cover every current consumer topology without allocating in steady state.
-    const size_t PUBLISHER_POOL_PREALLOC        = 6;
+    const size_t PUBLISHER_POOL_PREALLOC                                 = 6;
     // Soft cap on total slots per channel. The pool still grows past this (the producer never
     // blocks) but the breach is flagged and logged as an error, so a consumer that leaks or
     // indefinitely holds snapshots surfaces immediately instead of quietly growing toward an OOM.
-    const size_t PUBLISHER_POOL_GROWTH_CEILING  = 24;
+    const size_t PUBLISHER_POOL_GROWTH_CEILING                           = 24;
+    // How long a detector blocks waiting for a camera frame it has not processed yet before giving its loop a turn.
+    // Detectors wake the moment a new frame is published; this only bounds how long a stalled or stopping camera can
+    // hold a detector's loop (and therefore its shutdown).
+    const std::chrono::milliseconds DETECTOR_FRAME_WAIT_TIMEOUT          = std::chrono::milliseconds(100);
     // How often a disconnected camera retries opening its hardware. The producer thread stays
     // alive and idle between attempts, so startup order and hot-plugging both work.
-    const std::chrono::milliseconds CAMERA_RECONNECT_RETRY_INTERVAL     = std::chrono::milliseconds(5000);
+    const std::chrono::milliseconds CAMERA_RECONNECT_RETRY_INTERVAL      = std::chrono::milliseconds(5000);
     // How often a simulation camera retries connecting its WebRTC streams. Shorter than the
     // hardware interval because reconnecting a local websocket is cheap.
-    const std::chrono::milliseconds SIM_STREAM_RECONNECT_RETRY_INTERVAL = std::chrono::milliseconds(2000);
+    const std::chrono::milliseconds SIM_STREAM_RECONNECT_RETRY_INTERVAL  = std::chrono::milliseconds(2000);
     // Upper bound on how long closing a simulation camera's WebRTC connections may block during
     // shutdown. A half-negotiated peer can leave a track that never reports closed, so this
     // guarantees shutdown finishes instead of hanging on it.
-    const std::chrono::milliseconds SIM_STREAM_CLOSE_TIMEOUT            = std::chrono::milliseconds(1000);
+    const std::chrono::milliseconds SIM_STREAM_CLOSE_TIMEOUT             = std::chrono::milliseconds(1000);
+    // Minimum time between repeated H.264 decode-failure warnings from one simulation stream. Every
+    // P-frame fails until the first keyframe arrives, so an unlimited warning floods the log.
+    const std::chrono::milliseconds SIM_STREAM_DECODE_WARN_INTERVAL      = std::chrono::milliseconds(3000);
+    // Minimum time between keyframe requests from one simulation stream. Every request makes the encoder send
+    // a large keyframe, so requesting on every broken frame floods the link and causes more loss.
+    const std::chrono::milliseconds SIM_STREAM_KEYFRAME_REQUEST_INTERVAL = std::chrono::milliseconds(500);
+    // Encoded frames a simulation stream may queue for its decoder thread. If decoding falls this far behind,
+    // the queue is dropped and the stream resyncs on a fresh keyframe instead of adding latency.
+    const size_t SIM_STREAM_MAX_QUEUED_FRAMES                            = 10;
     // ZedCam SVO Recording Config.
     const sl::SVO_COMPRESSION_MODE ZED_SVO_COMPRESSION = sl::SVO_COMPRESSION_MODE::H265;    // SVO file compression. H264/H265 minimally affect performance, but need GPU.
     const int ZED_SVO_BITRATE                          = 1000;                              // The video bitrate in kbits/s. 0 or [1000-60000]
@@ -331,7 +353,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SDELC.db";    // The path to the LiDAR database file.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SIM_Flat.db";    // The path to the LiDAR database file.
 
     ///////////////////////////////////////////////////////////////////////////
 
