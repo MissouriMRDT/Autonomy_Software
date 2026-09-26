@@ -159,9 +159,14 @@ SIMZEDCam::~SIMZEDCam()
     this->RequestStop();
     this->Join();
 
-    // Do NOT close the streams explicitly here. ~WebRTC already closes its own connections, and
-    // calling CloseConnection() first makes every stream pay the close-wait twice. The unique_ptr
-    // members are destroyed after this body runs, which is still safely after Join().
+    // Destroy the streams here, not as members after this body. Each stream's decoder thread keeps
+    // calling our frame callbacks until ~WebRTC joins it, and those callbacks lock the WebRTC copy
+    // mutexes and write m_cvFrame/m_cvDepthImage. Members are destroyed in reverse declaration order,
+    // so if the streams were left to member destruction those mutexes and Mats would already be gone
+    // while the decoder threads still run (SIGSEGV on shutdown). Don't call CloseConnection() first:
+    // ~WebRTC closes its own connections, and closing twice makes every stream pay the close-wait twice.
+    m_pDepthImageStream.reset();
+    m_pRGBStream.reset();
 }
 
 /******************************************************************************
