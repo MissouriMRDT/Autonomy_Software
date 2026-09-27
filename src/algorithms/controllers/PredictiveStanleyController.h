@@ -13,8 +13,10 @@
 
 #include "../../util/GeospatialOperations.hpp"
 #include "../kinematics/UnicycleModel.hpp"
+#include "PIDController.h"
 
 /// \cond
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -100,6 +102,7 @@ namespace controllers
             double m_dPredictionTimeStep;
             int m_nCurrentReferencePathTargetIndex;
             std::vector<geoops::Waypoint> m_vReferencePath;
+            std::unique_ptr<PIDController> m_pVelocityPID;
     };
 }    // namespace controllers
 #endif

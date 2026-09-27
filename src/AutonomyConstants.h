@@ -93,6 +93,12 @@ namespace constants
     extern const double VELOCITY_PID_INTEGRAL;
     extern const double VELOCITY_PID_DERIVATIVE;
     extern const double VELOCITY_PID_FEEDFORWARD;
+    extern const double VELOCITY_PID_MAX_ERROR;
+    extern const double VELOCITY_PID_MAX_INTEGRAL_TERM;
+    extern const double VELOCITY_PID_MAX_RAMP_RATE;
+    extern const double VELOCITY_PID_OUTPUT_FILTER;
+    extern const double VELOCITY_PID_TOLERANCE;
+    extern const double VELOCITY_PID_OUTPUT_REVERSED;
     extern const double DRIVE_PID_MAX_ERROR;
     extern const double DRIVE_PID_MAX_INTEGRAL_TERM;
     extern const double DRIVE_PID_MAX_RAMP_RATE;

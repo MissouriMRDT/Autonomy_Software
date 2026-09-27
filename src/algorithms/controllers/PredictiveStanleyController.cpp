@@ -10,6 +10,7 @@
 
 #include "PredictiveStanleyController.h"
 #include "../../AutonomyConstants.h"
+#include "../../AutonomyGlobals.h"
 #include "../../util/planners/PathPostProcessing.hpp"
 
 /// \cond
@@ -50,6 +51,19 @@ namespace controllers
         m_dPredictionTimeStep              = dPredictionTimeStep;
         m_nCurrentReferencePathTargetIndex = 0;
         m_UnicycleModel                    = UnicycleModel(0.0, 0.0, 0.0);
+
+        // Configure PID controller for velocity
+        m_pVelocityPID = std::make_unique<PIDController>(constants::VELOCITY_PID_PROPORTIONAL,
+                                                         constants::VELOCITY_PID_INTEGRAL,
+                                                         constants::VELOCITY_PID_DERIVATIVE,
+                                                         constants::VELOCITY_PID_FEEDFORWARD);
+        m_pVelocityPID->SetMaxSetpointDifference(constants::VELOCITY_PID_MAX_ERROR);
+        m_pVelocityPID->SetMaxIntegralEffort(constants::VELOCITY_PID_MAX_INTEGRAL_TERM);
+        m_pVelocityPID->SetOutputLimits(-1.0, 1.0);
+        m_pVelocityPID->SetOutputRampRate(constants::VELOCITY_PID_MAX_RAMP_RATE);
+        m_pVelocityPID->SetOutputFilter(constants::VELOCITY_PID_OUTPUT_FILTER);
+        m_pVelocityPID->SetTolerance(constants::VELOCITY_PID_TOLERANCE);
+        m_pVelocityPID->SetDirection(constants::VELOCITY_PID_OUTPUT_REVERSED);
     }
 
     /******************************************************************************
@@ -236,7 +250,20 @@ namespace controllers
         // The new steering heading must be from 0-360 degrees.
         double dAbsoluteHeadingGoal = numops::InputAngleModulus(stCurrentPose.GetCompassHeading() + dSteeringAngle, 0.0, 360.0);
 
-        return DriveVector{dAbsoluteHeadingGoal, dMaxSpeed};
+        // Get current velocity from the NavigationBoard
+        double dCurrentSpeed = 0.0;
+        if (globals::g_pNavigationBoard != nullptr)
+        {
+            dCurrentSpeed = globals::g_pNavigationBoard->GetVelocity();
+        }
+
+        // Run Velocity PID using dMaxSpeed (m/s) as the target setpoint.
+        double dRegulatedEffort = m_pVelocityPID->CalculateVelocity(dCurrentSpeed, dMaxSpeed);
+
+        // Clamp the output to safe limits [0.0, 1.0] to prevent reversing while trying to drive forward.
+        dRegulatedEffort = std::clamp(dRegulatedEffort, 0.0, 1.0);
+
+        return DriveVector{dAbsoluteHeadingGoal, dRegulatedEffort};
     }
 
     /******************************************************************************
