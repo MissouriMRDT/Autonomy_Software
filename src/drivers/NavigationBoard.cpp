@@ -31,6 +31,7 @@ NavigationBoard::NavigationBoard()
     m_stLocation              = geoops::GPSCoordinate(37.951771, -91.778114, 315.0);
     m_tmLastGPSUpdateTime     = std::chrono::system_clock::now();
     m_tmLastCompassUpdateTime = std::chrono::system_clock::now();
+    m_dTrueVelocity           = -1.0;
     m_dHeading                = 0.0;
     m_dHeadingAccuracy        = 0.0;
     m_dVelocity               = 0.0;
