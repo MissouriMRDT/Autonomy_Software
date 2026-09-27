@@ -55,6 +55,7 @@ NavigationBoard::NavigationBoard()
         network::g_pRoveCommUDPNode->AddUDPCallback<double>(ProcessGPSData, manifest::Nav::TELEMETRY.find("GPSLATLONALT")->second.DATA_ID);
         network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessAccuracyData, manifest::Nav::TELEMETRY.find("ACCURACYDATA")->second.DATA_ID);
         network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessCompassData, manifest::Nav::TELEMETRY.find("COMPASSDATA")->second.DATA_ID);
+        network::g_pRoveCommUDPNode->AddUDPCallback<float>(ProcessTrueVelocity, manifest::Nav::TELEMETRY.find("GPSVELOCITY")->second.DATA_ID);
     }
 }
 
@@ -264,6 +265,15 @@ double NavigationBoard::GetHeadingAccuracy()
  ******************************************************************************/
 double NavigationBoard::GetVelocity()
 {
+    // Try to return true GPS Doppler velocity first if available/fresh.
+    {
+        std::shared_lock<std::shared_mutex> lkTrueVelo(m_muTrueVelocityMutex);
+        if (m_dTrueVelocity >= 0.0)
+        {
+            return m_dTrueVelocity;
+        }
+    }
+
     // Create static boolean for printing out warnings.
     static bool bAlreadyPrintedWarning = false;
 
