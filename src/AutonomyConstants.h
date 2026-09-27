@@ -89,6 +89,10 @@ namespace constants
     extern const double DRIVE_PID_INTEGRAL;
     extern const double DRIVE_PID_DERIVATIVE;
     extern const double DRIVE_PID_FEEDFORWARD;
+    extern const double VELOCITY_PID_PROPORTIONAL;
+    extern const double VELOCITY_PID_INTEGRAL;
+    extern const double VELOCITY_PID_DERIVATIVE;
+    extern const double VELOCITY_PID_FEEDFORWARD;
     extern const double DRIVE_PID_MAX_ERROR;
     extern const double DRIVE_PID_MAX_INTEGRAL_TERM;
     extern const double DRIVE_PID_MAX_RAMP_RATE;
@@ -414,6 +418,7 @@ namespace constants
 
     // Navigating State.
     extern const double NAVIGATING_MOTOR_POWER;
+    extern const double NAVIGATING_TARGET_VELOCITY;
     extern const double NAVIGATING_REACHED_GOAL_RADIUS;
     extern const bool NAVIGATING_VERIFY_POSITION;
     extern const double NAVIGATING_VERIFY_SAMPLE_TIME;
