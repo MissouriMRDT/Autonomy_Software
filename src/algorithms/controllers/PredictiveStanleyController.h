@@ -63,7 +63,7 @@ namespace controllers
                                         const int nPredictionHorizon       = 5,
                                         const double dPredictionTimeStep   = 0.01);
             ~PredictiveStanleyController();
-            DriveVector Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed = constants::NAVIGATING_MOTOR_POWER);
+            DriveVector Calculate(const geoops::RoverPose& stCurrentPose, const double dMaxSpeed = constants::NAVIGATING_TARGET_VELOCITY);
 
             /////////////////////////////////////////
             // Setters.
