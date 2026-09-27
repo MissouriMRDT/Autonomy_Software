@@ -71,7 +71,7 @@ class NavigationBoard
         double m_dHeadingAccuracy;                                          // Store current GPS heading accuracy in degrees.
         double m_dVelocity;                                                 // Store current GPS-based velocity.
         double m_dAngularVelocity;                                          // Store current compass-based angular velocity.
-        double m_dTrueVeloctiy;                                             // Store current true GPS velocity via Doppler.
+        double m_dTrueVelocity;                                             // Store current true GPS velocity via Doppler.
         std::shared_mutex m_muLocationMutex;                                // Mutex for acquiring read and write lock on location member variable.
         std::shared_mutex m_muHeadingMutex;                                 // Mutex for acquiring read and write lock on heading member variable.
         std::shared_mutex m_muVelocityMutex;                                // Mutex for acquiring read and write lock on velocity member variable.
