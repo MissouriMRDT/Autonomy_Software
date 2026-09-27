@@ -28,15 +28,16 @@
 NavigationBoard::NavigationBoard()
 {
     // Initialize member variables.
-    m_stLocation              = geoops::GPSCoordinate(37.951771, -91.778114, 315.0);
-    m_tmLastGPSUpdateTime     = std::chrono::system_clock::now();
-    m_tmLastCompassUpdateTime = std::chrono::system_clock::now();
-    m_dTrueVelocity           = -1.0;
-    m_dHeading                = 0.0;
-    m_dHeadingAccuracy        = 0.0;
-    m_dVelocity               = 0.0;
-    m_dAngularVelocity        = 0.0;
-    m_bNavBoardOutOfDate      = false;
+    m_stLocation                      = geoops::GPSCoordinate(37.951771, -91.778114, 315.0);
+    m_tmLastGPSUpdateTime             = std::chrono::system_clock::now();
+    m_tmLastTrueGPSVelocityUpdateTime = std::chrono::system_clock::now();
+    m_tmLastCompassUpdateTime         = std::chrono::system_clock::now();
+    m_dTrueVelocity                   = -1.0;
+    m_dHeading                        = 0.0;
+    m_dHeadingAccuracy                = 0.0;
+    m_dVelocity                       = 0.0;
+    m_dAngularVelocity                = 0.0;
+    m_bNavBoardOutOfDate              = false;
 
     // Subscribe to NavBoard packets.
     rovecomm::RoveCommPacket<u_int8_t> stSubscribePacket;
@@ -271,7 +272,13 @@ double NavigationBoard::GetVelocity()
         std::shared_lock<std::shared_mutex> lkTrueVelo(m_muTrueVelocityMutex);
         if (m_dTrueVelocity >= 0.0)
         {
-            return m_dTrueVelocity;
+            auto nTrueVeloAge = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - m_tmLastTrueVelocityUpdateTime).count();
+
+            // If the true velocity data is fresh, return it.
+            if (nTrueVeloAge < constants::NAVBOARD_MAX_GPS_DATA_AGE)
+            {
+                return m_dTrueVelocity;
+            }
         }
     }
 
