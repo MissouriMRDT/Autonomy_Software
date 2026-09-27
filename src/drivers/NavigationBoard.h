@@ -235,8 +235,12 @@ class NavigationBoard
 
             // Acquire write lock for writing to true GPS velocity member variable.
             std::unique_lock<std::shared_mutex> lk(m_muTrueVelocityMutex);
-            // Repack data from RoveCommPacket into member variable.
-            m_dTrueVelocity = stPacket.vData[0];
+            // Repack data from RoveCommPacket into member variable if packet data exits.
+            if (!stPacket.vData.empty())
+            {
+                m_dTrueVelocity = stPacket.vData[0];
+            }
+
             // Unlock mutex.
             lk.unlock();
 
