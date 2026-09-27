@@ -237,7 +237,8 @@ namespace statemachine
             }
 
             // Use stanley to calculate drive move/powers.
-            controllers::PredictiveStanleyController::DriveVector stDriveVector = m_pStanleyController->Calculate(stCurrentRoverPose, dNavigatingSpeed);
+            controllers::PredictiveStanleyController::DriveVector stDriveVector =
+                m_pStanleyController->Calculate(stCurrentRoverPose, constants::NAVIGATING_TARGET_VELOCITY);
             // Calculate move from goal heading and desired speed.
             diffdrive::DrivePowers stDriveSpeeds = globals::g_pDriveBoard->CalculateMove(stDriveVector.dVelocity,
                                                                                          stDriveVector.dThetaHeading,
