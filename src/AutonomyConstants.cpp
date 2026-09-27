@@ -30,11 +30,11 @@ namespace constants
 #else
     const bool MODE_SIM = false;    // REG MODE ENABLED: Toggle RoveComm and Cameras to use standard configuration.
 #endif
-    const std::string SIM_IP_ADDRESS   = "127.0.0.1";    // The IP address to use for simulation mode.
-    const uint SIM_WEBSOCKET_PORT      = 8080;           // The port to use for the WebSocket in simulation mode.
-    const uint SIM_WEBRTC_QP           = 25;             // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
-    const std::string SIM_MAINCAM_NAME = "ZEDFront";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
-    const std::string SIM_REARCAM_NAME = "ZEDRear";      // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
+    const std::string SIM_IP_ADDRESS   = "172.22.160.1";    // The IP address to use for simulation mode.
+    const uint SIM_WEBSOCKET_PORT      = 8080;              // The port to use for the WebSocket in simulation mode.
+    const uint SIM_WEBRTC_QP           = 25;            // The QP value to use for WebRTC in simulation mode. 0-51, 0 is lossless. If too high for network, frames drop.
+    const std::string SIM_MAINCAM_NAME = "ZEDFront";    // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
+    const std::string SIM_REARCAM_NAME = "ZEDRear";     // The PixelStreaming identifier from RoveSoSimulator. This name is set internally in UE5 editor.
 
     // Safety constants.
     const double BATTERY_MINIMUM_CELL_VOLTAGE = 3.2;      // The minimum cell voltage of the battery before autonomy will forcefully enter Idle state.
@@ -82,6 +82,10 @@ namespace constants
     const double DRIVE_PID_INTEGRAL          = 0.0003;    // The integral gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_DERIVATIVE        = 0.008;     // The derivative gain for the controller used to point the rover at a goal heading during navigation.
     const double DRIVE_PID_FEEDFORWARD       = 0.0;       // The feedforward for the controller used to predict control output.
+    const double VELOCITY_PID_PROPORTIONAL   = 0.5;       // The proportional gain for the controller used to maintain a target speed in m/s.
+    const double VELOCITY_PID_INTEGRAL       = 0.05;      // The integral gain for the controller used to maintain a target speed in m/s.
+    const double VELOCITY_PID_DERIVATIVE     = 0.0;       // The derivative gain for the controller used to maintain a target speed in m/s.
+    const double VELOCITY_PID_FEEDFORWARD    = 0.0;       // The feedforward gain for the controller used to predict required effort for a target speed.
     const double DRIVE_PID_MAX_ERROR         = 180.0;     // The max allowable error the controller will see per iteration. This is on degrees from setpoint. 0 = Disable.
     const double DRIVE_PID_MAX_INTEGRAL_TERM = 0.1;       // The max effort the I term is allowed to contribute. 0 = Disable.
     const double DRIVE_PID_MAX_RAMP_RATE     = 0.08;      // The max ramp rate of the output of the PID controller. 0 = Disable.
@@ -403,6 +407,7 @@ namespace constants
 
     // Navigating State.
     const double NAVIGATING_MOTOR_POWER                   = DRIVE_MAX_SAFE_POWER * 0.8;    // The speed to drive at when navigating.
+    const double NAVIGATING_TARGET_VELOCITY               = 1.5;                           // The target speed in m/s for the rover to maintain while navigating.
     const double NAVIGATING_REACHED_GOAL_RADIUS           = 2.0;                           // The radius in meters that the rover should get to the goal waypoint.
     const bool NAVIGATING_VERIFY_POSITION                 = true;     // Whether or not the rover should sit and verify the rover's GPS position before moving on.
     const double NAVIGATING_VERIFY_SAMPLE_TIME            = 30.0;     // The time in seconds to collect GPS points before verifying the rover's GPS position.
