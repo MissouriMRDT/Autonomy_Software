@@ -66,18 +66,19 @@ class NavigationBoard
         // Declare private member variables.
         /////////////////////////////////////////
 
-        geoops::GPSCoordinate m_stLocation;                                 // Store current global position in UTM format.
-        double m_dHeading;                                                  // Store current GPS heading.
-        double m_dHeadingAccuracy;                                          // Store current GPS heading accuracy in degrees.
-        double m_dVelocity;                                                 // Store current GPS-based velocity.
-        double m_dAngularVelocity;                                          // Store current compass-based angular velocity.
-        double m_dTrueVelocity;                                             // Store current true GPS velocity via Doppler.
-        std::shared_mutex m_muLocationMutex;                                // Mutex for acquiring read and write lock on location member variable.
-        std::shared_mutex m_muHeadingMutex;                                 // Mutex for acquiring read and write lock on heading member variable.
-        std::shared_mutex m_muVelocityMutex;                                // Mutex for acquiring read and write lock on velocity member variable.
-        std::shared_mutex m_muAngularVelocityMutex;                         // Mutex for acquiring read and write lock on angular velocity member variable.
-        std::shared_mutex m_muTrueVelocityMutex;                            // Mutex for acquiring read and write lock on true velocity member variable.
-        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;        // A time point for storing the timestamp of the last GPS update. Also used for velocity.
+        geoops::GPSCoordinate m_stLocation;                                      // Store current global position in UTM format.
+        double m_dHeading;                                                       // Store current GPS heading.
+        double m_dHeadingAccuracy;                                               // Store current GPS heading accuracy in degrees.
+        double m_dVelocity;                                                      // Store current GPS-based velocity.
+        double m_dAngularVelocity;                                               // Store current compass-based angular velocity.
+        double m_dTrueVelocity;                                                  // Store current true GPS velocity via Doppler.
+        std::shared_mutex m_muLocationMutex;                                     // Mutex for acquiring read and write lock on location member variable.
+        std::shared_mutex m_muHeadingMutex;                                      // Mutex for acquiring read and write lock on heading member variable.
+        std::shared_mutex m_muVelocityMutex;                                     // Mutex for acquiring read and write lock on velocity member variable.
+        std::shared_mutex m_muAngularVelocityMutex;                              // Mutex for acquiring read and write lock on angular velocity member variable.
+        std::shared_mutex m_muTrueVelocityMutex;                                 // Mutex for acquiring read and write lock on true velocity member variable.
+        std::chrono::system_clock::time_point m_tmLastGPSUpdateTime;             // A time point for storing the timestamp of the last GPS update. Also used for velocity.
+        std::chrono::system_clock::time_point m_tmLastTrueVelocityUpdateTime;    // Timestamp of last true velocity packet.
         std::chrono::system_clock::time_point m_tmLastCompassUpdateTime;    // A time point for storing the time of the last compass update. Used for angular velocity.
         bool m_bNavBoardOutOfDate;                                          // A boolean to store whether the GPS is out of date.
 
@@ -232,6 +233,9 @@ class NavigationBoard
         {
             // Not using this.
             (void) stdAddr;
+
+            // Get current time.
+            std::chrono::system_clock::time_point tmCurrentTime = std::chrono::system_clock::now();
 
             // Acquire write lock for writing to true GPS velocity member variable.
             std::unique_lock<std::shared_mutex> lk(m_muTrueVelocityMutex);
