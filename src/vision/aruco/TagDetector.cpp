@@ -140,10 +140,13 @@ TagDetector::TagDetector(std::shared_ptr<ZEDCamera> pZEDCam,
     m_cvArucoDetectionParams.markerBorderBits              = nArucoMarkerBorderBits;
     m_cvArucoDetectionParams.detectInvertedMarker          = bArucoDetectInvertedMarkers;
     m_cvArucoDetectionParams.useAruco3Detection            = bUseAruco3Detection;
+    // Get aruco dictionary and initialize aruco detector.
+    m_cvTagDictionary = cv::aruco::getPredefinedDictionary(constants::ARUCO_DICTIONARY);
+    m_cvArucoDetector = cv::aruco::ArucoDetector(m_cvTagDictionary, m_cvArucoDetectionParams);
 
     // Create a multi-tracker for tracking multiple tags from the torch detectors.
     m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
-                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD,
+                                                               constants::BBOX_TRACKER_MAX_TRACK_TIME,
                                                                constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
@@ -520,14 +523,21 @@ void TagDetector::ThreadedContinuousCode()
             m_vNewlyDetectedTags.clear();
             // Detect tags in the image. Both detectors only read m_cvFrame (the immutable camera snapshot, or this
             // detector's own download of it), so it is not cloned first.
-            std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvFrame, m_cvArucoDetector);
-            // Loop through the newly detected OpenCV tags and set their detector UUID to this TagDetector's camera name so we can associate them with this detector.
-            for (tagdetectutils::ArucoTag& stTag : vNewOpenCVTags)
+            try
             {
-                stTag.szDetectorUUID = this->GetThreadUUID();
+                std::vector<tagdetectutils::ArucoTag> vNewOpenCVTags = arucotag::Detect(m_cvFrame, m_cvArucoDetector);
+                // Loop through the newly detected OpenCV tags and set their detector UUID to this TagDetector's camera name so we can associate them with this detector.
+                for (tagdetectutils::ArucoTag& stTag : vNewOpenCVTags)
+                {
+                    stTag.szDetectorUUID = this->GetThreadUUID();
+                }
+                // Add OpenCV tags to the list of newly detected tags.
+                m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
             }
-            // Add OpenCV tags to the list of newly detected tags.
-            m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewOpenCVTags.begin(), vNewOpenCVTags.end());
+            catch (const std::exception& e)
+            {
+                LOG_ERROR(logging::g_qSharedLogger, "TagDetector: Exception during arucotag::Detect: {}", e.what());
+            }
 
             // Check if torch detection if turned on.
             if (m_bTorchEnabled)
@@ -537,11 +547,18 @@ void TagDetector::ThreadedContinuousCode()
                 std::shared_ptr<yolomodel::pytorch::PyTorchInterpreter> pTorchDetector = std::atomic_load_explicit(&m_pTorchDetector, std::memory_order_acquire);
                 if (pTorchDetector != nullptr)
                 {
-                    // Detect tags in the image.
-                    std::vector<tagdetectutils::ArucoTag> vNewTorchTags = torchtag::Detect(m_cvFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
+                    try
+                    {
+                        // Detect tags in the image.
+                        std::vector<tagdetectutils::ArucoTag> vNewTorchTags = torchtag::Detect(m_cvFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold);
 
-                    // Add Torch tags to the list of newly detected tags.
-                    m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
+                        // Add Torch tags to the list of newly detected tags.
+                        m_vNewlyDetectedTags.insert(m_vNewlyDetectedTags.end(), vNewTorchTags.begin(), vNewTorchTags.end());
+                    }
+                    catch (const std::exception& e)
+                    {
+                        LOG_ERROR(logging::g_qSharedLogger, "TagDetector: Exception during torchtag::Detect: {}", e.what());
+                    }
                 }
             }
 

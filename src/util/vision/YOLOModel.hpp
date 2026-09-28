@@ -214,19 +214,43 @@ namespace yolomodel
                         LOG_ERROR(logging::g_qSharedLogger, "Model path {} does not exist!", szModelPath);
                         return;
                     }
-                    // Check if the device is available.
-                    if (!torch::cuda::is_available() && m_trDevice == torch::kCUDA)
+                    // Check if the device is available and operational.
+                    if (m_trDevice == torch::kCUDA)
                     {
-                        // Submit logger message.
-                        LOG_ERROR(logging::g_qSharedLogger, "CUDA device is not available, falling back to CPU.");
-                        m_trDevice = torch::kCPU;
-                        return;
+                        bool bCudaOperational = false;
+                        if (torch::cuda::is_available())
+                        {
+                            try
+                            {
+                                // Verify that the GPU architecture is actually supported by the installed LibTorch kernels.
+                                // Some newer architectures (e.g. RTX 50-series Blackwell sm_120) are visible to CUDA
+                                // but LibTorch lacks cubins for them, causing "no kernel image is available for execution".
+                                torch::Tensor trTest = torch::zeros({1}, torch::TensorOptions().device(torch::kCUDA));
+                                trTest = trTest + 1;
+                                torch::cuda::synchronize();
+                                bCudaOperational = true;
+                            }
+                            catch (const std::exception& e)
+                            {
+                                LOG_WARNING(logging::g_qSharedLogger,
+                                            "PyTorchInterpreter: CUDA kernel execution probe failed ({}), falling back to CPU.",
+                                            e.what());
+                                bCudaOperational = false;
+                            }
+                        }
+                        else
+                        {
+                            LOG_WARNING(logging::g_qSharedLogger, "PyTorchInterpreter: CUDA device is not available, falling back to CPU.");
+                        }
+
+                        if (!bCudaOperational)
+                        {
+                            m_trDevice = torch::kCPU;
+                        }
                     }
-                    else
-                    {
-                        // Submit logger message.
-                        LOG_INFO(logging::g_qSharedLogger, "Using device: {}", m_trDevice.str());
-                    }
+
+                    // Submit logger message.
+                    LOG_INFO(logging::g_qSharedLogger, "Using device: {}", m_trDevice.str());
 
                     // Keep torch's CPU-side ops single threaded. Each detector already runs on its own thread, and torch's
                     // intra-op pool would only compete with them. Set once here rather than on every inference.
@@ -332,73 +356,81 @@ namespace yolomodel
                         return vObjects;
                     }
 
-                    // Preprocess the given image and pack int into an image.
-                    torch::Tensor trTensorImage = PreprocessImage(cvInputFrame, m_trDevice, bSwapRedBlue);
-
-                    // Perform inference.
-                    std::vector<torch::jit::IValue> vInputs;
-                    vInputs.push_back(trTensorImage);
-                    torch::Tensor trOutputTensor;
                     try
                     {
-                        ZoneScopedNC("PyTorch forward", tracy::Color::Honeydew2);
-                        trOutputTensor = m_trModel.forward(vInputs).toTensor();
+                        // Preprocess the given image and pack int into an image.
+                        torch::Tensor trTensorImage = PreprocessImage(cvInputFrame, m_trDevice, bSwapRedBlue);
+
+                        // Perform inference.
+                        std::vector<torch::jit::IValue> vInputs;
+                        vInputs.push_back(trTensorImage);
+                        torch::Tensor trOutputTensor;
+                        try
+                        {
+                            ZoneScopedNC("PyTorch forward", tracy::Color::Honeydew2);
+                            trOutputTensor = m_trModel.forward(vInputs).toTensor();
+                        }
+                        catch (const c10::Error& trError)
+                        {
+                            LOG_ERROR(logging::g_qSharedLogger, "Error running inference: {}", trError.what());
+                            return vObjects;
+                        }
+
+                        // Calculate the general stride sizes for YOLO based on input tensor shape.
+                        int nImgSize  = m_cvModelInputSize.height;
+                        int nP3Stride = std::pow((nImgSize / 8), 2);
+                        int nP4Stride = std::pow((nImgSize / 16), 2);
+                        int nP5Stride = std::pow((nImgSize / 32), 2);
+                        // Calculate the proper prediction length for different YOLO versions.
+                        int nYOLOv5AnchorsPerGridPoint = 3;
+                        int nYOLOv8AnchorsPerGridPoint = 1;
+                        int nYOLOv5TotalPredictionLength =
+                            (nP3Stride * nYOLOv5AnchorsPerGridPoint) + (nP4Stride * nYOLOv5AnchorsPerGridPoint) + (nP5Stride * nYOLOv5AnchorsPerGridPoint);
+                        int nYOLOv8TotalPredictionLength =
+                            (nP3Stride * nYOLOv8AnchorsPerGridPoint) + (nP4Stride * nYOLOv8AnchorsPerGridPoint) + (nP5Stride * nYOLOv8AnchorsPerGridPoint);
+
+                        // Parse the output tensor.
+                        std::vector<int> vClassIDs;
+                        std::vector<std::string> vClassLabels;
+                        std::vector<float> vClassConfidences;
+                        std::vector<cv::Rect> vBoundingBoxes;
+
+                        // Get the largest dimension of our output tensor.
+                        int nLargestDimension = *std::max_element(trOutputTensor.sizes().begin(), trOutputTensor.sizes().end());
+                        // Check if the output tensor is YOLOv5 format.
+                        if (nLargestDimension == nYOLOv5TotalPredictionLength)
+                        {
+                            // Parse inferenced output from tensor.
+                            this->ParseTensorOutputYOLOv5(trOutputTensor, vClassIDs, vClassConfidences, vBoundingBoxes, cvInputFrame.size(), fMinObjectConfidence);
+                        }
+                        // Check if the output tensor is YOLOv8 format.
+                        else if (nLargestDimension == nYOLOv8TotalPredictionLength)
+                        {
+                            // Parse inferenced output from tensor.
+                            this->ParseTensorOutputYOLOv8(trOutputTensor, vClassIDs, vClassConfidences, vBoundingBoxes, cvInputFrame.size(), fMinObjectConfidence);
+                        }
+
+                        // Perform NMS to filter out bad/duplicate detections.
+                        NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
+
+                        // Loop through the final detections and set the class names for each detection based on the class ID.
+                        for (size_t nIter = 0; nIter < vObjects.size(); ++nIter)
+                        {
+                            // Check if the class ID is valid.
+                            if (vClassIDs[nIter] >= 0 && vClassIDs[nIter] < static_cast<int>(m_vClassLabels.size()))
+                            {
+                                vObjects[nIter].szClassName = m_vClassLabels[vClassIDs[nIter]];
+                            }
+                            else
+                            {
+                                vObjects[nIter].szClassName = "UnknownClass";
+                            }
+                        }
                     }
-                    catch (const c10::Error& trError)
+                    catch (const std::exception& e)
                     {
-                        LOG_ERROR(logging::g_qSharedLogger, "Error running inference: {}", trError.what());
+                        LOG_ERROR(logging::g_qSharedLogger, "Exception in YOLO Inference(): {}", e.what());
                         return vObjects;
-                    }
-
-                    // Calculate the general stride sizes for YOLO based on input tensor shape.
-                    int nImgSize  = m_cvModelInputSize.height;
-                    int nP3Stride = std::pow((nImgSize / 8), 2);
-                    int nP4Stride = std::pow((nImgSize / 16), 2);
-                    int nP5Stride = std::pow((nImgSize / 32), 2);
-                    // Calculate the proper prediction length for different YOLO versions.
-                    int nYOLOv5AnchorsPerGridPoint = 3;
-                    int nYOLOv8AnchorsPerGridPoint = 1;
-                    int nYOLOv5TotalPredictionLength =
-                        (nP3Stride * nYOLOv5AnchorsPerGridPoint) + (nP4Stride * nYOLOv5AnchorsPerGridPoint) + (nP5Stride * nYOLOv5AnchorsPerGridPoint);
-                    int nYOLOv8TotalPredictionLength =
-                        (nP3Stride * nYOLOv8AnchorsPerGridPoint) + (nP4Stride * nYOLOv8AnchorsPerGridPoint) + (nP5Stride * nYOLOv8AnchorsPerGridPoint);
-
-                    // Parse the output tensor.
-                    std::vector<int> vClassIDs;
-                    std::vector<std::string> vClassLabels;
-                    std::vector<float> vClassConfidences;
-                    std::vector<cv::Rect> vBoundingBoxes;
-
-                    // Get the largest dimension of our output tensor.
-                    int nLargestDimension = *std::max_element(trOutputTensor.sizes().begin(), trOutputTensor.sizes().end());
-                    // Check if the output tensor is YOLOv5 format.
-                    if (nLargestDimension == nYOLOv5TotalPredictionLength)
-                    {
-                        // Parse inferenced output from tensor.
-                        this->ParseTensorOutputYOLOv5(trOutputTensor, vClassIDs, vClassConfidences, vBoundingBoxes, cvInputFrame.size(), fMinObjectConfidence);
-                    }
-                    // Check if the output tensor is YOLOv8 format.
-                    else if (nLargestDimension == nYOLOv8TotalPredictionLength)
-                    {
-                        // Parse inferenced output from tensor.
-                        this->ParseTensorOutputYOLOv8(trOutputTensor, vClassIDs, vClassConfidences, vBoundingBoxes, cvInputFrame.size(), fMinObjectConfidence);
-                    }
-
-                    // Perform NMS to filter out bad/duplicate detections.
-                    NonMaxSuppression(vObjects, vClassIDs, vClassConfidences, vBoundingBoxes, fMinObjectConfidence, fNMSThreshold);
-
-                    // Loop through the final detections and set the class names for each detection based on the class ID.
-                    for (size_t nIter = 0; nIter < vObjects.size(); ++nIter)
-                    {
-                        // Check if the class ID is valid.
-                        if (vClassIDs[nIter] >= 0 && vClassIDs[nIter] < static_cast<int>(m_vClassLabels.size()))
-                        {
-                            vObjects[nIter].szClassName = m_vClassLabels[vClassIDs[nIter]];
-                        }
-                        else
-                        {
-                            vObjects[nIter].szClassName = "UnknownClass";
-                        }
                     }
 
                     return vObjects;
@@ -455,7 +487,7 @@ namespace yolomodel
                     // Move the pixels to the device. Non-blocking is safe: the buffer is only rewritten by the next call, and
                     // Inference() copies its result back to the CPU first, which waits for everything queued here.
                     ZoneNamedN(toTensor, "Convert to Tensor", true);
-                    torch::Tensor trTensorImage = m_trInputBuffer.to(trDevice, /*non_blocking=*/true);
+                    torch::Tensor trTensorImage = m_trInputBuffer.to(trDevice, /*non_blocking=*/trDevice.is_cuda());
                     // Swap BGR <-> RGB if asked. The resize treats each channel separately, so swapping after it is the same
                     // as swapping before it.
                     if (bSwapRedBlue)

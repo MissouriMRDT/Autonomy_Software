@@ -24,6 +24,7 @@
 #include <condition_variable>
 #include <cstdlib>
 #include <cxxabi.h>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -780,8 +781,42 @@ class AutonomyThread
             // Loop until stop flag is set.
             while (!bStopThread)
             {
-                // Call method containing user code.
-                this->ThreadedContinuousCode();
+                try
+                {
+                    // Call method containing user code.
+                    this->ThreadedContinuousCode();
+                }
+                catch (const std::exception& e)
+                {
+                    std::cerr << "Exception in AutonomyThread ("
+                              << (m_szThreadName.empty() ? this->GetTypeName() : m_szThreadName)
+                              << "): " << e.what() << std::endl;
+
+                    // Check if thread state needs to be updated so waiting start method does not block.
+                    if (m_eThreadState != AutonomyThreadState::eRunning && m_eThreadState != AutonomyThreadState::eStopping)
+                    {
+                        m_eThreadState = AutonomyThreadState::eRunning;
+                        m_cdThreadRunningCondition.notify_all();
+                    }
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                    continue;
+                }
+                catch (...)
+                {
+                    std::cerr << "Unknown exception in AutonomyThread ("
+                              << (m_szThreadName.empty() ? this->GetTypeName() : m_szThreadName)
+                              << ")" << std::endl;
+
+                    if (m_eThreadState != AutonomyThreadState::eRunning && m_eThreadState != AutonomyThreadState::eStopping)
+                    {
+                        m_eThreadState = AutonomyThreadState::eRunning;
+                        m_cdThreadRunningCondition.notify_all();
+                    }
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                    continue;
+                }
 
                 // Check if max IPS limit has been set.
                 if (m_nMainThreadMaxIterationPerSecond > 0)

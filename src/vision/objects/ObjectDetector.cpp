@@ -107,7 +107,7 @@ ObjectDetector::ObjectDetector(std::shared_ptr<ZEDCamera> pZEDCam,
 
     // Create a multi-tracker for tracking multiple objects from the torch detectors.
     m_pMultiTracker = std::make_shared<tracking::MultiTracker>(constants::BBOX_TRACKER_LOST_TIMEOUT,
-                                                               constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD,
+                                                               constants::BBOX_TRACKER_MAX_TRACK_TIME,
                                                                constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD);
 
     // Set max IPS of main thread.
@@ -502,13 +502,20 @@ void ObjectDetector::ThreadedContinuousCode()
                         cv::cvtColor(m_cvFrame, m_cvTorchProcFrame, cv::COLOR_BGRA2BGR);
                         pTorchFrame = &m_cvTorchProcFrame;
                     }
-                    // Detect objects in the image. The frame is BGR and the model wants RGB; the channels are swapped on
-                    // the GPU, so the frame is read in place instead of cloned and converted on the CPU.
-                    std::vector<objectdetectutils::Object> vNewTorchObjects =
-                        torchobject::Detect(*pTorchFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold, /*bSwapRedBlue=*/true);
+                    try
+                    {
+                        // Detect objects in the image. The frame is BGR and the model wants RGB; the channels are swapped on
+                        // the GPU, so the frame is read in place instead of cloned and converted on the CPU.
+                        std::vector<objectdetectutils::Object> vNewTorchObjects =
+                            torchobject::Detect(*pTorchFrame, *pTorchDetector, m_fTorchMinObjectConfidence, m_fTorchNMSThreshold, /*bSwapRedBlue=*/true);
 
-                    // Add Torch objects to the list of newly detected objects.
-                    m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
+                        // Add Torch objects to the list of newly detected objects.
+                        m_vNewlyDetectedObjects.insert(m_vNewlyDetectedObjects.end(), vNewTorchObjects.begin(), vNewTorchObjects.end());
+                    }
+                    catch (const std::exception& e)
+                    {
+                        LOG_ERROR(logging::g_qSharedLogger, "ObjectDetector: Exception during torchobject::Detect: {}", e.what());
+                    }
                 }
             }
 
@@ -939,63 +946,70 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
             {
                 // Use either width of height for the neighborhood size.
                 int nNeighborhoodSize = std::min(stObject.pBoundingBox->width, stObject.pBoundingBox->height);
-                // Geolocate the object in the point cloud.
-                geoops::Waypoint stGeolocation = geoloc::GeolocateBox(
-                    m_cvPointCloud,
-                    stCameraPose,
-                    cv::Point(stObject.pBoundingBox->x + stObject.pBoundingBox->width / 2, stObject.pBoundingBox->y + stObject.pBoundingBox->height / 2),
-                    nNeighborhoodSize);
-
-                // Depending on the class name of the model, set the object type.
-                if (stObject.szClassName == "mallet")
+                try
                 {
-                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eMallet;
-                }
-                else if (stObject.szClassName == "bottle")
-                {
-                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eWaterBottle;
-                }
-                else if (stObject.szClassName == "pick")
-                {
-                    stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eRockPick;
-                }
+                    // Geolocate the object in the point cloud.
+                    geoops::Waypoint stGeolocation = geoloc::GeolocateBox(
+                        m_cvPointCloud,
+                        stCameraPose,
+                        cv::Point(stObject.pBoundingBox->x + stObject.pBoundingBox->width / 2, stObject.pBoundingBox->y + stObject.pBoundingBox->height / 2),
+                        nNeighborhoodSize);
 
-                // Calculate the yaw angle to the tag using the center point of the tag and the camera's field of view.
-                // This is a fallback in case the geolocation fails for some reason, we can still provide a relative angle to the tag.
-                // Get the center X pixel coordinate of the object's bounding box.
-                double dObjectCenterX = stObject.pBoundingBox->x + (stObject.pBoundingBox->width / 2.0);
-                // Get the center X pixel coordinate of the camera frame.
-                double dFrameCenterX = m_cvFrame.cols / 2.0;
-                // Calculate the offset in pixels from the center of the camera frame.
-                // (Positive offset = target is to the right, Negative = target is to the left)
-                double dPixelOffsetX = dObjectCenterX - dFrameCenterX;
-                // Calculate how many real-world degrees each pixel represents.
-                double dDegreesPerPixel = stObject.dHorizontalFOV / static_cast<double>(m_cvFrame.cols);
-                // Multiply the pixel offset by the degrees per pixel to get the relative yaw angle.
-                stObject.dYawAngle = dPixelOffsetX * dDegreesPerPixel;
-                // Explicitly set distance to 0.0 so the autonomy state machines know the depth map failed
-                // and will properly fall back to using this calculated dYawAngle.
-                stObject.dStraightLineDistance = 0.0;
-
-                // Check if the geolocation is valid. If it is overwrite the yaw angle and distance with the geolocation data.
-                if (stGeolocation != geoops::Waypoint())
-                {
-                    // Since this is a object detection, set the object's waypoint type appropriately.
-                    stGeolocation.eType = geoops::WaypointType::eObjectWaypoint;
-                    // Calculate the geo measurement and print the distance to the object.
-                    geoops::GeoMeasurement stMeasurement =
-                        geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stGeolocation.GetUTMCoordinate());
-
-                    // Check that the distance is in a reasonable range.
-                    if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
+                    // Depending on the class name of the model, set the object type.
+                    if (stObject.szClassName == "mallet")
                     {
-                        // Set the object's geolocation.
-                        stObject.stGeolocatedPosition = stGeolocation;
-                        // Use the rover heading and the azimuth angle to calculate the relative heading to the object.
-                        stObject.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
-                        // Set the straight line distance to the object.
-                        stObject.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                        stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eMallet;
                     }
+                    else if (stObject.szClassName == "bottle")
+                    {
+                        stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eWaterBottle;
+                    }
+                    else if (stObject.szClassName == "pick")
+                    {
+                        stObject.eDetectionType = objectdetectutils::ObjectDetectionType::eRockPick;
+                    }
+
+                    // Calculate the yaw angle to the tag using the center point of the tag and the camera's field of view.
+                    // This is a fallback in case the geolocation fails for some reason, we can still provide a relative angle to the tag.
+                    // Get the center X pixel coordinate of the object's bounding box.
+                    double dObjectCenterX = stObject.pBoundingBox->x + (stObject.pBoundingBox->width / 2.0);
+                    // Get the center X pixel coordinate of the camera frame.
+                    double dFrameCenterX = m_cvFrame.cols / 2.0;
+                    // Calculate the offset in pixels from the center of the camera frame.
+                    // (Positive offset = target is to the right, Negative = target is to the left)
+                    double dPixelOffsetX = dObjectCenterX - dFrameCenterX;
+                    // Calculate how many real-world degrees each pixel represents.
+                    double dDegreesPerPixel = stObject.dHorizontalFOV / static_cast<double>(m_cvFrame.cols);
+                    // Multiply the pixel offset by the degrees per pixel to get the relative yaw angle.
+                    stObject.dYawAngle = dPixelOffsetX * dDegreesPerPixel;
+                    // Explicitly set distance to 0.0 so the autonomy state machines know the depth map failed
+                    // and will properly fall back to using this calculated dYawAngle.
+                    stObject.dStraightLineDistance = 0.0;
+
+                    // Check if the geolocation is valid. If it is overwrite the yaw angle and distance with the geolocation data.
+                    if (stGeolocation != geoops::Waypoint())
+                    {
+                        // Since this is a object detection, set the object's waypoint type appropriately.
+                        stGeolocation.eType = geoops::WaypointType::eObjectWaypoint;
+                        // Calculate the geo measurement and print the distance to the object.
+                        geoops::GeoMeasurement stMeasurement =
+                            geoops::CalculateGeoMeasurement(m_stRoverPose.GetUTMCoordinate(), stGeolocation.GetUTMCoordinate());
+
+                        // Check that the distance is in a reasonable range.
+                        if (stMeasurement.dDistanceMeters > 0.0 && stMeasurement.dDistanceMeters < 25.0)
+                        {
+                            // Set the object's geolocation.
+                            stObject.stGeolocatedPosition = stGeolocation;
+                            // Use the rover heading and the azimuth angle to calculate the relative heading to the object.
+                            stObject.dYawAngle = numops::AngularDifference(m_stRoverPose.GetCompassHeading(), stMeasurement.dStartRelativeBearing);
+                            // Set the straight line distance to the object.
+                            stObject.dStraightLineDistance = stMeasurement.dDistanceMeters;
+                        }
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    LOG_ERROR(logging::g_qSharedLogger, "ObjectDetector: Exception during geolocation for object: {}", e.what());
                 }
             }
         }
