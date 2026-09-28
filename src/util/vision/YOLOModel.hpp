@@ -232,9 +232,19 @@ namespace yolomodel
                             }
                             catch (const std::exception& e)
                             {
-                                LOG_WARNING(logging::g_qSharedLogger,
-                                            "PyTorchInterpreter: CUDA kernel execution probe failed ({}), falling back to CPU.",
-                                            e.what());
+                                std::string szErr = e.what();
+                                if (szErr.find("no kernel image is available") != std::string::npos)
+                                {
+                                    LOG_WARNING(logging::g_qSharedLogger,
+                                                "PyTorchInterpreter: Host GPU architecture (e.g. Blackwell sm_120 / RTX 50-series) lacks precompiled cubins in installed LibTorch (built up to sm_90). Safely falling back to CPU.");
+                                }
+                                else
+                                {
+                                    std::string szFirstLine = szErr.substr(0, szErr.find('\n'));
+                                    LOG_WARNING(logging::g_qSharedLogger,
+                                                "PyTorchInterpreter: CUDA kernel execution probe failed ({}), falling back to CPU.",
+                                                szFirstLine);
+                                }
                                 bCudaOperational = false;
                             }
                         }
