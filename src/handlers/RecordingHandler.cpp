@@ -476,8 +476,8 @@ void RecordingHandler::UpdateRecordableTagDetectors()
                 // Take a persistent read handle for this feed.
                 m_vFrameReadersCPU[nDetector - 1] = pTagDetector->GetDetectionOverlayReader();
             }
-            // Setup the video encoder if needed.
-            if (!m_vCameraWriters[nDetector - 1]->IsOpen())
+            // Setup the video encoder if needed and a valid resolution is known.
+            if (!m_vCameraWriters[nDetector - 1]->IsOpen() && pTagDetector->GetProcessFrameResolution().width > 0)
             {
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;
@@ -600,8 +600,8 @@ void RecordingHandler::UpdateRecordableObjectDetectors()
                 // Take a persistent read handle for this feed.
                 m_vFrameReadersCPU[nDetector - 1] = pObjectDetector->GetDetectionOverlayReader();
             }
-            // Setup the video encoder if needed.
-            if (!m_vCameraWriters[nDetector - 1]->IsOpen())
+            // Setup the video encoder if needed and a valid resolution is known.
+            if (!m_vCameraWriters[nDetector - 1]->IsOpen() && pObjectDetector->GetProcessFrameResolution().width > 0)
             {
                 // Assemble filepath string.
                 std::filesystem::path szFilePath;

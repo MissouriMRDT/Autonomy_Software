@@ -469,7 +469,7 @@ namespace pathplanners
             m_pqOpenSetNextBest.pop();
         }
 
-        LOG_INFO(logging::g_qSharedLogger,
+        LOG_DEBUG(logging::g_qSharedLogger,
                  "Abstract Search Grid Built. Width {} x Height {} (Total: {} cells). Start Index: {}, End Index: {}",
                  m_nGridWidth,
                  m_nGridHeight,
@@ -529,7 +529,7 @@ namespace pathplanners
             // Immediately exit standard operations if the target goal coordinate was successfully reached.
             if (stCurrentState.nGridIndex == m_nEndIndex)
             {
-                LOG_INFO(logging::g_qSharedLogger, "Successfully reached valid goal configuration parameter during A* expansions.");
+                LOG_DEBUG(logging::g_qSharedLogger, "Successfully reached valid goal configuration parameter during A* expansions.");
                 return;
             }
 
@@ -626,6 +626,22 @@ namespace pathplanners
     {
         ZoneScopedC(tracy::Color::Chocolate2);
         std::vector<geoops::Waypoint> vPath;
+
+        // Handle edge case where start and end points are identical
+        if (m_nStartIndex == m_nEndIndex)
+        {
+            int nX, nY;
+            GetGridCoords(m_nStartIndex, nX, nY);
+            const GridCell& stCell = m_vCostmap[m_nStartIndex];
+            double dEasting        = m_dGridOriginEasting + (nX * m_dGridResolution);
+            double dNorthing       = m_dGridOriginNorthing + (nY * m_dGridResolution);
+
+            vPath.emplace_back(geoops::UTMCoordinate(dEasting, dNorthing, stCell.nZone, stCell.bInNorthernHemisphere, stCell.dAltitude),
+                               geoops::WaypointType::eNavigationWaypoint,
+                               m_dPathWaypointTolerance,
+                               stCell.nClosestPointID);
+            return vPath;
+        }
 
         // Verify that the final path integration chain was actually established to the end node.
         if (m_vPredecessors[m_nEndIndex] == -1)
