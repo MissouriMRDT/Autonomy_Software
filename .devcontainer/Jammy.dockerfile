@@ -117,11 +117,16 @@ RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/opencv/am
     dpkg -i opencv_${OPENCV_VERSION}_amd64.deb && \
     rm opencv_${OPENCV_VERSION}_amd64.deb
 
-# Install PyTorch.
+# Install PyTorch (including Blackwell sm_120 LibTorch in /opt/libtorch).
 ARG TORCH_VERSION="2.8.0"
 RUN wget -q https://github.com/MissouriMRDT/Autonomy_Packages/raw/main/pytorch/amd64/pytorch_${TORCH_VERSION}_amd64.deb && \
     dpkg -i pytorch_${TORCH_VERSION}_amd64.deb && \
-    rm pytorch_${TORCH_VERSION}_amd64.deb
+    rm pytorch_${TORCH_VERSION}_amd64.deb && \
+    wget -q https://download.pytorch.org/libtorch/nightly/cu128/libtorch-cxx11-abi-shared-with-deps-latest.zip -O /tmp/libtorch.zip && \
+    unzip -q /tmp/libtorch.zip -d /opt/ && \
+    rm -f /tmp/libtorch.zip && \
+    echo "/opt/libtorch/lib" > /etc/ld.so.conf.d/opt-libtorch.conf && \
+    ldconfig
 
 # Install FFMPEG
 ARG FFMPEG_VERSION="7.1.2"

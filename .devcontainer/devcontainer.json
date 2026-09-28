@@ -51,7 +51,7 @@
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
     // Use 'postCreateCommand' to run commands after the container is created.
-    "postStartCommand": "git config --global --add safe.directory '*'",
+    "postStartCommand": "git config --global --add safe.directory '*' && /bin/bash .devcontainer/setup-libtorch.sh",
     "postCreateCommand": "echo 'Welcome to the Mars Rover Design Team, Autonomy Software Development Environment!'",
     // Configure tool-specific properties.
     "customizations": {
