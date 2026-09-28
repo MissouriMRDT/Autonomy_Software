@@ -263,10 +263,15 @@ include_directories(SYSTEM ${CUDAToolkit_INCLUDE_DIRS})
 
 ## Find PyTorch.
 set(CAFFE2_USE_CUDNN "1")
-# GPU architectures for Torch and our own .cu files (8.7 = Jetson Orin).
-set(TORCH_CUDA_ARCH_LIST "8.0 8.6 8.7 8.9 9.0")
+# GPU architectures for Torch and our own .cu files (8.7 = Jetson Orin; 9.0+PTX enables forward compatibility via driver JIT on Blackwell sm_120).
+set(TORCH_CUDA_ARCH_LIST "8.0 8.6 8.7 8.9 9.0+PTX")
 # Skip libtorch's broken libnvrtc hash probe (always warns; value unused).
 set(CUDA_NVRTC_SHORTHASH "XXXXXXXX" CACHE STRING "Unused by libtorch consumers")
+if (EXISTS "/opt/libtorch/share/cmake/Torch/TorchConfig.cmake")
+    list(PREPEND CMAKE_PREFIX_PATH "/opt/libtorch")
+    set(CMAKE_BUILD_RPATH "${CMAKE_BUILD_RPATH};/opt/libtorch/lib")
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH};/opt/libtorch/lib")
+endif()
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
