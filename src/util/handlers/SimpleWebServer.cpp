@@ -104,7 +104,14 @@ void SimpleWebServer::AddStaticDirectory(const std::string& szUrlPrefix, const s
     if (szPrefix.length() > 1 && szPrefix.back() == '/')
         szPrefix.pop_back();
 
-    if (std::filesystem::exists(szLocalDir) && std::filesystem::is_directory(szLocalDir))
+    // Ensure local directory exists, creating it if necessary (e.g. logging detections directory)
+    std::error_code stdErrorCode;
+    if (!std::filesystem::exists(szLocalDir, stdErrorCode))
+    {
+        std::filesystem::create_directories(szLocalDir, stdErrorCode);
+    }
+
+    if (std::filesystem::exists(szLocalDir, stdErrorCode) && std::filesystem::is_directory(szLocalDir, stdErrorCode))
     {
         m_mStaticDirectories[szPrefix] = std::filesystem::path(szLocalDir);
     }
@@ -441,25 +448,28 @@ void SimpleWebServer::HandleClient(int nClientFD)
 
                         // Get canonical paths to prevent traversal attacks
                         std::error_code stdErrorCode;
-                        std::filesystem::path szCanonicalBase = std::filesystem::canonical(szLocalPath, stdErrorCode);
+                        std::filesystem::path szCanonicalBase = std::filesystem::canonical(szLocalDir, stdErrorCode);
                         if (stdErrorCode)
                         {
-                            LOG_WARNING(logging::g_qSharedLogger, "WebServer: Failed to canonicalize base path: {}", szLocalPath.string());
+                            LOG_WARNING(logging::g_qSharedLogger, "WebServer: Failed to canonicalize base path: {}", szLocalDir.string());
                             break;
                         }
 
                         std::filesystem::path szCanonicalPath = std::filesystem::canonical(szLocalPath, stdErrorCode);
                         if (stdErrorCode)
                         {
-                            // File doesn't exist or path is invalid
+                            // File doesn't exist or path is invalid - stop searching static directories for this request
                             break;
                         }
 
                         // Verify that the canonical path is still within the base directory
-                        // Check if canonical path starts with base path (avoid MISRA 12.3 comma operator in std::pair)
-                        std::string szCanonicalBaseStr = szCanonicalBase.string();
-                        std::string szCanonicalPathStr = szCanonicalPath.string();
-                        bool bPathWithinBase           = (szCanonicalPathStr.find(szCanonicalBaseStr) == 0);
+                        std::string szCanonicalBaseStr = szCanonicalBase.lexically_normal().string();
+                        std::string szCanonicalPathStr = szCanonicalPath.lexically_normal().string();
+                        if (!szCanonicalBaseStr.empty() && szCanonicalBaseStr.back() != std::filesystem::path::preferred_separator)
+                        {
+                            szCanonicalBaseStr += std::filesystem::path::preferred_separator;
+                        }
+                        bool bPathWithinBase = (szCanonicalPathStr.find(szCanonicalBaseStr) == 0);
 
                         if (!bPathWithinBase)
                         {

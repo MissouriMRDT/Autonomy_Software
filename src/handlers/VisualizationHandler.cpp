@@ -42,8 +42,10 @@ VisualizationHandler::VisualizationHandler(int nPort)
 
     // Serve the detections folder as static files from the current logging session
     // This allows access via http://ip:port/detections/filename.png
-    std::string szDetectionsPath = logging::g_szLoggingOutputPath + "detections";
-    m_pWebServer->AddStaticDirectory("/detections", szDetectionsPath);
+    std::filesystem::path szDetectionsPath = std::filesystem::path(logging::g_szLoggingOutputPath) / "detections";
+    std::error_code stdErrorCode;
+    std::filesystem::create_directories(szDetectionsPath, stdErrorCode);
+    m_pWebServer->AddStaticDirectory("/detections", szDetectionsPath.string());
 
     std::string szResourcePath = constants::VISUALIZER_RESOURCE_PATH;
     m_pWebServer->AddStaticDirectory("/", szResourcePath);
