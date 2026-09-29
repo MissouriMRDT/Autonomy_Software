@@ -70,12 +70,13 @@ namespace tracking
             double GetTrackerLostTimeout() const;
             double GetMaxTrackingTime() const;
 
+            static double CalculateIOU(const cv::Rect2d& cvBoxA, const cv::Rect2d& cvBoxB);
+
         private:
             /////////////////////////////////////////
             // Declare private methods.
             /////////////////////////////////////////
 
-            double CalculateIOU(const cv::Rect2d& cvBoxA, const cv::Rect2d& cvBoxB);
             cv::Ptr<cv::Tracker> CreateTracker(const TrackerType eType);
 
             /////////////////////////////////////////

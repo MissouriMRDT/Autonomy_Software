@@ -284,7 +284,7 @@ namespace constants
     const double BBOX_MIN_LIFETIME_THRESHOLD = 0.15;     // How many seconds does the detection need to be detected before being validated as a good detection.
     const double BBOX_MIN_SCREEN_PERCENTAGE  = 0.001;    // Minumum percentage of the screen the detection must cover to be valid. 0-100
     const double BBOX_TRACKER_LOST_TIMEOUT   = 0.1;      // The time in seconds to wait before considering a tracker lost. This should always be less than MAX_LIFTTIME.
-    const double BBOX_TRACKER_MAX_TRACK_TIME = 5.0;      // The maximum time in seconds to track a detection without new detection.MAX_TRACK_TIME
+    const double BBOX_TRACKER_MAX_TRACK_TIME = 0.3;      // The maximum time in seconds to track a detection without new detection.MAX_TRACK_TIME
     const double BBOX_TRACKER_IOU_MATCH_THRESHOLD = 0.1;                             // The IOU threshold to match a new detection to an existing tracker.
     const tracking::TrackerType BBOX_TRACKER_TYPE = tracking::TrackerType::eCSRT;    // The type of tracker to use for the DNN detection.
     ///////////////////////////////////////////////////////////////////////////
@@ -335,15 +335,15 @@ namespace constants
     const bool OBJECTDETECT_MAINCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track objects.
     const int OBJECTDETECT_MAINCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
     const bool OBJECTDETECT_MAINCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE     = 0.6f;    // The minimum confidence to consider a viable object detection.
-    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH     = 0.4f;    // The threshold for non-max suppression filtering.
+    const float OBJECTDETECT_MAINCAM_TORCH_CONFIDENCE     = 0.75f;    // The minimum confidence to consider a viable object detection.
+    const float OBJECTDETECT_MAINCAM_TORCH_NMS_THRESH     = 0.4f;     // The threshold for non-max suppression filtering.
 
-                                                                     // Rear ZED Camera.
-    const int OBJECTDETECT_REARCAM_DATA_RETRIEVAL_THREADS = 2;       // The number of threads allocated to the threadpool for performing data copies to other threads.
-    const bool OBJECTDETECT_REARCAM_ENABLE_TRACKING       = true;    // Whether or not to use the tracking algorithm to track objects.
-    const int OBJECTDETECT_REARCAM_MAX_FPS                = 30;      // The max iterations per second of the object detector.
-    const bool OBJECTDETECT_REARCAM_ENABLE_TORCH          = true;    // Whether or not to use pytorch detection.
-    const float OBJECTDETECT_REARCAM_TORCH_CONFIDENCE     = 0.6f;    // The minimum confidence to consider a viable object detection.
+                                                                      // Rear ZED Camera.
+    const int OBJECTDETECT_REARCAM_DATA_RETRIEVAL_THREADS = 2;        // The number of threads allocated to the threadpool for performing data copies to other threads.
+    const bool OBJECTDETECT_REARCAM_ENABLE_TRACKING       = true;     // Whether or not to use the tracking algorithm to track objects.
+    const int OBJECTDETECT_REARCAM_MAX_FPS                = 30;       // The max iterations per second of the object detector.
+    const bool OBJECTDETECT_REARCAM_ENABLE_TORCH          = true;     // Whether or not to use pytorch detection.
+    const float OBJECTDETECT_REARCAM_TORCH_CONFIDENCE     = 0.75f;    // The minimum confidence to consider a viable object detection.
     const float OBJECTDETECT_REARCAM_TORCH_NMS_THRESH     = 0.4f;    // The threshold for non-max suppression filtering.
 
     ///////////////////////////////////////////////////////////////////////////

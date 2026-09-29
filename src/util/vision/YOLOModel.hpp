@@ -427,9 +427,9 @@ namespace yolomodel
                         for (size_t nIter = 0; nIter < vObjects.size(); ++nIter)
                         {
                             // Check if the class ID is valid.
-                            if (vClassIDs[nIter] >= 0 && vClassIDs[nIter] < static_cast<int>(m_vClassLabels.size()))
+                            if (vObjects[nIter].nClassID >= 0 && vObjects[nIter].nClassID < static_cast<int>(m_vClassLabels.size()))
                             {
-                                vObjects[nIter].szClassName = m_vClassLabels[vClassIDs[nIter]];
+                                vObjects[nIter].szClassName = m_vClassLabels[vObjects[nIter].nClassID];
                             }
                             else
                             {

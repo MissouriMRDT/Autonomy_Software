@@ -855,14 +855,18 @@ void ObjectDetector::UpdateDetectedObjects(std::vector<objectdetectutils::Object
                 }
                 else
                 {
-                    // Find the object with the same bounding box pointer and update the ID and confidence.
+                    // Find the existing object with matching bounding box and update its properties.
                     for (objectdetectutils::Object& stExistingObject : m_vDetectedObjects)
                     {
-                        // Check if the bounding box pointers are the same.
-                        if (stObject.pBoundingBox == stExistingObject.pBoundingBox)
+                        // Check if both bounding boxes exist and their IoU matches.
+                        if (stObject.pBoundingBox && stExistingObject.pBoundingBox &&
+                            tracking::MultiTracker::CalculateIOU(*stObject.pBoundingBox, *stExistingObject.pBoundingBox) > constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD)
                         {
-                            // Update the ID and confidence of the existing object.
-                            stExistingObject.dConfidence = stObject.dConfidence;
+                            // Update the confidence, class name, and detection type of the existing object.
+                            stExistingObject.dConfidence    = stObject.dConfidence;
+                            stExistingObject.szClassName    = stObject.szClassName;
+                            stExistingObject.eDetectionType = stObject.eDetectionType;
+                            break;
                         }
                     }
                 }

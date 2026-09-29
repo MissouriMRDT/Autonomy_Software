@@ -899,15 +899,17 @@ void TagDetector::UpdateDetectedTags(std::vector<tagdetectutils::ArucoTag>& vNew
                 }
                 else
                 {
-                    // Find the tag with the same bounding box pointer and update the ID and confidence.
+                    // Find the existing tag with matching bounding box and update its ID and confidence.
                     for (tagdetectutils::ArucoTag& stExistingTag : m_vDetectedArucoTags)
                     {
-                        // Check if the bounding box pointers are the same.
-                        if (stTag.pBoundingBox == stExistingTag.pBoundingBox)
+                        // Check if both bounding boxes exist and their IoU matches.
+                        if (stTag.pBoundingBox && stExistingTag.pBoundingBox &&
+                            tracking::MultiTracker::CalculateIOU(*stTag.pBoundingBox, *stExistingTag.pBoundingBox) > constants::BBOX_TRACKER_IOU_MATCH_THRESHOLD)
                         {
                             // Update the ID and confidence of the existing tag.
                             stExistingTag.nID         = stTag.nID;
                             stExistingTag.dConfidence = stTag.dConfidence;
+                            break;
                         }
                     }
                 }
