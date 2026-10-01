@@ -1,12 +1,20 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 
-let camera, scene, renderer, controls, roverMesh, pathLine, plannedPathLine, currentPoints;
+let camera, scene, renderer, controls, roverMesh, pathLines, plannedPathLine, currentPoints;
 let waypointGroup, detectionGroup;
 let markerLayer;
 let activeWaypoints = [];
 let leftArrow, rightArrow;
 let beaconGeo, detectionTex;
+let pathMaterial, plannedMaterial;
+
+const LINE_WORLD_UNITS = false; // When true, line width is based on camera perspective in m - When false, it is based on set px size
+const LINE_WIDTH = LINE_WORLD_UNITS ? 0.2 : 4; // World Units (m) or set px size
+const MIN_SEGMENT_LEN = 0.035; // Minimum length a line segment can be (m)
 
 let mapCenter = { x: 0, y: 0 };
 let cfgRadius = 50;
@@ -38,24 +46,24 @@ const typeNames = {};
 
 // State Colors
 let stateColors = {
-    0: { name: "Idle", color: "#888888", visible: true },
-    1: { name: "Navigating", color: "#00ffff", visible: true },
-    2: { name: "Search Pattern", color: "#0000ff", visible: true },
-    3: { name: "Approach Marker", color: "#ffffff", visible: true },
-    4: { name: "Approach Object", color: "#ffaa00", visible: true },
-    5: { name: "Verify Pos", color: "#00550e", visible: true },
-    6: { name: "Verify Marker", color: "#06ac00", visible: true },
-    7: { name: "Verify Object", color: "#78ff66", visible: true },
-    8: { name: "Reversing", color: "#ff0000", visible: true },
-    9: { name: "Stuck", color: "#330000", visible: true }
+    0: { name: "Idle", color: "#888888", visible: true, clearIndex: 0 },
+    1: { name: "Navigating", color: "#00ffff", visible: true, clearIndex: 0 },
+    2: { name: "Search Pattern", color: "#0000ff", visible: true, clearIndex: 0 },
+    3: { name: "Approach Marker", color: "#ffffff", visible: true, clearIndex: 0 },
+    4: { name: "Approach Object", color: "#ffaa00", visible: true, clearIndex: 0 },
+    5: { name: "Verify Pos", color: "#00550e", visible: true, clearIndex: 0 },
+    6: { name: "Verify Marker", color: "#06ac00", visible: true, clearIndex: 0 },
+    7: { name: "Verify Object", color: "#78ff66", visible: true, clearIndex: 0 },
+    8: { name: "Reversing", color: "#ff0000", visible: true, clearIndex: 0 },
+    9: { name: "Stuck", color: "#330000", visible: true, clearIndex: 0 }
 };
 
 // Detection Colors
 let detectColors = {
-    10: { name: "Aruco Tag", color: "#aa00ff", visible: true },
-    11: { name: "Mallet", color: "#ffa500", visible: true },
-    12: { name: "Bottle", color: "#0088ff", visible: true },
-    13: { name: "Pick", color: "#ffee00", visible: true }
+    10: { name: "Aruco Tag", color: "#aa00ff", visible: true, clearIndex: 0 },
+    11: { name: "Mallet", color: "#ffa500", visible: true, clearIndex: 0 },
+    12: { name: "Bottle", color: "#0088ff", visible: true, clearIndex: 0 },
+    13: { name: "Pick", color: "#ffee00", visible: true, clearIndex: 0 }
 };
 
 // Terrain Height Sampler
@@ -77,52 +85,36 @@ function getTerrainHeight(rx, rz, defaultY) {
     return count > 0 ? (sumY / count) : defaultY;
 }
 
-// Thick Line / InstancedMesh Renderer (Replaces Firefox-broken LineBasicMaterial)
-function createThickPath(vertices, colors, radius, defaultColorHex) {
-    if (vertices.length < 6) return null;
+// Creates line render based on LineSegments2 (Three js)
+// positions: flat array of segment pairs [x, y, z]
+// colors: colors of line segments
+function createLinePath(positions, colors, material) {
+    if (positions.length < 6) return null;
 
-    const numSegments = (vertices.length / 3) - 1;
-    const cylinderGeo = new THREE.CylinderGeometry(radius, radius, 1, 8, 1, false);
-    cylinderGeo.translate(0, 0.5, 0);
-    cylinderGeo.rotateX(Math.PI / 2);
+    const geometry = new LineSegmentsGeometry();
+    geometry.setPositions(positions);
 
-    const mat = new THREE.MeshBasicMaterial();
-    if (!colors) mat.color.setHex(defaultColorHex);
+    if (colors) geometry.setColors(colors);
 
-    const mesh = new THREE.InstancedMesh(cylinderGeo, mat, numSegments);
-    const p1 = new THREE.Vector3();
-    const p2 = new THREE.Vector3();
-    const dummy = new THREE.Object3D();
-    const col = new THREE.Color();
+    return new LineSegments2(geometry, material);
+}
 
-    for (let i = 0; i < numSegments; i++) {
-        const idx = i * 3;
-        p1.set(vertices[idx], vertices[idx + 1], vertices[idx + 2]);
-        p2.set(vertices[idx + 3], vertices[idx + 4], vertices[idx + 5]);
+// Turns a continuous array of points [x1,y1,z1, x2,y2,z2, x3,y3,z3, ...] into point pairs [x1,y1,z1, x2,y2,z2, x2,y2,z2, x3,y3,z3, ...]
+function continuousLineToSegments(vertices) {
+    const output = [];
 
-        const dist = p1.distanceTo(p2);
-        if (dist < 0.001) {
-            dummy.scale.set(0, 0, 0);
-            dummy.updateMatrix();
-            mesh.setMatrixAt(i, dummy.matrix);
-            continue;
-        }
+    for (let i = 0; i + 5 < vertices.length; i += 3) {
+        const dx = vertices[i + 3] - vertices[i];
+        const dy = vertices[i + 4] - vertices[i + 1];
+        const dz = vertices[i + 5] - vertices[i + 2];
 
-        dummy.position.copy(p1);
-        dummy.lookAt(p2);
-        dummy.scale.set(1, 1, dist);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(i, dummy.matrix);
-
-        if (colors) {
-            col.setRGB(colors[idx], colors[idx + 1], colors[idx + 2]);
-            mesh.setColorAt(i, col);
+        // Skips any segments less than the minimum length
+        if (!(dx * dx + dy * dy + dz * dz < MIN_SEGMENT_LEN * MIN_SEGMENT_LEN)) {
+            output.push(vertices[i], vertices[i + 1], vertices[i + 2], vertices[i + 3], vertices[i + 4], vertices[i + 5]);
         }
     }
 
-    mesh.instanceMatrix.needsUpdate = true;
-    if (colors) mesh.instanceColor.needsUpdate = true;
-    return mesh;
+    return output;
 }
 
 init();
@@ -141,6 +133,11 @@ function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+
+    pathMaterial = new LineMaterial({ linewidth: LINE_WIDTH, worldUnits: LINE_WORLD_UNITS, vertexColors: true });
+    plannedMaterial = new LineMaterial({ linewidth: LINE_WIDTH, worldUnits: LINE_WORLD_UNITS, color: 0xeeff00 });
+    pathMaterial.resolution.set(window.innerWidth, window.innerHeight);
+    plannedMaterial.resolution.set(window.innerWidth, window.innerHeight);
 
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -202,7 +199,8 @@ function init() {
     for (const [id, data] of Object.entries(detectColors)) {
         const item = document.createElement('div');
         item.className = 'legend-item';
-        item.innerHTML = `<button class="circle-box" id="item-${id}" style="background:${data.color}" onClick="modifyColor(this)"></button><span>${data.name}</span>
+        item.innerHTML = `<button class="clear-x" id="clear-${id}" onClick="clearLine('${id}')">X</button>
+        <button class="circle-box" id="item-${id}" style="background:${data.color}" onClick="modifyColor(this)"></button><span>${data.name}</span>
         <button class="visibility-toggle" id="visibility-${id}" onclick="toggleVisibility('${id}')" aria-label="Toggle ${data.name} visibility">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="16"
@@ -222,7 +220,8 @@ function init() {
     for (const [id, data] of Object.entries(stateColors)) {
         const item = document.createElement('div');
         item.className = 'legend-item';
-        item.innerHTML = `<button class="color-box" id="item-${id}" style="background:${data.color}" onClick="modifyColor(this)"></button><span>${data.name}</span>
+        item.innerHTML = `<button class="clear-x" id="clear-${id}" onClick="clearLine('${id}')">X</button>
+        <button class="color-box" id="item-${id}" style="background:${data.color}" onClick="modifyColor(this)"></button><span>${data.name}</span>
         <button class="visibility-toggle" id="visibility-${id}" onclick="toggleVisibility('${id}')" aria-label="Toggle ${data.name} visibility">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="16"
@@ -441,6 +440,8 @@ function updateArrow(arrow, power) {
     arrow.setColor(col);
 }
 
+// Telemetry processing to update position, heading, speed, drive-power indicators, and terrain alignment
+// Builds the state-colored paths and processes visibility logic
 function updateTelemetry(buffer) {
     const view = new DataView(buffer);
     const rx = view.getFloat32(0, true);
@@ -481,30 +482,55 @@ function updateTelemetry(buffer) {
 
     const pathCount = view.getUint32(24, true); // Offset 24
     if (pathCount > 0) {
-        if (pathLine) {
-            scene.remove(pathLine);
-            if (pathLine.geometry) pathLine.geometry.dispose();
-            if (pathLine.material) pathLine.material.dispose();
+        if (pathLines) {
+            scene.remove(pathLines);
+            pathLines.geometry.dispose();
+            pathLines = null;
         }
         const floats = new Float32Array(buffer, 28, pathCount * 4); // Offset 28
-        const vertices = [];
-        const colors = [];
-        const c = new THREE.Color();
 
-        for (let i = 0; i < floats.length; i += 4) {
-            const state = Math.floor(floats[i + 3]);
-            const visible = stateColors[state] ? stateColors[state].visible : true;
-
-            if (visible) {
-                vertices.push(floats[i], floats[i + 1], -floats[i + 2]);
-                const hex = stateColors[state] ? stateColors[state].color : "#ffffff";
-                c.set(hex);
-                colors.push(c.r, c.g, c.b);
-            }
+        // Updates the state's clearIndex for clearing line segments
+        for (const state of Object.values(stateColors)) {
+            if (state.clearIndex === true) state.clearIndex = pathCount;
         }
 
-        pathLine = createThickPath(vertices, colors, 0.1, 0xffffff);
-        if (pathLine) scene.add(pathLine);
+        const stateRGB = {};
+        for (const [id, state] of Object.entries(stateColors)) stateRGB[id] = new THREE.Color(state.color);
+
+        const positions = [];
+        const colors = [];
+        let hasPrev = false;
+        let prevX = 0, prevY = 0, prevZ = 0;
+        let prevColor = new THREE.Color('#ffffff');
+
+        for (let point = 0; point < pathCount; point++) {
+            const offset = point * 4;
+            const state = Math.floor(floats[offset + 3]);
+            const stateDef = stateColors[state];
+            const isVisible = stateDef ? (stateDef.visible && point >= stateDef.clearIndex) : true;
+
+            if (!isVisible) {
+                hasPrev = false;
+                continue;
+            }
+
+            const x = floats[offset], y = floats[offset + 1], z = -floats[offset + 2];
+            if (hasPrev) {
+                const dx = x - prevX
+                const dy = y - prevY
+                const dz = z - prevZ;
+                if (dx * dx + dy * dy + dz * dz >= MIN_SEGMENT_LEN * MIN_SEGMENT_LEN) {
+                    positions.push(prevX, prevY, prevZ, x, y, z);
+                    colors.push(prevColor.r, prevColor.g, prevColor.b, prevColor.r, prevColor.g, prevColor.b);
+                }
+            }
+            prevX = x; prevY = y; prevZ = z;
+            prevColor = stateRGB[state] || fallback;
+            hasPrev = true;
+        }
+
+        pathLines = createLinePath(positions, colors, pathMaterial);
+        if (pathLines) scene.add(pathLines);
     }
 }
 
@@ -514,7 +540,6 @@ function updatePlannedPath(buffer) {
     if (plannedPathLine) {
         scene.remove(plannedPathLine);
         if (plannedPathLine.geometry) plannedPathLine.geometry.dispose();
-        if (plannedPathLine.material) plannedPathLine.material.dispose();
         plannedPathLine = null;
     }
 
@@ -544,7 +569,7 @@ function updatePlannedPath(buffer) {
             pathDistance += p1.distanceTo(p2);
         }
 
-        plannedPathLine = createThickPath(vertices, null, 0.1, 0xeeff00);
+        plannedPathLine = createLinePath(continuousLineToSegments(vertices), null, plannedMaterial);
         if (plannedPathLine) scene.add(plannedPathLine);
     }
 }
@@ -784,7 +809,14 @@ function onKey(e, p) {
     if (p && e.key === 'f') window.toggleFollow();
     if (p && e.key === ' ') window.snapToRover();
 }
-function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    pathMaterial.resolution.set(window.innerWidth, window.innerHeight);
+    plannedMaterial.resolution.set(window.innerWidth, window.innerHeight);
+}
 
 function animate() {
     requestAnimationFrame(animate);
@@ -820,7 +852,14 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-// TODO needs commented @JordanH7
+// Clears the line associated with the given ID
+window.clearLine = function (id) {
+    const numId = parseInt(id);
+    const line = stateColors[numId] || detectColors[numId];
+    line.clearIndex = true;
+}
+
+// Toggles the visibility of the line associated with the given ID
 window.toggleVisibility = function (id) {
     const icon = document.getElementById(`visibility-${id}`);
     const svg = icon.querySelector('svg');
@@ -832,7 +871,7 @@ window.toggleVisibility = function (id) {
     svg.style.fill = line.visible ? "rgb(0, 255, 0)" : "rgb(255, 0, 0)";
 }
 
-// TODO needs commented @JordanH7
+// Opens a color picker to modify the color of the selected element
 window.modifyColor = function (element) {
     const colorPicker = document.createElement("input");
     colorPicker.type = "color";
@@ -890,7 +929,8 @@ window.modifyColor = function (element) {
     });
 };
 
-// TODO needs commented @JordanH7
+// Returns the inverse hexadecimal color value
+// Used so the text label is still visible no matter the color (except when invert is ~equal to original)
 function invertHex(hex) {
     hex = hex.replace('#', '');
     const regexNum = /[0-9]/;

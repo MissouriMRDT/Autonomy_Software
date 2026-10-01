@@ -321,6 +321,9 @@ namespace constants
     extern const int VISUALIZER_WEBSERVER_PORT;
     extern const std::string VISUALIZER_THREEJS_PATH;
     extern const std::string VISUALIZER_ORBITCONTROLS_PATH;
+    extern const std::string VISUALIZER_LINESEGMENTS2_PATH;
+    extern const std::string VISUALIZER_LINESEGMENTSGEOMETRY_PATH;
+    extern const std::string VISUALIZER_LINEMATERIAL_PATH;
 
     ///////////////////////////////////////////////////////////////////////////
 

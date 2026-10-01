@@ -300,7 +300,7 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SDELC.db";    // The path to the LiDAR database file.
+    const std::string LIDAR_HANDLER_DB_PATH = "../data/LiDAR/data/databases/SIM_Flat.db";    // The path to the LiDAR database file.
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -309,9 +309,12 @@ namespace constants
     ///////////////////////////////////////////////////////////////////////////
 
     // LiDAR Data Handler.
-    const int VISUALIZER_WEBSERVER_PORT             = 3284;    // The port for the simple web server to use for serving the visualizer web UI.
-    const std::string VISUALIZER_THREEJS_PATH       = "../data/Web_Visualizer/assets/three.module.js";     // The path to the ThreeJS library.
-    const std::string VISUALIZER_ORBITCONTROLS_PATH = "../data/Web_Visualizer/assets/OrbitControls.js";    // The path to the OrbitControls library.
+    const int VISUALIZER_WEBSERVER_PORT                    = 3284;    // The port for the simple web server to use for serving the visualizer web UI.
+    const std::string VISUALIZER_THREEJS_PATH              = "../data/Web_Visualizer/assets/three.module.js";            // The path to the ThreeJS library.
+    const std::string VISUALIZER_ORBITCONTROLS_PATH        = "../data/Web_Visualizer/assets/OrbitControls.js";           // The path to the OrbitControls library.
+    const std::string VISUALIZER_LINESEGMENTS2_PATH        = "../data/Web_Visualizer/assets/LineSegments2.js";           // The path to the LineSegments2 library.
+    const std::string VISUALIZER_LINESEGMENTSGEOMETRY_PATH = "../data/Web_Visualizer/assets/LineSegmentsGeometry.js";    // The path to the LineSegmentsGeometry library.
+    const std::string VISUALIZER_LINEMATERIAL_PATH         = "../data/Web_Visualizer/assets/LineMaterial.js";            // The path to the LineMaterial library.
 
     ///////////////////////////////////////////////////////////////////////////
 

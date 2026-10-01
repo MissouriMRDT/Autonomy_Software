@@ -46,6 +46,9 @@ VisualizationHandler::VisualizationHandler(int nPort)
     // Register Asset Endpoints.
     m_pWebServer->RegisterEndpoint("/lib/three.js", std::bind(&VisualizationHandler::OnRequestLibThree, this, std::placeholders::_1));
     m_pWebServer->RegisterEndpoint("/lib/orbit.js", std::bind(&VisualizationHandler::OnRequestLibOrbit, this, std::placeholders::_1));
+    m_pWebServer->RegisterEndpoint("/lib/LineSegments2.js", std::bind(&VisualizationHandler::OnRequestLibLineSegments2, this, std::placeholders::_1));
+    m_pWebServer->RegisterEndpoint("/lib/LineSegmentsGeometry.js", std::bind(&VisualizationHandler::OnRequestLibLineSegmentsGeometry, this, std::placeholders::_1));
+    m_pWebServer->RegisterEndpoint("/lib/LineMaterial.js", std::bind(&VisualizationHandler::OnRequestLibLineMaterial, this, std::placeholders::_1));
 
     // Register Data Endpoints.
     m_pWebServer->SetHtmlContent(this->GetEmbeddedHtml());
@@ -969,6 +972,51 @@ std::vector<char> VisualizationHandler::OnRequestLibOrbit(const std::string& szQ
 {
     (void) szQuery;
     return LoadFileToBuffer(constants::VISUALIZER_ORBITCONTROLS_PATH);
+}
+
+/******************************************************************************
+ * @brief Serves the local LineSegments2.js file.
+ *
+ * @param szQuery - The query string (unused).
+ * @return std::vector<char> - The binary content of the file.
+ *
+ * @author JordanH7 (jordan.hoover77@gmail.com)
+ * @date 2026-09-30
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::OnRequestLibLineSegments2(const std::string& szQuery)
+{
+    (void) szQuery;
+    return LoadFileToBuffer(constants::VISUALIZER_LINESEGMENTS2_PATH);
+}
+
+/******************************************************************************
+ * @brief Serves the local LineSegmentsGeometry.js file.
+ *
+ * @param szQuery - The query string (unused).
+ * @return std::vector<char> - The binary content of the file.
+ *
+ * @author JordanH7 (jordan.hoover77@gmail.com)
+ * @date 2026-09-30
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::OnRequestLibLineSegmentsGeometry(const std::string& szQuery)
+{
+    (void) szQuery;
+    return LoadFileToBuffer(constants::VISUALIZER_LINESEGMENTSGEOMETRY_PATH);
+}
+
+/******************************************************************************
+ * @brief Serves the local LineMaterial.js file.
+ *
+ * @param szQuery - The query string (unused).
+ * @return std::vector<char> - The binary content of the file.
+ *
+ * @author JordanH7 (jordan.hoover77@gmail.com)
+ * @date 2026-09-30
+ ******************************************************************************/
+std::vector<char> VisualizationHandler::OnRequestLibLineMaterial(const std::string& szQuery)
+{
+    (void) szQuery;
+    return LoadFileToBuffer(constants::VISUALIZER_LINEMATERIAL_PATH);
 }
 
 /******************************************************************************

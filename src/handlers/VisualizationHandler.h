@@ -109,6 +109,9 @@ class VisualizationHandler : public AutonomyThread<void>
         // Local Asset API.
         std::vector<char> OnRequestLibThree(const std::string& szQuery);
         std::vector<char> OnRequestLibOrbit(const std::string& szQuery);
+        std::vector<char> OnRequestLibLineSegments2(const std::string& szQuery);
+        std::vector<char> OnRequestLibLineSegmentsGeometry(const std::string& szQuery);
+        std::vector<char> OnRequestLibLineMaterial(const std::string& szQuery);
 
         // Utilities.
         std::vector<char> LoadFileToBuffer(const std::string& szPath);
