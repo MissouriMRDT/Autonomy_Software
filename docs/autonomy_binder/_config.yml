@@ -22,6 +22,8 @@ navigation:
     name: "State Machine"
   - link: "/14_URC_Rules/URC_Autonomy_Rules.html"
     name: "URC 2027 Rules"
+  - link: "/16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.html"
+    name: "Contributing & Docs Guide"
   - link: "https://docs.themrdt.org/autonomy/_d/"
     name: "Doxygen API Reference"
   - link: "https://docs.themrdt.org"
