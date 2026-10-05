@@ -64,6 +64,9 @@ Welcome to the Autonomy Binder! This is the centralized engineering reference an
 - [Autonomy Pre-Flight & Operations Checklist](15_Checklists/Autonomy_Checklist.md)
 - [Release Procedure & Changelog Guide](15_Checklists/Release_Procedure.md)
 
+### Contributing & Docs Integration
+- [Contributing & Docs Integration Guide](16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.md)
+
 ---
 
 ## External Resources & Team Portals
