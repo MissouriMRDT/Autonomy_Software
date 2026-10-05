@@ -45,37 +45,37 @@ All binder documentation lives in `docs/autonomy_binder/`. Chapters use a **two-
 
 ```text
 docs/autonomy_binder/
-├── 00_Table_of_Contents.md                      # Master TOC parsed by Pandoc compile script
-├── 01_Quick_Start_and_Ops.md                    # Environment setup, build instructions, hotkeys
-├── 02_Architecture_Overview.md                  # High-level architecture & pipeline diagrams
-├── 03_The_State_Machine.md                      # Autonomy State Machine specification
-├── 04_Subsystems_Deep_Dive/                     # Subsystem engineering specifications
-│   ├── Control_and_Actuation.md
-│   ├── Path_Planning.md
-│   └── Perception.md
-├── 05_Configuration_and_Tuning/                 # Autonomy constants and CMake build flags
-│   ├── Autonomy_Constants.md
-│   └── CMake_Options.md
-├── 06_Troubleshooting_Guide.md                  # Field diagnostics & fault recovery
-├── 07_Board_Drivers/                            # Drive, Nav, and Multimedia board drivers
-├── 08_Handlers/                                 # Subsystem handlers (Camera, LiDAR, Waypoints)
-├── 09_Threading/                                # Thread pools & AutonomyThread interface
-├── 10_Networking/                               # RoveComm UDP/TCP protocol specification
-├── 11_Logs_and_Data/                            # Quill logging, video recording, visualization
-├── 12_Vision/                                   # Cameras, ArUco detection, YOLO object detector
-├── 13_Controllers/                              # PID, Pure Pursuit, and Predictive Stanley
-├── 14_URC_Rules/                                # URC 2027 Autonomy Rules specification
-├── 15_Checklists/                               # Field checklists and release procedure
-├── 16_Contributing_and_Docs_Guide/              # This contribution & integration guide
-│   └── Contributing_and_Docs_Integration.md
-├── _includes/                                   # Jekyll layout components
-│   ├── head-custom.html                         # MathJax 3 and responsive CSS grid styling
-│   └── navigation.html                          # Sidebar chapter navigation template
-├── _layouts/                                    # Jekyll base layouts
-│   └── default.html                             # Theme wrapper based on godalming123/minimal
-├── _config.yml                                  # Jekyll configuration & exclusions
-├── Gemfile                                      # Ruby gems (github-pages)
-└── index.md                                     # Web landing page for /autonomy/_j/
+|-- 00_Table_of_Contents.md                      # Master TOC parsed by Pandoc compile script
+|-- 01_Quick_Start_and_Ops.md                    # Environment setup, build instructions, hotkeys
+|-- 02_Architecture_Overview.md                  # High-level architecture & pipeline diagrams
+|-- 03_The_State_Machine.md                      # Autonomy State Machine specification
+|-- 04_Subsystems_Deep_Dive/                     # Subsystem engineering specifications
+|   |-- Control_and_Actuation.md
+|   |-- Path_Planning.md
+|   \-- Perception.md
+|-- 05_Configuration_and_Tuning/                 # Autonomy constants and CMake build flags
+|   |-- Autonomy_Constants.md
+|   \-- CMake_Options.md
+|-- 06_Troubleshooting_Guide.md                  # Field diagnostics & fault recovery
+|-- 07_Board_Drivers/                            # Drive, Nav, and Multimedia board drivers
+|-- 08_Handlers/                                 # Subsystem handlers (Camera, LiDAR, Waypoints)
+|-- 09_Threading/                                # Thread pools & AutonomyThread interface
+|-- 10_Networking/                               # RoveComm UDP/TCP protocol specification
+|-- 11_Logs_and_Data/                            # Quill logging, video recording, visualization
+|-- 12_Vision/                                   # Cameras, ArUco detection, YOLO object detector
+|-- 13_Controllers/                              # PID, Pure Pursuit, and Predictive Stanley
+|-- 14_URC_Rules/                                # URC 2027 Autonomy Rules specification
+|-- 15_Checklists/                               # Field checklists and release procedure
+|-- 16_Contributing_and_Docs_Guide/              # This contribution & integration guide
+|   \-- Contributing_and_Docs_Integration.md
+|-- _includes/                                   # Jekyll layout components
+|   |-- head-custom.html                         # MathJax 3 and responsive CSS grid styling
+|   \-- navigation.html                          # Sidebar chapter navigation template
+|-- _layouts/                                    # Jekyll base layouts
+|   \-- default.html                             # Theme wrapper based on godalming123/minimal
+|-- _config.yml                                  # Jekyll configuration & exclusions
+|-- Gemfile                                      # Ruby gems (github-pages)
+\-- index.md                                     # Web landing page for /autonomy/_j/
 ```
 
 ---
@@ -143,18 +143,18 @@ This playbook provides the exact 6-step blueprint for connecting **any new or ex
 
 ### Architecture Overview
 
-```
+```text
 [Target Repo (docs branch)]
-   ├── Jekyll or Doxygen files
-   └── Pushed to GitHub
-             │
-             ▼
+   +-- Jekyll or Doxygen files
+   \-- Pushed to GitHub
+             |
+             v
 [RoveSoDocs (.github/workflows/deploy.yml)]
-   ├── 1. build_<repo>_jekyll (outputs to out/<repo>/_j)
-   ├── 2. build_<repo>_doxygen (outputs to out/<repo>/_d)
-   ├── 3. assemble (merges all out/ artifacts into dist/)
-   ├── 4. build-minisearch-index.mjs (indexes dist/)
-   └── 5. deploy (publishes to GitHub Pages via Cloudflare)
+   +-- 1. build_<repo>_jekyll (outputs to out/<repo>/_j)
+   +-- 2. build_<repo>_doxygen (outputs to out/<repo>/_d)
+   +-- 3. assemble (merges all out/ artifacts into dist/)
+   +-- 4. build-minisearch-index.mjs (indexes dist/)
+   \-- 5. deploy (publishes to GitHub Pages via Cloudflare)
 ```
 
 ---
@@ -387,7 +387,7 @@ In `RoveSoDocs/index.md`:
 Add a feature card under `features:`:
 
 ```yaml
-  - icon: "📖"
+  - icon: ":book:" # Or emoji like book, robot, battery in VitePress
     title: "<Repo> Documentation (Binder)"
     details: "High-level subsystem engineering manual, architecture guide, and operational instructions."
     link: /<repo>/_j/
