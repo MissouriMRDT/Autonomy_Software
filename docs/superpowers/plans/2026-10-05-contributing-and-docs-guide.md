@@ -28,7 +28,7 @@
   - Autonomy Binder Authoring & Local Workflow (branches, directory structure, Markdown/MathJax standards, local Jekyll serve, Pandoc single MD & PDF compilation).
   - Generalized RoveSoDocs Integration Playbook (Source repo setup, `deploy.yml` workflow, `NotFoundContent.vue` SPA routing, `build-minisearch-index.mjs` indexing, `index.md` homepage cards, MathJax/CSS grid layout setup).
 
-- [ ] **Step 1: Create directory and write the comprehensive Chapter 16 markdown file**
+- [x] **Step 1: Create directory and write the comprehensive Chapter 16 markdown file**
 
 Create `docs/autonomy_binder/16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.md` with:
 - Detailed introduction and overview.
@@ -37,12 +37,12 @@ Create `docs/autonomy_binder/16_Contributing_and_Docs_Guide/Contributing_and_Doc
 - Section 3: Generalized RoveSoDocs Hub Integration Playbook (6-step recipe for onboarding any repository into `docs.themrdt.org`).
 - Section 4: Troubleshooting & Best Practices (Jekyll gem template parsing bug prevention via `exclude:`, CSS grid scaling, SPA 404 cache busting).
 
-- [ ] **Step 2: Verify file existence and non-empty size**
+- [x] **Step 2: Verify file existence and non-empty size**
 
 Run: `ls -la docs/autonomy_binder/16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.md`
 Expected: File exists with > 10,000 bytes.
 
-- [ ] **Step 3: Commit the new chapter file**
+- [x] **Step 3: Commit the new chapter file**
 
 ```bash
 git add docs/autonomy_binder/16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.md
@@ -61,7 +61,7 @@ git commit -m "Add Chapter 16: Contributing and Docs Integration guide"
 - Consumes: Path `16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.md`.
 - Produces: Updated TOC that `compile_binder_pandoc.sh` parses to append Chapter 16 to the single PDF.
 
-- [ ] **Step 1: Update `00_Table_of_Contents.md`**
+- [x] **Step 1: Update `00_Table_of_Contents.md`**
 
 Add section:
 ```markdown
@@ -69,11 +69,11 @@ Add section:
 - [Contributing & Docs Integration Guide](16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.md)
 ```
 
-- [ ] **Step 2: Update `index.md`**
+- [x] **Step 2: Update `index.md`**
 
 Add Chapter 16 card / bullet under Contributing & Docs Integration on the Jekyll home page.
 
-- [ ] **Step 3: Commit updates to `00_Table_of_Contents.md` and `index.md`**
+- [x] **Step 3: Commit updates to `00_Table_of_Contents.md` and `index.md`**
 
 ```bash
 git add docs/autonomy_binder/00_Table_of_Contents.md docs/autonomy_binder/index.md
@@ -91,7 +91,7 @@ git commit -m "Index Chapter 16 in Table of Contents and landing page"
 - Consumes: Chapter 16 HTML path `/16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.html`.
 - Produces: Direct sidebar navigation item for Chapter 16 on the web site.
 
-- [ ] **Step 1: Add Chapter 16 to `navigation` list in `_config.yml`**
+- [x] **Step 1: Add Chapter 16 to `navigation` list in `_config.yml`**
 
 Add:
 ```yaml
@@ -99,7 +99,7 @@ Add:
     name: "Contributing & Docs Guide"
 ```
 
-- [ ] **Step 2: Commit `_config.yml`**
+- [x] **Step 2: Commit `_config.yml`**
 
 ```bash
 git add docs/autonomy_binder/_config.yml
@@ -113,12 +113,12 @@ git commit -m "Add Chapter 16 to Jekyll sidebar navigation"
 **Files:**
 - Test: `tools/compile_binder_pandoc.sh`
 
-- [ ] **Step 1: Run Pandoc compilation script**
+- [x] **Step 1: Run Pandoc compilation script**
 
 Run: `bash tools/compile_binder_pandoc.sh`
 Expected: Script discovers Chapter 16 in `00_Table_of_Contents.md`, outputs `Appending 16_Contributing_and_Docs_Guide/Contributing_and_Docs_Integration.md...`, and updates `Autonomy_Binder_Pandoc.md` (and `Autonomy_Binder_Pandoc.pdf` if Pandoc/LaTeX is present).
 
-- [ ] **Step 2: Verify `git status`**
+- [x] **Step 2: Verify `git status`**
 
 Run: `git status`
 Expected: Clean working tree on `docs/autonomy-binder`.
