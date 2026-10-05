@@ -1,6 +1,6 @@
 # RoveComm Comprehensive Documentation & RoveSoDocs Integration Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Author an authoritative, multi-chapter engineering guide for the RoveComm protocol and its ecosystem on a dedicated documentation branch in `RoveComm_Base`, and integrate it seamlessly into `docs.themrdt.org` via `RoveSoDocs`.
 
@@ -34,7 +34,7 @@
 - Produces: Complete static-site and PDF build infrastructure for `docs/` in `RoveComm_Base`.
 - Consumes: `godalming123/minimal` remote theme and MathJax 3 CDN scripts.
 
-- [ ] **Step 1: Create `docs/_config.yml`**
+- [x] **Step 1: Create `docs/_config.yml`**
 
 Write `_config.yml` with:
 ```yaml
@@ -102,7 +102,7 @@ exclude:
   - "RoveComm_Guide_Pandoc.md"
 ```
 
-- [ ] **Step 2: Create `docs/Gemfile`**
+- [x] **Step 2: Create `docs/Gemfile`**
 
 ```ruby
 source "https://rubygems.org"
@@ -113,15 +113,15 @@ gem "jekyll-optional-front-matter"
 gem "webrick"
 ```
 
-- [ ] **Step 3: Create `docs/_includes/head-custom.html` and `_layouts/default.html`**
+- [x] **Step 3: Create `docs/_includes/head-custom.html` and `_layouts/default.html`**
 
 Set up MathJax 3 SVG engine script and custom CSS to provide clean mobile/desktop typography and wide table scaling.
 
-- [ ] **Step 4: Create `tools/compile_rovecomm_pandoc.sh`**
+- [x] **Step 4: Create `tools/compile_rovecomm_pandoc.sh`**
 
 Script that reads `docs/00_Table_of_Contents.md`, concatenates all chapters into `docs/RoveComm_Guide_Pandoc.md`, and runs `pandoc` with `--pdf-engine=pdflatex` to output `docs/RoveComm_Manual.pdf`.
 
-- [ ] **Step 5: Verify build script line endings (LF) and commit scaffolding**
+- [x] **Step 5: Verify build script line endings (LF) and commit scaffolding**
 
 ```bash
 git add docs/ tools/
@@ -142,7 +142,7 @@ git commit -m "Initialize RoveComm documentation scaffolding and Pandoc compiler
 - Produces: Foundational protocol specification covering wire headers, data types, endianness, system packets, and transport layer tradeoffs.
 - Consumes: Protocol definitions from `RoveComm_CPP/src/RoveComm/RoveCommConsts.h` and `manifest.json`.
 
-- [ ] **Step 1: Write `docs/01_Protocol_Specification.md`**
+- [x] **Step 1: Write `docs/01_Protocol_Specification.md`**
   - Section 1: Overview & History of RoveComm v3.
   - Section 2: Wire Format & Packet Framing:
     - 6-byte header: `[Version (1B)] [DataID (2B)] [DataCount (2B)] [DataType (1B)]`
@@ -158,7 +158,7 @@ git commit -m "Initialize RoveComm documentation scaffolding and Pandoc compiler
     - Port conventions: UDP `11000`, TCP `12000`.
     - Subnets: Rover Subnet (`192.168.2.x`), Aux Subnet (`192.168.3.x`), Drone Subnet (`192.168.100.x`), Ubiquiti Rocket links (`10.0.0.x`).
 
-- [ ] **Step 2: Write `docs/02_Transport_Layers.md`**
+- [x] **Step 2: Write `docs/02_Transport_Layers.md`**
   - Section 1: UDP vs TCP Architectural Decision Matrix.
   - Section 2: UDP Transport:
     - Connectionless datagram mechanics, performance profile, and low-latency considerations.
@@ -169,7 +169,7 @@ git commit -m "Initialize RoveComm documentation scaffolding and Pandoc compiler
     - Packet boundary delimitation and stream buffering over TCP.
     - Reconnection strategies, socket failure detection, and reliable command delivery (E-Stop, Bus status).
 
-- [ ] **Step 3: Commit Chapters 01 and 02**
+- [x] **Step 3: Commit Chapters 01 and 02**
 
 ```bash
 git add docs/01_Protocol_Specification.md docs/02_Transport_Layers.md
@@ -187,7 +187,7 @@ git commit -m "Add Chapter 01 (Protocol Spec) and Chapter 02 (Transport Layers)"
 - Produces: Detailed documentation of the central manifest file, CI triggers, GitHub Actions webhooks, and automatic language-binding generators.
 - Consumes: `.github/workflows/readme-generate.yml`, `.github/scripts/readme-generate.py`, `manifest.json`.
 
-- [ ] **Step 1: Write `docs/03_Manifest_Ecosystem.md`**
+- [x] **Step 1: Write `docs/03_Manifest_Ecosystem.md`**
   - Section 1: Role of `manifest.json` as Single Source of Truth for MRDT.
   - Section 2: Manifest JSON Schema Anatomy:
     - Root metadata: `ManifestSpecVersion`, `DataTypes`, `SystemPackets`, `ethernetUDPPort`, `ethernetTCPPort`.
@@ -204,7 +204,7 @@ git commit -m "Add Chapter 01 (Protocol Spec) and Chapter 02 (Transport Layers)"
     - C++: Submodule update in `data/RoveComm` and parser script `tools/RoveComm/parser.py` generating `src/RoveComm/RoveCommManifest.h`.
     - C#: Scripts `tools/generate_boards.py` and `tools/parser.py` generating `RoveCommBoards.cs` and `RoveCommManifest.cs`.
 
-- [ ] **Step 2: Commit Chapter 03**
+- [x] **Step 2: Commit Chapter 03**
 
 ```bash
 git add docs/03_Manifest_Ecosystem.md
@@ -225,7 +225,7 @@ git commit -m "Add Chapter 03: Manifest Ecosystem and Automated CI Synchronizati
 - Produces: Concrete, production-tested implementation guides with copy-paste code examples across C++, C#, Python, and Arduino.
 - Consumes: Code patterns from `RoveComm_CPP`, `RoveComm_CSharp`, `RoveComm_Tester_Software`, and `RoveComm_Arduino`.
 
-- [ ] **Step 1: Write `docs/04_CPP_Implementation.md`**
+- [x] **Step 1: Write `docs/04_CPP_Implementation.md`**
   - Architecture in `Autonomy_Software` and `RoveSoSimulator`.
   - Threading architecture: `AutonomyThread`, worker pools, Windows IOCP vs Linux POSIX sockets.
   - Core classes: `RoveCommPacket<T>`, `RoveCommUDP`, `RoveCommTCP`.
@@ -234,7 +234,7 @@ git commit -m "Add Chapter 03: Manifest Ecosystem and Automated CI Synchronizati
     - Sending vector telemetry and commands.
     - Synchronous vs asynchronous callback handling.
 
-- [ ] **Step 2: Write `docs/05_CSharp_Implementation.md`**
+- [x] **Step 2: Write `docs/05_CSharp_Implementation.md`**
   - Architecture in BaseStation .NET Blazor.
   - Dependency injection and service lifetime (`RoveCommService`).
   - Asynchronous async/await socket models and `TaskCompletionSource`.
@@ -243,7 +243,7 @@ git commit -m "Add Chapter 03: Manifest Ecosystem and Automated CI Synchronizati
     - Subscribing to telemetry events in Razor components.
     - Sending commands from UI buttons and gamepads.
 
-- [ ] **Step 3: Write `docs/06_Python_Implementation.md`**
+- [x] **Step 3: Write `docs/06_Python_Implementation.md`**
   - Architecture of `rovecomm.py`.
   - Python socket implementation using `select.select()` and background daemon threads.
   - Struct packing with `struct.pack(">BHHB...", ...)` and type map dictionaries.
@@ -251,13 +251,13 @@ git commit -m "Add Chapter 03: Manifest Ecosystem and Automated CI Synchronizati
     - Sending telemetry and parsing incoming messages in automated testing scripts.
     - Differential GPS integration on NavBoard.
 
-- [ ] **Step 4: Write `docs/07_Embedded_Implementation.md`**
+- [x] **Step 4: Write `docs/07_Embedded_Implementation.md`**
   - Architecture of `RoveComm_Arduino` for microcontrollers (Teensy 4.1, STM32, SAM).
   - Microcontroller constraints: static memory buffers, zero dynamic allocation, polling loop (`rovecomm.read()`).
   - Hardware PHY integration (NativeEthernet, W5500).
   - Firmware dispatch loop example: reading packet, switching on `dataId`, commanding motor controllers.
 
-- [ ] **Step 5: Commit Chapters 04 through 07**
+- [x] **Step 5: Commit Chapters 04 through 07**
 
 ```bash
 git add docs/04_CPP_Implementation.md docs/05_CSharp_Implementation.md docs/06_Python_Implementation.md docs/07_Embedded_Implementation.md
@@ -275,7 +275,7 @@ git commit -m "Add Chapters 04-07: C++, C#, Python, and Embedded implementation 
 - Produces: Complete operations guide for the RoveComm Tester GUI application.
 - Consumes: Codebase at `C:\Users\ltkli\Documents\GitHub\RoveComm_Tester_Software`.
 
-- [ ] **Step 1: Write `docs/08_Tester_Software.md`**
+- [x] **Step 1: Write `docs/08_Tester_Software.md`**
   - Section 1: Overview and Purpose of `RoveComm_Tester_Software`.
   - Section 2: Installation and Environment Setup (Python dependencies, PyQt5).
   - Section 3: GUI Modules Deep Dive:
@@ -290,7 +290,7 @@ git commit -m "Add Chapters 04-07: C++, C#, Python, and Embedded implementation 
     - Simulating motor telemetry for Autonomy debugging.
     - Stress-testing network packet throughput.
 
-- [ ] **Step 2: Commit Chapter 08**
+- [x] **Step 2: Commit Chapter 08**
 
 ```bash
 git add docs/08_Tester_Software.md
@@ -311,7 +311,7 @@ git commit -m "Add Chapter 08: RoveComm Tester Software diagnostic guide"
 - Produces: Master navigation index, landing page, and documentation integration playbook following Chapter 16 of the Autonomy Binder.
 - Consumes: `RoveSoDocs` deployment specification.
 
-- [ ] **Step 1: Write `docs/09_Docs_Integration.md`**
+- [x] **Step 1: Write `docs/09_Docs_Integration.md`**
   - Complete 6-step integration playbook tailored for `RoveComm_Base` into `RoveSoDocs`:
     1. Duplicating Jekyll workflow section in `RoveSoDocs/.github/workflows/deploy.yml` (`build_rovecomm_jekyll`).
     2. Setting destination path to `out/rovecomm/_j/` (preserving `out/rovecomm/_cpp/` for Doxygen).
@@ -319,15 +319,15 @@ git commit -m "Add Chapter 08: RoveComm Tester Software diagnostic guide"
     4. Adding `/rovecomm/_j/` to `tools/build-minisearch-index.mjs`.
     5. Updating `RoveSoDocs/index.md` feature cards for both RoveComm Guide and C++ Doxygen.
 
-- [ ] **Step 2: Write `docs/10_Pandoc_PDF_Build.md`**
+- [x] **Step 2: Write `docs/10_Pandoc_PDF_Build.md`**
   - Instructions for compiling the single PDF using `tools/compile_rovecomm_pandoc.sh`.
   - Dependencies required (`pandoc`, `texlive-latex-base`, `texlive-fonts-recommended`).
 
-- [ ] **Step 3: Write `docs/00_Table_of_Contents.md` and `docs/index.md`**
+- [x] **Step 3: Write `docs/00_Table_of_Contents.md` and `docs/index.md`**
   - Full master TOC linking Chapters 01 through 10.
   - Jekyll landing page with card grid linking to each section.
 
-- [ ] **Step 4: Commit Chapters 09, 10, TOC, and landing page**
+- [x] **Step 4: Commit Chapters 09, 10, TOC, and landing page**
 
 ```bash
 git add docs/09_Docs_Integration.md docs/10_Pandoc_PDF_Build.md docs/00_Table_of_Contents.md docs/index.md
@@ -347,23 +347,23 @@ git commit -m "Add Chapters 09-10, master Table of Contents, and landing page"
 **Interfaces:**
 - Produces: Live deployment configuration in `RoveSoDocs` for pulling and serving the RoveComm Guide at `docs.themrdt.org/rovecomm/_j/`.
 
-- [ ] **Step 1: Add `build_rovecomm_jekyll` to `deploy.yml` in `RoveSoDocs`**
+- [x] **Step 1: Add `build_rovecomm_jekyll` to `deploy.yml` in `RoveSoDocs`**
   - Clone `MissouriMRDT/RoveComm_Base` on branch `docs/rovecomm`.
   - Build Jekyll site into `out/rovecomm/_j/`.
   - Include artifact in `assemble` and `deploy` jobs.
 
-- [ ] **Step 2: Update `.vitepress/theme/NotFoundContent.vue`**
+- [x] **Step 2: Update `.vitepress/theme/NotFoundContent.vue`**
   - Add `/rovecomm/_j/` to `refreshPrefixes`.
   - Add quicklink for RoveComm Guide.
 
-- [ ] **Step 3: Update `tools/build-minisearch-index.mjs`**
+- [x] **Step 3: Update `tools/build-minisearch-index.mjs`**
   - Add `if (url.startsWith("/rovecomm/_j/")) return "RoveComm Protocol Guide";` to `sectionFromUrl()`.
 
-- [ ] **Step 4: Update `index.md` in `RoveSoDocs`**
+- [x] **Step 4: Update `index.md` in `RoveSoDocs`**
   - Add feature card for "RoveComm Protocol Guide (Binder)" linking to `/rovecomm/_j/`.
   - Maintain balanced card layout on the homepage.
 
-- [ ] **Step 5: Verify and commit changes in `RoveSoDocs`**
+- [x] **Step 5: Verify and commit changes in `RoveSoDocs`**
 
 ```bash
 git add .github/workflows/deploy.yml .vitepress/theme/NotFoundContent.vue tools/build-minisearch-index.mjs index.md
@@ -377,7 +377,7 @@ git commit -m "Integrate RoveComm Protocol Guide into RoveSoDocs hub"
 **Files:**
 - Test: `C:\Users\ltkli\Documents\GitHub\RoveComm_Base\tools\compile_rovecomm_pandoc.sh`
 
-- [ ] **Step 1: Run Pandoc compilation script in `RoveComm_Base`**
+- [x] **Step 1: Run Pandoc compilation script in `RoveComm_Base`**
 
 ```bash
 cd C:\Users\ltkli\Documents\GitHub\RoveComm_Base
@@ -385,6 +385,6 @@ bash tools/compile_rovecomm_pandoc.sh
 ```
 Expected: Clean compilation of `docs/RoveComm_Manual.pdf` with no LaTeX errors.
 
-- [ ] **Step 2: Verify git status and branches across both repos**
+- [x] **Step 2: Verify git status and branches across both repos**
 
 Run `git status` in `RoveComm_Base` and `RoveSoDocs` to ensure all branches are clean and ready.
