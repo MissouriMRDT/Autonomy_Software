@@ -67,6 +67,7 @@ Welcome to the Autonomy Binder! This is the centralized engineering reference an
 ### Troubleshooting & Checklists
 - [Troubleshooting & Field Diagnostics Guide](06_Troubleshooting_Guide.md)
 - [Autonomy Pre-Flight & Operations Checklist](15_Checklists/Autonomy_Checklist.md)
+- [Release Procedure & Changelog Guide](15_Checklists/Release_Procedure.md)
 
 ---
 
