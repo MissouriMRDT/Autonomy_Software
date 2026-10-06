@@ -93,7 +93,7 @@ namespace constants
 
     // Drive Board constants
     const float DRIVE_BOARD_MIN_SLOPE    = 3.5;     // The min slope in degrees for fTheta to start calculating multiplier. If fTheta is less: set to max multiplier.
-    const float DRIVE_BOARD_MAX_SLOPE    = 30.0;    // The max slope in degrees for fTheta to stop calculating multiplier and set to min multiplier.
+    const float DRIVE_BOARD_MAX_SLOPE    = 10.0;    // The max slope in degrees for fTheta to stop calculating multiplier and set to min multiplier.
     const float DRIVE_BOARD_MIN_DAMP     = 0.5;     // The min multiplier used in variable drive speed applied to SetMaxDriveEffort().
     const float DRIVE_BOARD_MAX_DAMP     = 1.0;     // The max multiplier used in variable drive speed applied to SetMaxDriveEffort().
     const float DRIVE_BOARD_ROLL_WEIGHT  = 0.6;     // The weight in a percentage of importance for the roll position: 60%.
