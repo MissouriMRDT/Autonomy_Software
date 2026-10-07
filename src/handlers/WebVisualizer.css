@@ -84,6 +84,15 @@ body {
     cursor: pointer;
 }
 
+.slider {
+    pointer-events: auto;
+    cursor: grab;
+}
+
+.slider:active {
+    cursor: grabbing;
+}
+
 .legend-section {
     margin-bottom: 10px;
     border-bottom: 1px solid #555;

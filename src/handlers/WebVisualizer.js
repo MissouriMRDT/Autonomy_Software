@@ -953,7 +953,13 @@ function invertHex(hex) {
     return "#" + newHex;
 }
 
-// TODO needs commented @JordanH7
+// TODO needs everything @JordanH7
 function shortenString(str, maxLength) {
     return str;
+}
+
+// Modifies the line thickness of all paths based on an html slider input
+document.getElementById("line-thickness").oninput = function () {
+    pathMaterial.linewidth = this.value;
+    plannedMaterial.linewidth = this.value;
 }
