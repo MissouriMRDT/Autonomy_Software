@@ -411,7 +411,6 @@ namespace constants
     extern const unsigned int SEARCH_STUCK_CHECK_ATTEMPTS;
     extern const double SEARCH_STUCK_CHECK_ROT_THRESH;
     extern const double SEARCH_STUCK_CHECK_VEL_THRESH;
-
     // Navigating State.
     extern const double NAVIGATING_MOTOR_POWER;
     extern const double NAVIGATING_REACHED_GOAL_RADIUS;

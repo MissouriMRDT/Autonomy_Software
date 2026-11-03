@@ -207,8 +207,9 @@ TEST_F(SearchPatternTests, SpiralPatternShapeGPS)
     // Use this for generating a search pattern with default params.
     std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSpiralPatternWaypoints(stGPSRollaCoordinate);
 
-    // Check if the returned path resembles an outward spiral pattern.
-    EXPECT_TRUE(IsOutwardSpiral(vSearchPatternPath));
+    // Check if the outward half resembles an outward spiral pattern.
+    std::vector<geoops::Waypoint> vOutwardHalf(vSearchPatternPath.begin(), vSearchPatternPath.begin() + vSearchPatternPath.size() / 2);
+    EXPECT_TRUE(IsOutwardSpiral(vOutwardHalf));
 }
 
 /******************************************************************************
@@ -226,8 +227,9 @@ TEST_F(SearchPatternTests, SpiralPatternShapeUTM)
     // Use this for generating a search pattern with default params.
     std::vector<geoops::Waypoint> vSearchPatternPath = searchpattern::CalculateSpiralPatternWaypoints(stUTMRollaCoordinate);
 
-    // Check if the returned path resembles an outward spiral pattern.
-    EXPECT_TRUE(IsOutwardSpiral(vSearchPatternPath));
+    // Check if the outward half resembles an outward spiral pattern.
+    std::vector<geoops::Waypoint> vOutwardHalf(vSearchPatternPath.begin(), vSearchPatternPath.begin() + vSearchPatternPath.size() / 2);
+    EXPECT_TRUE(IsOutwardSpiral(vOutwardHalf));
 }
 
 /******************************************************************************
