@@ -129,6 +129,40 @@ __global__ void CalculateVarianceGridKernel(const float4* d_f4PointCloud,
 }
 
 /******************************************************************************
+ * @brief DuckDB Insertion into the cost map (LiDAR database)
+ *
+ * @param d_fGridMinY - The pointer to GPU memory containing the minimum Y value in a grid.
+ * @param d_fGridMaxY - The pointer to GPU memory containing the maximum Y value in a grid.
+ * @param fCellSize - The size of each cell.
+ * @param nGridWidth - The width of the grid.
+ * @param fCosHeading - The cosine heading.
+ * @param fSinHeading - The sine heading.
+ * @param dRoverEasting - The rover's easting position.
+ * @param dRoverNorthing - The rover's northing position.
+ * @param dRoverAltitude - The rover's altitude.
+ * @return __global__ - Nothing
+ *
+ * @author Sam Nolte (samnolte0302@gmail.com)
+ * @date 2026-11-03
+ ******************************************************************************/
+__global__ void BulkInsertIntoLiDARDatabase(float* d_fGridMinY,
+                                            float* d_fGridMaxY,
+                                            float fCellSize,
+                                            int nGridWidth,
+                                            float fCosHeading,
+                                            float fSinHeading,
+                                            double dRoverEasting,
+                                            double dRoverNorthing,
+                                            double dRoverAltitude,
+                                            double dObstacleVarianceThreshold)
+{
+    //
+    // TODO: Bayesian Log Odds needs to retrieve previous values which means they need to be queried.
+
+    // TODO: Insert into LiDAR database. We need to finalize R-Tree cost map storage in LiDAR
+}
+
+/******************************************************************************
  * @brief - Defines the namespace for object detection utilities.
  *
  *
@@ -140,7 +174,7 @@ namespace objectdetectutils
     /******************************************************************************
      * @brief - Will extract the obstacles from the CUDA kernel.
      *
-     * @param d_f4PointCloud - The point cloud.
+     * @param d_f4PointCloud - A pointer to the point cloud GPU buffer.
      * @param nTotalPoints - The total number of points.
      * @param stCurrentPose - The current rover pose.
      * @param dGridCellSize - The size of the grid cells.
@@ -199,9 +233,21 @@ namespace objectdetectutils
         // Wait for GPU to finish.
         cudaDeviceSynchronize();
 
-        // Copy the incredibly small grid arrays back to CPU.
-        cudaMemcpy(vGridMinY.data(), d_fGridMinY, nTotalCells * sizeof(float), cudaMemcpyDeviceToHost);
-        cudaMemcpy(vGridMaxY.data(), d_fGridMaxY, nTotalCells * sizeof(float), cudaMemcpyDeviceToHost);
+        // Insert this data into database
+        BulkInsertIntoLiDARDatabase<<<nBlocks, nThreadsPerBlock>>>(d_fGridMinY,
+                                                                   d_fGridMaxY,
+                                                                   static_cast<float>(dGridCellSize),
+                                                                   nGridWidth,
+                                                                   static_cast<float>(cos(dHeadingRad)),
+                                                                   static_cast<float>(sin(dHeadingRad)),
+                                                                   stRoverUTM.dEasting,
+                                                                   stRoverUTM.dNorthing,
+                                                                   stRoverUTM.dAltitude,
+                                                                   dObstacleVarianceThreshold);
+
+        // // Copy the incredibly small grid arrays back to CPU.
+        // cudaMemcpy(vGridMinY.data(), d_fGridMinY, nTotalCells * sizeof(float), cudaMemcpyDeviceToHost);
+        // cudaMemcpy(vGridMaxY.data(), d_fGridMaxY, nTotalCells * sizeof(float), cudaMemcpyDeviceToHost);
 
         // Free GPU memory.
         cudaFree(d_fGridMinY);
@@ -209,28 +255,28 @@ namespace objectdetectutils
 
         std::vector<geoops::UTMCoordinate> vObstacles;
 
-        // Extract obstacles from the tiny CPU grid array.
-        for (int nY = 0; nY < nGridWidth; ++nY)
-        {
-            for (int nX = 0; nX < nGridWidth; ++nX)
-            {
-                int nIdx    = (nY * nGridWidth) + nX;
-                float fMinY = vGridMinY[nIdx];
-                float fMaxY = vGridMaxY[nIdx];
+        // // Extract obstacles from the tiny CPU grid array.
+        // for (int nY = 0; nY < nGridWidth; ++nY)
+        // {
+        //     for (int nX = 0; nX < nGridWidth; ++nX)
+        //     {
+        //         int nIdx    = (nY * nGridWidth) + nX;
+        //         float fMinY = vGridMinY[nIdx];
+        //         float fMaxY = vGridMaxY[nIdx];
 
-                if (fMinY != FLT_MAX && fMaxY != -FLT_MAX)
-                {
-                    if ((fMaxY - fMinY) > static_cast<float>(dObstacleVarianceThreshold))
-                    {
-                        // Reverse the array offset to get real global coordinates.
-                        double dObsEasting  = stRoverUTM.dEasting + ((nX - (nGridWidth / 2)) * dGridCellSize);
-                        double dObsNorthing = stRoverUTM.dNorthing + ((nY - (nGridWidth / 2)) * dGridCellSize);
+        //         if (fMinY != FLT_MAX && fMaxY != -FLT_MAX)
+        //         {
+        //             if ((fMaxY - fMinY) > static_cast<float>(dObstacleVarianceThreshold))
+        //             {
+        //                 // Reverse the array offset to get real global coordinates.
+        //                 double dObsEasting  = stRoverUTM.dEasting + ((nX - (nGridWidth / 2)) * dGridCellSize);
+        //                 double dObsNorthing = stRoverUTM.dNorthing + ((nY - (nGridWidth / 2)) * dGridCellSize);
 
-                        vObstacles.emplace_back(dObsEasting, dObsNorthing, stRoverUTM.nZone, stRoverUTM.bWithinNorthernHemisphere, stRoverUTM.dAltitude);
-                    }
-                }
-            }
-        }
+        //                 vObstacles.emplace_back(dObsEasting, dObsNorthing, stRoverUTM.nZone, stRoverUTM.bWithinNorthernHemisphere, stRoverUTM.dAltitude);
+        //             }
+        //         }
+        //     }
+        // }
 
         return vObstacles;
     }

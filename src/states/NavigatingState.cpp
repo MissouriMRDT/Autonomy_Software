@@ -218,41 +218,9 @@ namespace statemachine
         /* --- Detect Obstacles --- */
         //////////////////////////////
 
-        // Implement Time To Live for detected obstacles.
+        // Also need to check edge case with astronaut being an obstacle AND a goal. This can't interfere obv
+
         std::chrono::system_clock::time_point tmNow = std::chrono::system_clock::now();
-        bool bObstaclesPruned                       = false;
-
-        std::vector<VirtualObstacle>::iterator it   = m_vActiveVirtualObstacles.begin();
-
-        // Iterate through detected active obstacles.
-        while (it != m_vActiveVirtualObstacles.end())
-        {
-            // If it has existed longer than the limit, remove it.
-            if (std::chrono::duration_cast<std::chrono::seconds>(tmNow - it->tmTimeDetected).count() >= constants::NAVIGATING_TIME_TO_LIVE_LIMIT)
-            {
-                it               = m_vActiveVirtualObstacles.erase(it);
-                bObstaclesPruned = true;
-            }
-            else
-            {
-                ++it;
-            }
-        }
-
-        // Check if we have removed any obstacles.
-        if (bObstaclesPruned)
-        {
-            // Remove them from the waypoint handler.
-            globals::g_pWaypointHandler->ClearObstacles();
-
-            // Loop through the active obstacles.
-            for (size_t i = 0; i < m_vActiveVirtualObstacles.size(); ++i)
-            {
-                globals::g_pWaypointHandler->AddObstacle(m_vActiveVirtualObstacles[i].stWaypoint);
-            }
-            globals::g_pGeoPlanner->ClearGeoCache();
-        }
-
         // TODO: CHANGE 1000 to a constant
         // Check when the last time we found an obstacle was.
         if (std::chrono::duration_cast<std::chrono::milliseconds>(tmNow - m_tmLastAvoidanceUpdate).count() >= 250)
@@ -280,66 +248,73 @@ namespace statemachine
                     float4* pPointCloud = reinterpret_cast<float4*>(cvGPUPointCloud.data);
                     int nTotalPoints    = cvGPUPointCloud.rows * cvGPUPointCloud.cols;
 
+                    // TODO: No longer needs to return a vector (but an approach like that may be helpful for below). CUDA can insert directly into the DuckDB database
+                    // Right now the code finds the variance between the "ground" and the obstacle point to determine if a point is either an obstacle or not an obstacle
                     // Send the GPU pointer straight to our custom CUDA Kernel.
+                    // TODO: Investigate whether noise can mess up our path. Bayesian Log Odds degrades fake obstacles but a fake obstacle appearance could repath for no
+                    // reason
                     std::vector<geoops::UTMCoordinate> vNewObstacles = objectdetectutils::ExtractObstaclesCUDA(pPointCloud,
                                                                                                                nTotalPoints,
                                                                                                                stCurrentRoverPose,
                                                                                                                constants::NAVIGATING_GRID_CELL_SIZE_METERS,
                                                                                                                constants::NAVIGATING_OBSTACLE_VARIANCE_THRESHOLD);
+                    // // Check if new obstacles populated.
+                    // if (!vNewObstacles.empty())
+                    // {
+                    //     for (size_t i = 0; i < vNewObstacles.size(); ++i)
+                    //     {
+                    //         // Create new obstacle waypoint.
+                    //         geoops::Waypoint stObsWaypoint(vNewObstacles[i], geoops::WaypointType::eObstacleWaypoint, constants::NAVIGATING_OBSTACLE_RADIUS);
 
-                    // Check if new obstacles populated.
-                    if (!vNewObstacles.empty())
-                    {
-                        for (size_t i = 0; i < vNewObstacles.size(); ++i)
-                        {
-                            // Create new obstacle waypoint.
-                            geoops::Waypoint stObsWaypoint(vNewObstacles[i], geoops::WaypointType::eObstacleWaypoint, constants::NAVIGATING_OBSTACLE_RADIUS);
+                    //         // Create variables for tracking the new obstacle.
+                    //         VirtualObstacle stTrackedObs;
+                    //         stTrackedObs.stWaypoint     = stObsWaypoint;
+                    //         stTrackedObs.tmTimeDetected = tmNow;
+                    //         m_vActiveVirtualObstacles.push_back(stTrackedObs);
 
-                            // Create variables for tracking the new obstacle.
-                            VirtualObstacle stTrackedObs;
-                            stTrackedObs.stWaypoint     = stObsWaypoint;
-                            stTrackedObs.tmTimeDetected = tmNow;
-                            m_vActiveVirtualObstacles.push_back(stTrackedObs);
+                    //         globals::g_pWaypointHandler->AddObstacle(stObsWaypoint);
+                    //     }
 
-                            globals::g_pWaypointHandler->AddObstacle(stObsWaypoint);
-                        }
+                    //     // Splice the new path.
+                    //     if (m_vPathCoordinates.empty())
+                    //     {
+                    //         LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Cannot splice detour, global path is empty!");
+                    //         return;
+                    //     }
 
-                        // Splice the new path.
-                        if (m_vPathCoordinates.empty())
-                        {
-                            LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: Cannot splice detour, global path is empty!");
-                            return;
-                        }
+                    //     // TODO: ADD COMMENTS AND CONSTANTS
+                    //     size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
+                    //     size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
+                    //     geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
 
-                        // TODO: ADD COMMENTS AND CONSTANTS
-                        size_t nCurrentIndex                    = m_pStanleyController->GetReferencePathTargetIndex();
-                        size_t nRejoinIndex                     = std::min(nCurrentIndex + 15, m_vPathCoordinates.size() - 1);
-                        geoops::UTMCoordinate stLocalRejoinGoal = m_vPathCoordinates[nRejoinIndex].GetUTMCoordinate();
+                    //     globals::g_pGeoPlanner->ClearGeoCache();
 
-                        globals::g_pGeoPlanner->ClearGeoCache();
+                    //     std::vector<geoops::Waypoint> vDetour =
+                    //         globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stLocalRejoinGoal, 2.0, 5.0, 5.0);
 
-                        std::vector<geoops::Waypoint> vDetour =
-                            globals::g_pGeoPlanner->PlanPath(globals::g_pLiDARHandler, stCurrentRoverPose.GetUTMCoordinate(), stLocalRejoinGoal, 2.0, 5.0, 5.0);
+                    //     if (!vDetour.empty())
+                    //     {
+                    //         m_vPathCoordinates.erase(m_vPathCoordinates.begin() + nCurrentIndex, m_vPathCoordinates.begin() + nRejoinIndex);
+                    //         m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nCurrentIndex, vDetour.begin(), vDetour.end());
 
-                        if (!vDetour.empty())
-                        {
-                            m_vPathCoordinates.erase(m_vPathCoordinates.begin() + nCurrentIndex, m_vPathCoordinates.begin() + nRejoinIndex);
-                            m_vPathCoordinates.insert(m_vPathCoordinates.begin() + nCurrentIndex, vDetour.begin(), vDetour.end());
-
-                            globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
-                            m_pStanleyController->SetReferencePath(m_vPathCoordinates);
-                        }
-                        else
-                        {
-                            LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe detour! Rover is trapped.");
-                            globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
-                            m_bWasStuck = true;
-                            return;
-                        }
-                    }
+                    //         globals::g_pWaypointHandler->StorePath("GeoPlannerPath", m_vPathCoordinates);
+                    //         m_pStanleyController->SetReferencePath(m_vPathCoordinates);
+                    //     }
+                    //     else
+                    //     {
+                    //         LOG_WARNING(logging::g_qSharedLogger, "NavigatingState: GeoPlanner failed to map a safe detour! Rover is trapped.");
+                    //         globals::g_pStateMachineHandler->HandleEvent(Event::eStuck, true);
+                    //         m_bWasStuck = true;
+                    //         return;
+                    //     }
+                    // }
                 }
             }
         }
+
+        // TODO: continuously check for ZED-detected obstacles that are on the current path and repath affected area, if needed
+        // Proposed Solution: Similar to how it was done before, iterate through obstacles in queue. This queue consists of all points with a low enough trav_score.
+        // If an obstacle is found overlapping first (N points?, all points?, state dependent?) of the path past the rover's location in the path, cue repath logic.
 
         ///////////////////////////////////////
         /* --- Navigate to goal waypoint --- */
